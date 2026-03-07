@@ -24,6 +24,7 @@ A Go toolkit for studying and testing the WhatsApp Web protocol, with a built-in
 - [Webhook System](#webhook-system)
 - [WhatsApp Commands](#whatsapp-commands)
 - [Data Model (PocketBase)](#data-model-pocketbase)
+- [Frontend — ZapLab UI](#frontend--zaplab-ui)
 - [Admin UI](#admin-ui)
 - [Ports](#ports)
 
@@ -984,6 +985,51 @@ Stores history sync metadata (content goes to `data/history/*.json`).
 Created by migrations but not actively used by the bot:
 - `customers` — customer registry
 - `phone_numbers` — associated phone numbers
+
+---
+
+## Frontend — ZapLab UI
+
+A built-in web interface for interacting with all API features without writing any code.
+
+**Access:** `http://localhost:8090/tools/`
+
+**Stack:** Alpine.js 3 · Tailwind CSS · dark/light mode · no build step required
+
+---
+
+### Sections
+
+| Section | Description |
+|---|---|
+| **Connection** | WhatsApp pairing via QR code, live connection status indicator, logout |
+| **Account** | View profile picture, push name, phone number, business name, about and platform |
+| **Live Events** | Real-time event stream from PocketBase — filterable by type, syntax-highlighted JSON, resizable panel |
+| **Send Message** | Send all message types with curl preview and response viewer |
+| **Send Raw** | Send any `waE2E.Message` JSON directly — full protocol exploration |
+| **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |
+| **Contacts & Polls** | Send vCard contacts (single or multiple), create polls, cast votes |
+| **Groups** | List, get info, create, manage participants (add/remove/promote/demote), update settings, leave, get/reset invite link with QR code, join by link |
+| **Settings** | Configure API token stored in localStorage |
+
+---
+
+### Send Message — supported types
+
+| Type | Description |
+|---|---|
+| Text | Plain text, with optional reply-to quoting |
+| Image | Base64 PNG/JPEG with optional caption and reply-to |
+| Video | Base64 MP4 with optional caption and reply-to |
+| Audio | Base64 audio, PTT (voice note) or file mode |
+| Document | Base64 any format with optional caption |
+| Location | Static GPS pin with name and address |
+| Live Location | Live GPS updates with accuracy and caption |
+| Contact | Single vCard |
+| Contacts | Multiple vCards in one bubble |
+| Reaction | Add or remove emoji reaction on any message |
+
+All send forms include a **curl preview** tab (syntax-highlighted, one-click copy) and a **response** tab with formatted JSON output.
 
 ---
 

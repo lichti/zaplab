@@ -24,6 +24,7 @@ Toolkit em Go para estudo e teste do protocolo WhatsApp Web, com uma API REST em
 - [Sistema de webhooks](#sistema-de-webhooks)
 - [Comandos via WhatsApp](#comandos-via-whatsapp)
 - [Modelo de dados (PocketBase)](#modelo-de-dados-pocketbase)
+- [Frontend — ZapLab UI](#frontend--zaplab-ui)
 - [Admin UI](#admin-ui)
 - [Portas](#portas)
 
@@ -985,6 +986,51 @@ Criadas pelas migrations mas não utilizadas ativamente pelo bot:
 - `customers` — cadastro de clientes
 - `phone_numbers` — números de telefone associados
 - `credits` — créditos por cliente
+
+---
+
+## Frontend — ZapLab UI
+
+Interface web integrada para interagir com todos os recursos da API sem escrever código.
+
+**Acesso:** `http://localhost:8090/tools/`
+
+**Stack:** Alpine.js 3 · Tailwind CSS · modo dark/light · sem build step
+
+---
+
+### Seções
+
+| Seção | Descrição |
+|---|---|
+| **Connection** | Pareamento via QR code, indicador de status em tempo real, logout |
+| **Account** | Visualizar foto de perfil, push name, número, nome comercial, recado e plataforma |
+| **Live Events** | Stream de eventos em tempo real do PocketBase — filtrável por tipo, JSON com syntax highlight, painel redimensionável |
+| **Send Message** | Envio de todos os tipos de mensagem com preview curl e visualizador de resposta |
+| **Send Raw** | Envio de qualquer JSON `waE2E.Message` diretamente — exploração completa do protocolo |
+| **Message Control** | Reagir, editar, revogar/apagar, indicador de digitação, timer de mensagens temporárias |
+| **Contacts & Polls** | Enviar contatos vCard (simples ou múltiplos), criar enquetes, votar |
+| **Groups** | Listar, ver info, criar, gerenciar participantes (add/remove/promote/demote), atualizar configurações, sair, obter/resetar link de convite com QR code, entrar por link |
+| **Settings** | Configurar token da API armazenado no localStorage |
+
+---
+
+### Send Message — tipos suportados
+
+| Tipo | Descrição |
+|---|---|
+| Text | Texto simples, com reply-to opcional |
+| Image | PNG/JPEG em Base64 com legenda e reply-to opcionais |
+| Video | MP4 em Base64 com legenda e reply-to opcionais |
+| Audio | Áudio em Base64, modo PTT (nota de voz) ou arquivo |
+| Document | Qualquer formato em Base64 com legenda opcional |
+| Location | Pin GPS estático com nome e endereço |
+| Live Location | Atualização de GPS ao vivo com precisão e legenda |
+| Contact | vCard único |
+| Contacts | Múltiplos vCards em uma única bolha |
+| Reaction | Adicionar ou remover reação emoji em qualquer mensagem |
+
+Todos os formulários incluem aba de **preview curl** (syntax-highlighted, cópia com um clique) e aba de **resposta** com JSON formatado.
 
 ---
 
