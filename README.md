@@ -998,6 +998,18 @@ A built-in web interface for interacting with all API features without writing a
 
 ---
 
+### Screenshots
+
+| | |
+|---|---|
+| ![Connection](docs/images/ui-connection.png) | ![Account](docs/images/ui-account.png) |
+| ![Live Events](docs/images/ui-live-events.png) | ![Send Message](docs/images/ui-send-message.png) |
+| ![Send Raw](docs/images/ui-send-raw.png) | ![Message Control](docs/images/ui-message-control.png) |
+| ![Contacts & Polls](docs/images/ui-contacts-polls.png) | ![Groups](docs/images/ui-groups.png) |
+| ![Settings](docs/images/ui-settings.png) | |
+
+---
+
 ### Sections
 
 | Section | Description |
