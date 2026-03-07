@@ -1,0 +1,28 @@
+# Binaries
+bin/
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go module cache
+vendor/
+
+#AI
+CLAUDE.md
+GEMINI.md
+.claude/

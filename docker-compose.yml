@@ -1,0 +1,76 @@
+# Runtime data lives on the host at ZAPLAB_DATA_DIR (default: ~/.zaplab).
+# Inside containers it is always mounted at /data via ZAPLAB_DATA_DIR=/data.
+# Set ZAPLAB_DATA_DIR in .env or export it in your shell to change the location.
+
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ${ZAPLAB_DATA_DIR:-${HOME}/.zaplab}:/data
+    ports:
+      - "8090:8090"
+    environment:
+      - API_TOKEN=${API_TOKEN}
+      - ZAPLAB_DATA_DIR=/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8090/health || exit 1"]
+      interval: 15s
+      start_period: 20s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    command: ["serve", "--http", "0.0.0.0:8090"]
+    networks:
+      - localnet
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.10.4
+    volumes:
+      - ${ZAPLAB_DATA_DIR:-${HOME}/.zaplab}/n8n:/home/node/.n8n
+    ports:
+      - "5678:5678"
+    restart: unless-stopped
+    environment:
+      - GENERIC_TIMEZONE=${TZ:-America/Sao_Paulo}
+      - TZ=${TZ:-America/Sao_Paulo}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_LISTEN_ADDRESS=0.0.0.0
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_HIRING_BANNER_ENABLED=false
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      # - N8N_PUBLIC_API_SWAGGERUI_DISABLED=true
+      # - N8N_MFA_ENABLED=true
+      # - N8N_EMAIL_MODE=smtp
+      # - N8N_SMTP_HOST=smtp.gmail.com
+      # - N8N_SMTP_PORT=587
+      # - N8N_SMTP_USER=<EMAIL>
+      # - N8N_SMTP_PASS=<PASSWORD>
+      # - N8N_SMTP_SENDER=<EMAIL>
+      # - N8N_SMTP_SSL=true
+      # - DB_TYPE=postgresdb
+      # - DB_POSTGRESDB_DATABASE=<POSTGRES_DATABASE>
+      # - DB_POSTGRESDB_HOST=<POSTGRES_HOST>
+      # - DB_POSTGRESDB_PORT=<POSTGRES_PORT>
+      # - DB_POSTGRESDB_USER=<POSTGRES_USER>
+      # - DB_POSTGRESDB_SCHEMA=<POSTGRES_SCHEMA>
+      # - DB_POSTGRESDB_PASSWORD=<POSTGRES_PASSWORD>
+    command: ["start"]
+    networks:
+      - localnet
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    command: ["tunnel", "run"]
+    depends_on:
+      engine:
+        condition: service_healthy
+    networks:
+      - localnet
+
+networks:
+  localnet:

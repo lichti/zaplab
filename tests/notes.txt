@@ -1,0 +1,1 @@
+curl -i http://localhost:8070/api/v1/webhooks/WdeTpP0RqCxvsq1g4QaDO -d '{"teste": 100}'

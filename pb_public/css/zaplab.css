@@ -1,0 +1,33 @@
+[x-cloak] { display: none !important; }
+
+/* JSON syntax highlight — same colors dark/light (dark bg makes them pop) */
+.jk { color: #58a6ff; }  /* key    */
+.js { color: #3fb950; }  /* string */
+.jn { color: #ffa657; }  /* number */
+.jb { color: #bc8cff; }  /* bool   */
+.jl { color: #f85149; }  /* null   */
+
+/* Light mode overrides */
+html:not(.dark) .jk { color: #0550ae; }
+html:not(.dark) .js { color: #116329; }
+html:not(.dark) .jn { color: #953800; }
+html:not(.dark) .jb { color: #6639ba; }
+html:not(.dark) .jl { color: #cf222e; }
+
+/* cURL syntax highlight */
+.ck { color: #58a6ff; }  /* keyword / flag  */
+.cu { color: #3fb950; }  /* URL             */
+.cq { color: #ffa657; }  /* quoted value    */
+.cm { color: #484f58; }  /* line-continuation \ */
+html:not(.dark) .ck { color: #0550ae; }
+html:not(.dark) .cu { color: #116329; }
+html:not(.dark) .cq { color: #953800; }
+html:not(.dark) .cm { color: #8c959f; }
+
+@keyframes fadebadge { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+.badge-new { animation: fadebadge 3s forwards; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+.dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 3px; }
