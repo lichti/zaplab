@@ -22,6 +22,9 @@ Thumbs.db
 # Go module cache
 vendor/
 
+# Social media / marketing drafts
+social/
+
 #AI
 CLAUDE.md
 GEMINI.md
