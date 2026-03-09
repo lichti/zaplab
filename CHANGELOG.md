@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v1.0.0-beta.2] — 2026-03-09
+
 ### Added
 - `SimulationLocationUpdate` event saved on every simulation tick (regardless of WhatsApp send success), making route simulation progress always visible in Live Events
 - `whatsapp.SaveEvent()` exported so sub-packages can persist events independently
 - Explicit `LiveLocationMessage` handler in the event dispatcher — incoming live location updates are now saved as `"Message.LiveLocationMessage"` in the events collection
+- Test GPX file `tests/central-park-walk.gpx` — ~5 km walk through Central Park at 10 km/h (~30 min) for simulation testing
 
 ### Fixed
 - **Route Simulation:** each simulation tick was creating a new WhatsApp live location share instead of updating the existing one — fixed by reusing the original message ID via `whatsmeow.SendRequestExtra{ID: originalMsgID}`
@@ -121,5 +126,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.1...HEAD
+[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.2...HEAD
+[v1.0.0-beta.2]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [v1.0.0-beta.1]: https://github.com/lichti/zaplab/releases/tag/v1.0.0-beta.1
