@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/lichti/zaplab/internal/simulation"
 	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -61,6 +62,9 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/wa/logout", postWALogout)
 	e.Router.GET("/wa/account", getWAAccount)
 	e.Router.POST("/wa/qrtext", postQRText)
+	e.Router.POST("/simulate/route", postSimulateRoute)
+	e.Router.DELETE("/simulate/route/{id}", deleteSimulateRoute)
+	e.Router.GET("/simulate/route", getSimulateRoutes)
 	e.Router.GET("/tools/{path...}", apis.Static(os.DirFS("./pb_public"), false))
 
 	return nil
@@ -887,4 +891,55 @@ func postSendRaw(e *core.RequestEvent) error {
 		"whatsapp_message": msg,
 		"send_response":    resp,
 	})
+}
+
+// ── Route simulation ──────────────────────────────────────────────────────────
+
+func postSimulateRoute(e *core.RequestEvent) error {
+	var req struct {
+		To              string  `json:"to"`
+		GPXBase64       string  `json:"gpx_base64"`
+		SpeedKmh        float64 `json:"speed_kmh"`
+		IntervalSeconds float64 `json:"interval_seconds"`
+		Caption         string  `json:"caption"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if req.To == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "to is required"})
+	}
+	if req.GPXBase64 == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "gpx_base64 is required"})
+	}
+	toJID, ok := whatsapp.ParseJID(req.To)
+	if !ok {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "to field is not a valid JID"})
+	}
+	sim, err := simulation.Start(toJID, simulation.SimRequest{
+		To:              req.To,
+		GPXBase64:       req.GPXBase64,
+		SpeedKmh:        req.SpeedKmh,
+		IntervalSeconds: req.IntervalSeconds,
+		Caption:         req.Caption,
+	})
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{
+		"message":    "Simulation started",
+		"simulation": sim,
+	})
+}
+
+func deleteSimulateRoute(e *core.RequestEvent) error {
+	id := e.Request.PathValue("id")
+	if !simulation.Stop(id) {
+		return e.JSON(http.StatusNotFound, map[string]any{"message": "simulation not found"})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Simulation stopped"})
+}
+
+func getSimulateRoutes(e *core.RequestEvent) error {
+	return e.JSON(http.StatusOK, map[string]any{"simulations": simulation.List()})
 }
