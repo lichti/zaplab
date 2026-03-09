@@ -1,0 +1,125 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [Unreleased]
+
+### Added
+- `SimulationLocationUpdate` event saved on every simulation tick (regardless of WhatsApp send success), making route simulation progress always visible in Live Events
+- `whatsapp.SaveEvent()` exported so sub-packages can persist events independently
+- Explicit `LiveLocationMessage` handler in the event dispatcher — incoming live location updates are now saved as `"Message.LiveLocationMessage"` in the events collection
+
+### Fixed
+- **Route Simulation:** each simulation tick was creating a new WhatsApp live location share instead of updating the existing one — fixed by reusing the original message ID via `whatsmeow.SendRequestExtra{ID: originalMsgID}`
+- **Route Simulation:** errors from `SendLiveLocation` were silently ignored — the goroutine now captures and records them in the event payload
+- **Events:** incoming `LiveLocationMessage` was not reliably stored due to a fallthrough in the media-handler loop (Go interface-nil gotcha); now handled explicitly
+- **Events:** `LocationMessage` events renamed from generic `"Message"` to `"Message.LocationMessage"` for clarity
+
+### Changed
+- Route Simulation marked as **Work in Progress** (⚠ WIP) across frontend, documentation, and source code — the feature is experimental and not yet fully functional
+
+---
+
+## [v1.0.0-beta.1] — 2026-03-07
+
+### Added
+
+#### Core
+- **Initial public release** of zaplab — Go toolkit for studying and testing the WhatsApp Web protocol
+- Embedded [PocketBase](https://pocketbase.io/) v0.36+ backend (SQLite, no CGO) with custom WhatsApp integration
+- [whatsmeow](https://github.com/tulir/whatsmeow) integration for the WhatsApp Web protocol
+- `zaplab version` subcommand with version string embedded at build time via `-ldflags "-X main.Version=..."`
+- Git-tag-based versioning: `make tag TAG=vX.Y.Z` / `make tag-push`
+- MIT License
+
+#### API (`internal/api`)
+- Authentication via `X-API-Token` header (all routes except `/health`)
+- `GET /health` — health check endpoint
+- `POST /pair/qr` — initiate QR code pairing
+- `POST /pair/phone` — initiate phone number pairing
+- `GET /account` — retrieve account info (profile picture, push name, phone, business name, about, platform)
+- `POST /sendtext` — send plain text message (with optional reply-to)
+- `POST /sendimage` — send image (base64 PNG/JPEG, optional caption and reply-to)
+- `POST /sendvideo` — send video (base64 MP4, optional caption and reply-to)
+- `POST /sendaudio` — send audio (base64, PTT or file mode)
+- `POST /senddocument` — send document (base64, any format)
+- `POST /sendlocation` — send static GPS pin (name, address)
+- `POST /sendelivelocation` — send live GPS location update
+- `POST /sendcontact` — send single vCard contact
+- `POST /sendcontacts` — send multiple vCard contacts in one bubble
+- `POST /sendpoll` — create a poll
+- `POST /votepoll` — cast a vote on a poll
+- `POST /sendreaction` — add or remove emoji reaction
+- `POST /revokemessage` — revoke (delete for everyone) a message
+- `POST /deletemessage` — delete a message for self
+- `POST /editmessage` — edit a sent message
+- `POST /sendpresence` — send typing / recording indicator
+- `POST /setdisappearing` — set disappearing messages timer
+- `GET /groups` — list all groups
+- `GET /groups/{jid}` — get group info
+- `POST /groups` — create a new group
+- `POST /groups/{jid}/participants` — add participants
+- `DELETE /groups/{jid}/participants` — remove participants
+- `POST /groups/{jid}/participants/promote` — promote to admin
+- `POST /groups/{jid}/participants/demote` — demote from admin
+- `PATCH /groups/{jid}` — update group name / description / settings
+- `POST /groups/{jid}/leave` — leave a group
+- `GET /groups/{jid}/invitelink` — get invite link
+- `DELETE /groups/{jid}/invitelink` — reset invite link
+- `POST /groups/join` — join a group by invite link
+- `GET /contacts/{jid}` — get contact info
+- `POST /simulate/route` — start GPX route simulation *(experimental — WIP)*
+- `DELETE /simulate/route/{id}` — stop a running simulation *(experimental — WIP)*
+- `GET /simulate/route` — list active simulations *(experimental — WIP)*
+
+#### Frontend — ZapLab UI (`pb_public/`, served at `/tools/`)
+- Alpine.js 3 + Tailwind CSS (CDN) — no build step
+- Dark / light theme toggle, persisted in localStorage
+- Collapsible sidebar with section navigation
+- **Connection** section — QR code pairing, phone pairing, live connection status, logout
+- **Account** section — profile picture, push name, phone number, business name, about, platform
+- **Live Events** section — real-time PocketBase event stream, filterable by type, syntax-highlighted JSON, resizable panel
+- **Send Message** section — all message types with curl preview and response viewer
+- **Send Raw** section — send arbitrary `waE2E.Message` JSON for protocol exploration
+- **Message Control** section — react, edit, revoke/delete, typing indicator, disappearing timer
+- **Contacts & Polls** section — vCard contacts (single/multiple), polls, voting
+- **Groups** section — full group management (list, info, create, participants, settings, invite link with QR)
+- **Route Simulation** section *(experimental — WIP)* — GPX upload, speed/interval controls, two-step start, polling, stop
+- **Settings** section — API token configuration (localStorage)
+- Curl preview tabs for all API operations (syntax-highlighted, one-click copy)
+
+#### Infrastructure
+- Multi-stage Dockerfile: `golang:1.25-bookworm` builder → `debian:bookworm-slim` runtime
+- Docker Compose stack: zaplab engine + n8n 2.10.4 + Cloudflare Tunnel
+- Health check on `/health`, n8n depends on engine being healthy
+- `entrypoint.sh` simplified with `exec "$@"` pattern
+- Makefile targets: `build`, `link`, `run`, `build-img`, `run-docker`, `shell`, `tag`, `tag-push`, `git-init`, `clean`, `clean-docker`, and more
+- Data directory configurable via `--data-dir` flag or `ZAPLAB_DATA_DIR` env var (default: `$HOME/.zaplab`)
+- Webhook dispatcher (`internal/webhook`) — default webhook + error webhook + per-command routing
+- PocketBase migrations for `events`, `errors`, and `sent_messages` collections
+- Automatic reconnect with exponential backoff on disconnect (5 s → 10 s → … → 5 min)
+
+#### Simulation (`internal/simulation`) *(experimental — WIP)*
+- `ParseGPX` / `ParseGPXBase64` — GPX XML parser with no external dependencies
+- `NewRoute` / `PointAt` — haversine distance, binary search interpolation, bearing and speed computation
+- Background goroutine lifecycle management with `context.WithCancel`
+
+#### Documentation & Specs
+- `README.md` (English) — full API reference, setup guide, frontend documentation, screenshots
+- `README.pt-BR.md` (Portuguese) — full translation
+- `specs/` directory with detailed specs for all features:
+  `API_SPEC.md`, `MESSAGE_CONTROL_SPEC.md`, `LOCATION_REPLY_SPEC.md`, `CONTACTS_POLLS_SPEC.md`,
+  `GROUPS_SPEC.md`, `GROUPS_UI_SPEC.md`, `FRONTEND_ARCHITECTURE_SPEC.md`, `FRONTEND_SPEC.md`,
+  `SEND_PREVIEW_SPEC.md`, `SEND_RAW_SPEC.md`, `SIMULATION_SPEC.md`, `WHATSMEOW_ANALYSIS.md`
+- Test files in `tests/`: payload examples, `central-park-walk.gpx` (5 km GPX for simulation testing)
+- `.env.example` with all configurable environment variables
+
+---
+
+[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.1...HEAD
+[v1.0.0-beta.1]: https://github.com/lichti/zaplab/releases/tag/v1.0.0-beta.1
