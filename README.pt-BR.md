@@ -1023,6 +1023,7 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Message Control** | Reagir, editar, revogar/apagar, indicador de digitação, timer de mensagens temporárias |
 | **Contacts & Polls** | Enviar contatos vCard (simples ou múltiplos), criar enquetes, votar |
 | **Groups** | Listar, ver info, criar, gerenciar participantes (add/remove/promote/demote), atualizar configurações, sair, obter/resetar link de convite com QR code, entrar por link |
+| **Route Simulation** ⚠️ *Em desenvolvimento* | Simula o movimento de um dispositivo ao longo de uma rota GPX enviando atualizações de localização ao vivo — **experimental, ainda não 100% funcional** |
 | **Settings** | Configurar token da API armazenado no localStorage |
 
 ---

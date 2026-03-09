@@ -259,7 +259,9 @@ func VotePoll(chatJID, pollSenderJID types.JID, pollMessageID string, selectedOp
 
 // SendLiveLocation sends a live GPS location update.
 // sequenceNumber should increment with each update. timeOffset is seconds since the initial live location message.
-func SendLiveLocation(to types.JID, lat, lon float64, accuracyMeters uint32, speedMps float32, bearingDegrees uint32, caption string, sequenceNumber int64, timeOffset uint32, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+// messageID: when non-empty, reuses that message ID so WhatsApp treats the send as an update to the existing
+// live-location share instead of creating a new message.
+func SendLiveLocation(to types.JID, lat, lon float64, accuracyMeters uint32, speedMps float32, bearingDegrees uint32, caption string, sequenceNumber int64, timeOffset uint32, reply *ReplyInfo, messageID string) (*waE2E.Message, *whatsmeow.SendResponse, error) {
 	msg := &waE2E.Message{
 		LiveLocationMessage: &waE2E.LiveLocationMessage{
 			DegreesLatitude:                   proto.Float64(lat),
@@ -272,6 +274,17 @@ func SendLiveLocation(to types.JID, lat, lon float64, accuracyMeters uint32, spe
 			TimeOffset:                        proto.Uint32(timeOffset),
 			ContextInfo:                       buildContextInfo(reply),
 		},
+	}
+	if messageID != "" {
+		resp, err := client.SendMessage(context.Background(), to, msg, whatsmeow.SendRequestExtra{ID: types.MessageID(messageID)})
+		if err != nil {
+			logger.Errorf("Error sending live location update: %v", err)
+			saveSentError("Error sending live location update", msg, &resp, err)
+			return msg, &resp, err
+		}
+		logger.Infof("Live location updated server_timestamp=%v", resp.Timestamp)
+		saveSentMessage(msg, &resp)
+		return msg, &resp, nil
 	}
 	return sendMessage(to, msg)
 }

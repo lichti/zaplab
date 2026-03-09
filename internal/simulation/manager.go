@@ -1,3 +1,10 @@
+// Package simulation implements GPX-based live location route simulation.
+//
+// WARNING: This feature is a work in progress and not yet fully functional.
+// WhatsApp's live location update protocol requires reusing the original message ID
+// (via whatsmeow.SendRequestExtra{ID: originalMsgID}) for subsequent position updates.
+// While this mechanism is implemented, behavior may vary across WhatsApp client versions.
+// Do not rely on this in production.
 package simulation
 
 import (
@@ -19,6 +26,10 @@ type SimRequest struct {
 	SpeedKmh        float64
 	IntervalSeconds float64
 	Caption         string
+	// MessageID is the WhatsApp message ID returned by the initial /sendelivelocation call.
+	// Every update is sent with this same ID so WhatsApp updates the existing live-location
+	// share instead of creating a new message.
+	MessageID string
 }
 
 // ActiveSim describes a running simulation.
@@ -106,6 +117,7 @@ func Start(toJID types.JID, req SimRequest) (*ActiveSim, error) {
 				seq,
 				uint32(elapsed),
 				nil,
+				req.MessageID,
 			)
 			seq++
 

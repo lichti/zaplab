@@ -14,9 +14,9 @@ type TrackPoint struct {
 }
 
 type gpxFile struct {
-	XMLName   xml.Name     `xml:"gpx"`
-	Tracks    []gpxTrack   `xml:"trk"`
-	Routes    []gpxRoute   `xml:"rte"`
+	XMLName   xml.Name      `xml:"gpx"`
+	Tracks    []gpxTrack    `xml:"trk"`
+	Routes    []gpxRoute    `xml:"rte"`
 	Waypoints []gpxWaypoint `xml:"wpt"`
 }
 

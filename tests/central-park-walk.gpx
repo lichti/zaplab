@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="zaplab-test"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Central Park Walk — 30 min at 10 km/h</name>
+    <desc>~5 km walk through Central Park, New York City. Route: West 72nd St entrance → The Mall → Bethesda Fountain → East Drive → Reservoir (south loop) → 86th transverse → West Drive → back to start.</desc>
+    <author><name>zaplab-test</name></author>
+  </metadata>
+  <trk>
+    <name>Central Park Walk</name>
+    <trkseg>
+      <!-- West 72nd Street entrance (Central Park West) -->
+      <trkpt lat="40.77280" lon="-73.98100"/>
+      <trkpt lat="40.77272" lon="-73.97960"/>
+      <trkpt lat="40.77265" lon="-73.97820"/>
+      <trkpt lat="40.77258" lon="-73.97700"/>
+      <!-- Cross West Drive, enter The Mall -->
+      <trkpt lat="40.77252" lon="-73.97570"/>
+      <trkpt lat="40.77260" lon="-73.97460"/>
+      <!-- The Mall — heading north along the promenade -->
+      <trkpt lat="40.77305" lon="-73.97400"/>
+      <trkpt lat="40.77355" lon="-73.97350"/>
+      <trkpt lat="40.77405" lon="-73.97310"/>
+      <trkpt lat="40.77455" lon="-73.97280"/>
+      <trkpt lat="40.77505" lon="-73.97260"/>
+      <trkpt lat="40.77555" lon="-73.97245"/>
+      <trkpt lat="40.77605" lon="-73.97235"/>
+      <trkpt lat="40.77650" lon="-73.97225"/>
+      <!-- Bethesda Terrace approach -->
+      <trkpt lat="40.77690" lon="-73.97210"/>
+      <trkpt lat="40.77720" lon="-73.97180"/>
+      <!-- Bethesda Fountain -->
+      <trkpt lat="40.77745" lon="-73.97140"/>
+      <trkpt lat="40.77765" lon="-73.97110"/>
+      <!-- Loeb Boathouse / East Drive -->
+      <trkpt lat="40.77800" lon="-73.97080"/>
+      <trkpt lat="40.77840" lon="-73.97060"/>
+      <!-- East Drive — heading north -->
+      <trkpt lat="40.77890" lon="-73.97035"/>
+      <trkpt lat="40.77950" lon="-73.97010"/>
+      <trkpt lat="40.78010" lon="-73.96990"/>
+      <trkpt lat="40.78075" lon="-73.96970"/>
+      <trkpt lat="40.78140" lon="-73.96945"/>
+      <trkpt lat="40.78205" lon="-73.96920"/>
+      <trkpt lat="40.78270" lon="-73.96900"/>
+      <!-- Reservoir south end — beginning of loop -->
+      <trkpt lat="40.78330" lon="-73.96878"/>
+      <trkpt lat="40.78385" lon="-73.96860"/>
+      <trkpt lat="40.78430" lon="-73.96845"/>
+      <!-- Loop west along south reservoir path -->
+      <trkpt lat="40.78460" lon="-73.96890"/>
+      <trkpt lat="40.78480" lon="-73.96960"/>
+      <trkpt lat="40.78500" lon="-73.97060"/>
+      <trkpt lat="40.78510" lon="-73.97160"/>
+      <trkpt lat="40.78515" lon="-73.97270"/>
+      <trkpt lat="40.78515" lon="-73.97390"/>
+      <trkpt lat="40.78512" lon="-73.97510"/>
+      <!-- 86th Street transverse — heading west -->
+      <trkpt lat="40.78510" lon="-73.97630"/>
+      <trkpt lat="40.78508" lon="-73.97750"/>
+      <trkpt lat="40.78500" lon="-73.97820"/>
+      <!-- West Drive at 86th — heading south -->
+      <trkpt lat="40.78470" lon="-73.97845"/>
+      <trkpt lat="40.78420" lon="-73.97855"/>
+      <trkpt lat="40.78355" lon="-73.97862"/>
+      <trkpt lat="40.78280" lon="-73.97868"/>
+      <trkpt lat="40.78205" lon="-73.97872"/>
+      <trkpt lat="40.78130" lon="-73.97874"/>
+      <trkpt lat="40.78055" lon="-73.97872"/>
+      <trkpt lat="40.77980" lon="-73.97868"/>
+      <trkpt lat="40.77905" lon="-73.97862"/>
+      <trkpt lat="40.77830" lon="-73.97856"/>
+      <trkpt lat="40.77755" lon="-73.97850"/>
+      <trkpt lat="40.77680" lon="-73.97845"/>
+      <trkpt lat="40.77605" lon="-73.97840"/>
+      <!-- Approaching West 72nd Street -->
+      <trkpt lat="40.77530" lon="-73.97832"/>
+      <trkpt lat="40.77455" lon="-73.97822"/>
+      <trkpt lat="40.77385" lon="-73.97815"/>
+      <trkpt lat="40.77320" lon="-73.97815"/>
+      <!-- Exit east along 72nd transverse back to start -->
+      <trkpt lat="40.77283" lon="-73.97840"/>
+      <trkpt lat="40.77280" lon="-73.97950"/>
+      <!-- West 72nd Street entrance — end -->
+      <trkpt lat="40.77280" lon="-73.98100"/>
+    </trkseg>
+  </trk>
+</gpx>

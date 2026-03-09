@@ -1022,6 +1022,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |
 | **Contacts & Polls** | Send vCard contacts (single or multiple), create polls, cast votes |
 | **Groups** | List, get info, create, manage participants (add/remove/promote/demote), update settings, leave, get/reset invite link with QR code, join by link |
+| **Route Simulation** ⚠️ *WIP* | Simulate device movement along a GPX route sending live location updates — **experimental, not fully functional** |
 | **Settings** | Configure API token stored in localStorage |
 
 ---

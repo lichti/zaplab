@@ -1,5 +1,10 @@
 # Route Simulation Spec
 
+> **Status: Work in Progress — not fully functional**
+> The live location update mechanism (reusing the original message ID via `SendRequestExtra`)
+> is implemented but may not behave correctly across all WhatsApp clients and protocol versions.
+> This feature is under active investigation. Do not rely on it in production.
+
 ## Overview
 
 Simulates a moving device sending live WhatsApp location updates along a GPX route.
@@ -192,3 +197,15 @@ curl -X DELETE http://localhost:8090/simulate/route/abc12345 \
 - The recipient must have accepted the initial live location share for updates to appear.
   The first call to `POST /sendelivelocation` establishes the share;
   subsequent calls from the simulation update the position on the map.
+
+---
+
+## Known Limitations (Work in Progress)
+
+- **Update behavior is not guaranteed:** WhatsApp's live location update protocol requires
+  reusing the original message ID (`SendRequestExtra{ID: originalMsgID}`). While this is
+  implemented, the behavior may vary depending on the WhatsApp client version and protocol state.
+- **Multiple share bubbles:** Depending on the client and session state, updates may still
+  appear as new messages instead of moving the pin on the existing share.
+- **No persistence:** Simulations are lost on server restart with no recovery mechanism.
+- **Not production-ready:** This feature is experimental and intended for research and testing only.

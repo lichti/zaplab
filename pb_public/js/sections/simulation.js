@@ -1,4 +1,6 @@
 // Simulation section — GPX route live location simulation.
+// WARNING: Work in progress — not yet fully functional.
+// WhatsApp live location updates may not behave correctly across all clients.
 function simulationSection() {
   return {
     // ── state ──
@@ -101,6 +103,7 @@ function simulationSection() {
         speed_kmh:        this.sim.speedKmh,
         interval_seconds: this.sim.intervalSecs,
         caption:          this.sim.caption || '',
+        message_id:       '<send_response.ID from step 1>',
       };
       return [
         `# Step 2 — start the route simulation`,
@@ -141,6 +144,7 @@ function simulationSection() {
 
       try {
         // Step 1 — send first live location to establish the share in WhatsApp
+        //           and capture the message ID needed for subsequent updates.
         const initRes = await fetch('/sendelivelocation', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
@@ -153,13 +157,20 @@ function simulationSection() {
             caption:             this.sim.caption,
           }),
         });
+        const initData = await initRes.json();
         if (!initRes.ok) {
-          const d = await initRes.json();
-          this.sim.toast = { ok: false, message: d.message || 'Failed to establish live location' };
+          this.sim.toast = { ok: false, message: initData.message || 'Failed to establish live location' };
+          return;
+        }
+        const messageID = initData.send_response?.ID || '';
+        if (!messageID) {
+          this.sim.toast = { ok: false, message: 'Could not retrieve message ID from live location response' };
           return;
         }
 
-        // Step 2 — start the backend simulation loop
+        // Step 2 — start the backend simulation loop, passing the original message ID
+        //           so each update reuses it and WhatsApp moves the pin instead of
+        //           creating a new message.
         const simRes  = await fetch('/simulate/route', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
@@ -169,6 +180,7 @@ function simulationSection() {
             speed_kmh:        this.sim.speedKmh,
             interval_seconds: this.sim.intervalSecs,
             caption:          this.sim.caption,
+            message_id:       messageID,
           }),
         });
         const simData = await simRes.json();

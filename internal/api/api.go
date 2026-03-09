@@ -374,7 +374,7 @@ func postSendLiveLocation(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusBadRequest, map[string]any{"message": "To field is not a valid"})
 	}
-	msg, resp, err := whatsapp.SendLiveLocation(toJID, req.Lat, req.Lon, req.AccuracyMeters, req.SpeedMps, req.BearingDegrees, req.Caption, req.SequenceNumber, req.TimeOffset, parseReplyTo(req.ReplyTo))
+	msg, resp, err := whatsapp.SendLiveLocation(toJID, req.Lat, req.Lon, req.AccuracyMeters, req.SpeedMps, req.BearingDegrees, req.Caption, req.SequenceNumber, req.TimeOffset, parseReplyTo(req.ReplyTo), "")
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]any{"message": "Error sending live location"})
 	}
@@ -902,6 +902,7 @@ func postSimulateRoute(e *core.RequestEvent) error {
 		SpeedKmh        float64 `json:"speed_kmh"`
 		IntervalSeconds float64 `json:"interval_seconds"`
 		Caption         string  `json:"caption"`
+		MessageID       string  `json:"message_id"`
 	}
 	if err := e.BindBody(&req); err != nil {
 		return apis.NewBadRequestError("Failed to read request data", err)
@@ -911,6 +912,9 @@ func postSimulateRoute(e *core.RequestEvent) error {
 	}
 	if req.GPXBase64 == "" {
 		return e.JSON(http.StatusBadRequest, map[string]any{"message": "gpx_base64 is required"})
+	}
+	if req.MessageID == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "message_id is required — start with POST /sendelivelocation and use the returned send_response.ID"})
 	}
 	toJID, ok := whatsapp.ParseJID(req.To)
 	if !ok {
@@ -922,6 +926,7 @@ func postSimulateRoute(e *core.RequestEvent) error {
 		SpeedKmh:        req.SpeedKmh,
 		IntervalSeconds: req.IntervalSeconds,
 		Caption:         req.Caption,
+		MessageID:       req.MessageID,
 	})
 	if err != nil {
 		return e.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})

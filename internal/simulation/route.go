@@ -34,9 +34,9 @@ type RoutePoint struct {
 
 // Route precomputes cumulative distances along a sequence of track points.
 type Route struct {
-	Points    []TrackPoint
-	cumDist   []float64 // cumulative distance in km at each point index
-	Total     float64   // total route length in km
+	Points  []TrackPoint
+	cumDist []float64 // cumulative distance in km at each point index
+	Total   float64   // total route length in km
 }
 
 // NewRoute builds a Route and precomputes cumulative distances.
