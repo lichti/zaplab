@@ -203,7 +203,14 @@ func handler(rawEvt interface{}) {
 		}
 
 		if evt.Message.GetLocationMessage() != nil {
-			if err := saveEvent(evtType, rawEvt, nil); err != nil {
+			if err := saveEvent(evtType+".LocationMessage", rawEvt, nil); err != nil {
+				logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
+			}
+			return
+		}
+
+		if evt.Message.GetLiveLocationMessage() != nil {
+			if err := saveEvent(evtType+".LiveLocationMessage", rawEvt, nil); err != nil {
 				logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
 			}
 			return

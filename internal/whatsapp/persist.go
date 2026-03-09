@@ -92,6 +92,13 @@ func saveSentMessage(message *waE2E.Message, response *whatsmeow.SendResponse) e
 	return saveEvent("SentMessage", sentMessagePayload{Message: message, Response: response}, nil)
 }
 
+// SaveEvent persists an arbitrary event to the events collection.
+// Intended for use by sub-packages (e.g. simulation) that need to record events
+// without going through the WhatsApp send path.
+func SaveEvent(evtType string, raw interface{}, extra interface{}) error {
+	return saveEvent(evtType, raw, extra)
+}
+
 func saveError(evtType string, evtError string, raw interface{}) error {
 	collection, err := pb.FindCollectionByNameOrId("errors")
 	if err != nil {

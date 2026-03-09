@@ -106,7 +106,20 @@ func Start(toJID types.JID, req SimRequest) (*ActiveSim, error) {
 			distKm := elapsed * kmPerSec
 			pt := route.PointAt(distKm, req.SpeedKmh)
 
-			whatsapp.SendLiveLocation(
+			tickEvt := map[string]interface{}{
+				"simulation_id": sim.ID,
+				"to":            req.To,
+				"sequence":      seq,
+				"elapsed_sec":   elapsed,
+				"distance_km":   distKm,
+				"lat":           pt.Lat,
+				"lon":           pt.Lon,
+				"bearing":       pt.Bearing,
+				"speed_mps":     pt.SpeedMps,
+				"message_id":    req.MessageID,
+			}
+
+			_, _, sendErr := whatsapp.SendLiveLocation(
 				toJID,
 				pt.Lat,
 				pt.Lon,
@@ -119,6 +132,15 @@ func Start(toJID types.JID, req SimRequest) (*ActiveSim, error) {
 				nil,
 				req.MessageID,
 			)
+			if sendErr != nil {
+				tickEvt["error"] = sendErr.Error()
+			}
+
+			if err := whatsapp.SaveEvent("SimulationLocationUpdate", tickEvt, nil); err != nil {
+				// best-effort: log but don't stop the simulation
+				_ = err
+			}
+
 			seq++
 
 			if distKm >= route.Total {
