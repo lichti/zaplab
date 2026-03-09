@@ -106,11 +106,31 @@ DeviceProps.Os        = "iOS"
 
 ## Implementation
 
-**File:** `internal/whatsapp/bootstrap.go` — `applyDeviceSpoof(mode string)`
+**File:** `internal/whatsapp/bootstrap.go`
 
-Called at the start of `Bootstrap()`, before `sqlstore.New()` and `whatsmeow.NewClient()`.
-All changes are applied to the `store.DeviceProps` and `store.BaseClientPayload` package-level
-globals, which whatsmeow uses to build the registration and login payloads.
+Two layers of spoofing are applied in `Bootstrap()`:
+
+### Layer 1 — `applyDeviceSpoof(mode)` (before `whatsmeow.NewClient`)
+
+Applied to global vars used by the store to build all payloads:
+- `store.DeviceProps` — companion registration packet (only sent at pairing time)
+- `store.BaseClientPayload.UserAgent` — base of every handshake payload
+
+### Layer 2 — `client.GetClientPayload` hook (after `whatsmeow.NewClient`)
+
+For `android` and `ios` modes, a hook is installed on the whatsmeow client:
+
+```go
+client.GetClientPayload = func() *waWa6.ClientPayload {
+    payload := client.Store.GetClientPayload()
+    payload.Device = proto.Uint32(0)  // override companion Device > 0 → 0 (primary)
+    return payload
+}
+```
+
+This hook is called at every WebSocket handshake (`handshake.go:96`) and overrides the
+`ClientPayload.Device` field that would normally be set to the companion's device number
+(stored JID `Device > 0`). Setting it to `0` tells the server the client is a primary device.
 
 **Flag wiring:**
 - `app.go` — `deviceSpoof *string` field on `App`
@@ -119,29 +139,40 @@ globals, which whatsmeow uses to build the registration and login payloads.
 
 ---
 
-## Known Limitations
+## Known Limitations and Risks
 
-- **Device ID cannot be spoofed.** The `Device` number in the JID is assigned by WhatsApp's
-  server during pairing. A companion device always gets `Device > 0`, regardless of the
-  `UserAgent.Platform` or `DeviceProps.PlatformType` sent during the handshake.
+- **Device number in JID is still > 0.** The `Device` field in the stored JID is assigned by
+  the WhatsApp server at pairing and persists in the database. The `GetClientPayload` hook
+  overrides the number in the *handshake payload* to `0`, but the server already knows the real
+  device number from the initial pairing. It may accept the session, reject it, or silently
+  ignore the override.
 
-- **Pairing-time vs login-time identity.** `DeviceProps` (including `PlatformType`) is only
-  sent during the initial pairing registration. `UserAgent` fields are sent on every connection.
-  Changing `--device-spoof` on an already-paired device only updates the `UserAgent` identity
-  on the next login — `DeviceProps` from the original pairing remain on the server.
+- **Possible connection failure.** Sending `Device=0` in the login payload when the server
+  expects a companion device number may cause the server to reject the WebSocket connection
+  or terminate the session immediately.
 
-- **No guarantee of feature unlock.** WhatsApp's server may gate live location and other
-  features on the `Device` number (primary = 0) rather than the `UserAgent.Platform`.
-  Spoofing the platform may not unlock restricted capabilities.
+- **Possible ban.** WhatsApp may flag the session mismatch as suspicious behavior, leading
+  to a temporary or permanent ban of the paired phone number.
 
-- **Detection risk.** WhatsApp may cross-check the declared platform against behavioral
-  signals (e.g. message patterns, timing, feature usage). Mismatches could trigger session
-  termination or bans.
+- **Pairing-time identity is fixed.** `DeviceProps` (including `PlatformType`) is sent only
+  during the initial pairing. Changing `--device-spoof` on an already-paired device updates
+  the `UserAgent` on every reconnect but cannot change what was recorded at pairing time.
+
+- **Signal protocol sessions.** The device number is part of the Signal protocol address
+  (`SignalAddress(user, deviceID)`). Sending `Device=0` while holding keys registered under
+  `Device > 0` may break encrypted session establishment with some contacts.
+
+- **No guarantee of feature unlock.** Even if the server accepts `Device=0`, live location
+  and other gated features may depend on additional server-side checks beyond the device number.
 
 ---
 
-## Why Live Location Still May Not Work
+## Why Live Location May Still Not Work Even With Device=0
 
-Even with `--device-spoof android` or `--device-spoof ios`, the device's JID `Device` number
-remains `> 0` (companion), which is the field WhatsApp's server most likely uses to determine
-live location update authority. See `SIMULATION_SPEC.md` for a full analysis.
+Sending `Device=0` in the payload is necessary but possibly not sufficient. The server may
+also check:
+- The ADV (Advanced Multi-Device) identity proof registered at pairing time
+- The session's key material against the device record on the server
+- Behavioral signals that distinguish native apps from third-party clients
+
+See `SIMULATION_SPEC.md` for the full analysis of the live location limitation.

@@ -130,6 +130,23 @@ func Bootstrap(e *core.BootstrapEvent) error {
 	}
 
 	client = whatsmeow.NewClient(device, waLog.Stdout("Client", logLevel, true))
+
+	// Force Device=0 in the login payload to impersonate a primary device.
+	// The GetClientPayload hook runs at every handshake and overrides the device
+	// number that would normally come from the stored JID (Device > 0 for companions).
+	//
+	// WARNING: The stored JID still has Device > 0 from the original pairing.
+	// The server may accept the session, reject it, or downgrade it silently.
+	// This is experimental — connection failures or session termination are possible.
+	if spoof == "android" || spoof == "ios" {
+		logger.Warnf("Device spoof %q: overriding ClientPayload.Device=0 to impersonate primary device — experimental", spoof)
+		client.GetClientPayload = func() *waWa6.ClientPayload {
+			payload := client.Store.GetClientPayload()
+			payload.Device = proto.Uint32(0)
+			return payload
+		}
+	}
+
 	var isWaitingForPair atomic.Bool
 	client.PrePairCallback = func(jid types.JID, platform, businessName string) bool {
 		isWaitingForPair.Store(true)

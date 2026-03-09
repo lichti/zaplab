@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `--device-spoof` flag (`companion` / `android` / `ios`) — configures the identity payload
   sent to WhatsApp during the WebSocket handshake to impersonate different device types.
+  For `android` and `ios` modes, also overrides `ClientPayload.Device=0` via the
+  `client.GetClientPayload` hook to attempt primary device impersonation.
   Experimental; re-pair after changing. See `specs/DEVICE_SPOOF_SPEC.md`.
 
 ---
