@@ -16,6 +16,7 @@ import (
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waCompanionReg"
+	"go.mau.fi/whatsmeow/proto/waWa6"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
@@ -23,17 +24,89 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// applyDeviceSpoof configures store.DeviceProps and store.BaseClientPayload to present the
+// client as the specified device type to the WhatsApp server.
+//
+// WARNING: Experimental. These changes affect the identity payload sent during the WebSocket
+// handshake. For full effect, re-pair the device after changing this setting. Already-paired
+// companion devices retain their companion Device ID (>0) in the stored JID regardless of
+// these fields.
+//
+// Modes:
+//   - "companion" (default) — standard whatsmeow companion/linked device (ANDROID_PHONE type, WEB platform)
+//   - "android"             — impersonate a native Android phone (ANDROID platform, no WebInfo)
+//   - "ios"                 — impersonate a native iPhone (IOS platform, no WebInfo)
+func applyDeviceSpoof(mode string) {
+	switch mode {
+	case "android":
+		logger.Infof("Device spoof: android — presenting as native Android phone")
+
+		// Companion registration props: declare as Android phone
+		store.DeviceProps.Os = proto.String("Android")
+		store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_ANDROID_PHONE.Enum()
+		store.DeviceProps.Version.Primary = proto.Uint32(2)
+		store.DeviceProps.Version.Secondary = proto.Uint32(24)
+		store.DeviceProps.Version.Tertiary = proto.Uint32(78)
+
+		// UserAgent: present as native Android app, not a browser
+		store.BaseClientPayload.UserAgent.Platform = waWa6.ClientPayload_UserAgent_ANDROID.Enum()
+		store.BaseClientPayload.UserAgent.DeviceType = waWa6.ClientPayload_UserAgent_PHONE.Enum()
+		store.BaseClientPayload.UserAgent.Manufacturer = proto.String("Samsung")
+		store.BaseClientPayload.UserAgent.Device = proto.String("Galaxy S23")
+		store.BaseClientPayload.UserAgent.OsVersion = proto.String("14.0.0")
+		store.BaseClientPayload.UserAgent.OsBuildNumber = proto.String("UP1A.231005.007")
+		store.BaseClientPayload.UserAgent.LocaleLanguageIso6391 = proto.String("en")
+		store.BaseClientPayload.UserAgent.LocaleCountryIso31661Alpha2 = proto.String("US")
+
+		// Native apps do not send WebInfo — remove it
+		store.BaseClientPayload.WebInfo = nil
+
+	case "ios":
+		logger.Infof("Device spoof: ios — presenting as native iPhone")
+
+		// Companion registration props: declare as iOS phone
+		store.DeviceProps.Os = proto.String("iOS")
+		store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_IOS_PHONE.Enum()
+		store.DeviceProps.Version.Primary = proto.Uint32(24)
+		store.DeviceProps.Version.Secondary = proto.Uint32(3)
+		store.DeviceProps.Version.Tertiary = proto.Uint32(81)
+
+		// UserAgent: present as native iOS app
+		store.BaseClientPayload.UserAgent.Platform = waWa6.ClientPayload_UserAgent_IOS.Enum()
+		store.BaseClientPayload.UserAgent.DeviceType = waWa6.ClientPayload_UserAgent_PHONE.Enum()
+		store.BaseClientPayload.UserAgent.Manufacturer = proto.String("Apple")
+		store.BaseClientPayload.UserAgent.Device = proto.String("iPhone15,3")
+		store.BaseClientPayload.UserAgent.OsVersion = proto.String("17.4.1")
+		store.BaseClientPayload.UserAgent.OsBuildNumber = proto.String("21E236")
+		store.BaseClientPayload.UserAgent.LocaleLanguageIso6391 = proto.String("en")
+		store.BaseClientPayload.UserAgent.LocaleCountryIso31661Alpha2 = proto.String("US")
+
+		// Native apps do not send WebInfo — remove it
+		store.BaseClientPayload.WebInfo = nil
+
+	default: // "companion"
+		logger.Infof("Device spoof: companion (default) — standard linked/companion device")
+
+		store.DeviceProps.Os = proto.String("WhatsApp Android")
+		store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_ANDROID_PHONE.Enum()
+		store.DeviceProps.Version.Primary = proto.Uint32(2)
+		store.DeviceProps.Version.Secondary = proto.Uint32(24)
+		store.DeviceProps.Version.Tertiary = proto.Uint32(78)
+		// Keep default WEB platform and WebInfo — standard companion behavior
+	}
+}
+
 // Bootstrap connects to WhatsApp. Call after Init.
 func Bootstrap(e *core.BootstrapEvent) error {
 	waBinary.IndentXML = true
 
 	getIDSecret = strings.ToUpper(hex.EncodeToString(random.Bytes(8)))
-	store.DeviceProps.Os = proto.String("WhatsApp Android")
-	store.DeviceProps.Version.Primary = proto.Uint32(2)
-	store.DeviceProps.Version.Secondary = proto.Uint32(24)
-	store.DeviceProps.Version.Tertiary = proto.Uint32(23)
-	store.DeviceProps.Version.Tertiary = proto.Uint32(78)
-	store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_ANDROID_PHONE.Enum()
+
+	spoof := "companion"
+	if deviceSpoof != nil && *deviceSpoof != "" {
+		spoof = *deviceSpoof
+	}
+	applyDeviceSpoof(spoof)
 
 	if *requestFullSync {
 		store.DeviceProps.RequireFullSync = proto.Bool(true)

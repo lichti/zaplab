@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `--device-spoof` flag (`companion` / `android` / `ios`) — configures the identity payload
+  sent to WhatsApp during the WebSocket handshake to impersonate different device types.
+  Experimental; re-pair after changing. See `specs/DEVICE_SPOOF_SPEC.md`.
+
 ---
 
 ## [v1.0.0-beta.2] — 2026-03-09

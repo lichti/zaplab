@@ -19,6 +19,7 @@ type App struct {
 	requestFullSync   *bool
 	historyPath       *string
 	webhookConfigFile *string
+	deviceSpoof       *string
 }
 
 var app *App

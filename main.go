@@ -90,6 +90,7 @@ func main() {
 		requestFullSync:   new(bool),
 		historyPath:       new(string),
 		webhookConfigFile: new(string),
+		deviceSpoof:       new(string),
 	}
 
 	// Use pre-scanned base dir as the PocketBase default data dir.
@@ -117,6 +118,9 @@ func main() {
 		"Directory for HistorySync JSON dumps (default: <data-dir>/history)")
 	app.pb.RootCmd.PersistentFlags().StringVar(app.webhookConfigFile, "webhook-config-file", "",
 		"Webhook configuration file path (default: <data-dir>/webhook.json)")
+	app.pb.RootCmd.PersistentFlags().StringVar(app.deviceSpoof, "device-spoof", "companion",
+		"Device identity presented to WhatsApp servers: companion (default), android, ios. "+
+			"Experimental — re-pair after changing. See docs for details.")
 
 	// app.log starts at INFO; upgraded to DEBUG inside the bootstrap hook once flags are parsed.
 	app.log = waLog.Stdout("Main", app.logLevel, true)
@@ -156,7 +160,7 @@ func main() {
 			return fmt.Errorf("error loading webhook config: %w", err)
 		}
 		fmt.Print(wh.PrintConfig())
-		whatsapp.Init(app.pb, wh, app.log, app.historyPath, app.dbDialect, app.dbAddress, app.requestFullSync, app.logLevel)
+		whatsapp.Init(app.pb, wh, app.log, app.historyPath, app.dbDialect, app.dbAddress, app.requestFullSync, app.logLevel, app.deviceSpoof)
 		api.Init(app.pb)
 
 		// Let core bootstrap run (DB init, migrations, cache reload, etc.).
