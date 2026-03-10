@@ -789,6 +789,144 @@ Retorna apenas a lista de participantes de um grupo (mais leve que `GET /groups/
 
 ---
 
+### `POST /media/download`
+
+Baixa e descriptografa um arquivo de mídia do WhatsApp. Retorna binário bruto (não JSON). Limite: **50 MB**.
+
+```json
+// Request
+{
+  "url":        "https://mmg.whatsapp.net/...",
+  "media_key":  "<base64 da chave de mídia>",
+  "media_type": "image"
+}
+```
+
+`media_type`: `image` | `video` | `audio` | `document` | `sticker`
+
+---
+
+### `GET /contacts`
+
+Retorna todos os contatos do armazenamento local do dispositivo WhatsApp.
+
+```json
+// Response
+{ "contacts": [{ "JID": "...", "FullName": "João Silva", "PushName": "João", ... }], "count": 1 }
+```
+
+---
+
+### `POST /contacts/check`
+
+Verifica se números de telefone estão registrados no WhatsApp.
+
+```json
+// Request
+{ "phones": ["5511999999999", "5522888888888"] }
+
+// Response
+{ "results": [{ "Query": "5511999999999", "JID": "5511999999999@s.whatsapp.net", "IsIn": true }], "count": 1 }
+```
+
+---
+
+### `GET /contacts/{jid}`
+
+Retorna informações armazenadas de um contato específico (JID deve estar URL-encoded).
+
+```json
+// Response
+{ "JID": "5511999999999@s.whatsapp.net", "Found": true, "FullName": "João Silva", "PushName": "João", ... }
+```
+
+---
+
+### `POST /spoof/reply`
+
+Envia uma mensagem que parece responder a uma citação falsa de um remetente falsificado.
+
+```json
+// Request
+{
+  "to":          "5511999999999",
+  "from_jid":    "5533777777777@s.whatsapp.net",
+  "msg_id":      "",
+  "quoted_text": "Isso nunca aconteceu",
+  "text":        "Mas aconteceu sim!"
+}
+```
+
+---
+
+### `POST /spoof/reply-private`
+
+Igual ao `/spoof/reply`, mas envia no chat privado (DM) do destinatário, independente do `to`.
+
+---
+
+### `POST /spoof/reply-img`
+
+Resposta falsificada com um balão de imagem falsa atribuído ao `from_jid`. Limite: **50 MB**.
+
+```json
+// Request
+{
+  "to":          "5511999999999",
+  "from_jid":    "5533777777777@s.whatsapp.net",
+  "msg_id":      "",
+  "image":       "<base64>",
+  "quoted_text": "Legenda no balão falso",
+  "text":        "Minha resposta"
+}
+```
+
+---
+
+### `POST /spoof/reply-location`
+
+Resposta falsificada com um balão de localização atribuído ao `from_jid`.
+
+```json
+// Request
+{ "to": "5511999999999", "from_jid": "5533777777777@s.whatsapp.net", "msg_id": "", "text": "Resposta" }
+```
+
+---
+
+### `POST /spoof/timed`
+
+Envia uma mensagem autodestrutiva (efêmera).
+
+```json
+// Request
+{ "to": "5511999999999", "text": "Esta mensagem vai desaparecer" }
+```
+
+---
+
+### `POST /spoof/demo`
+
+Executa uma sequência de conversa falsificada pré-definida em segundo plano. Retorna imediatamente. Limite: **50 MB**.
+
+```json
+// Request
+{
+  "to":       "5511999999999",
+  "from_jid": "5533777777777@s.whatsapp.net",
+  "gender":   "boy",
+  "language": "br",
+  "image":    "<base64 — opcional>"
+}
+
+// Response (imediato)
+{ "message": "Demo started (boy/br)" }
+```
+
+`gender`: `boy` | `girl` · `language`: `br` | `en`
+
+---
+
 ### `POST /wa/qrtext`
 
 Gera um QR Code PNG (base64) para qualquer texto.
@@ -1022,8 +1160,11 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Send Message** | Envio de todos os tipos de mensagem com preview curl e visualizador de resposta |
 | **Send Raw** | Envio de qualquer JSON `waE2E.Message` diretamente — exploração completa do protocolo |
 | **Message Control** | Reagir, editar, revogar/apagar, indicador de digitação, timer de mensagens temporárias |
+| **Spoof Messages** | Respostas falsificadas (texto, imagem, localização), mensagens autodestrutivas, sequências de demo |
 | **Contacts & Polls** | Enviar contatos vCard (simples ou múltiplos), criar enquetes, votar |
+| **Contacts Management** | Listar contatos do dispositivo, verificar números no WhatsApp, obter info de contato |
 | **Groups** | Listar, ver info, criar, gerenciar participantes (add/remove/promote/demote), atualizar configurações, sair, obter/resetar link de convite com QR code, entrar por link |
+| **Media** | Baixar e descriptografar arquivos de mídia do WhatsApp (imagem, vídeo, áudio, documento, sticker) |
 | **Route Simulation** ⚠️ *Em desenvolvimento* | Simula o movimento de um dispositivo ao longo de uma rota GPX enviando atualizações de localização ao vivo — **experimental, ainda não 100% funcional** |
 | **Settings** | Configurar token da API armazenado no localStorage |
 

@@ -1,40 +1,41 @@
-# Frontend Split Proposal
+# Frontend Architecture
 
-## Motivation
+## Overview
 
-`pb_public/index.html` reached **2 732 lines** across three distinct concerns:
-- HTML structure (topbar, sidebar, sections) — 1 692 lines
-- Custom CSS — 36 lines
-- Alpine.js component — 1 004 lines
-
-Adding Phase 5 would push the file past 3 000 lines. Inline scripts have no syntax
-highlighting, no jump-to-definition, and no isolated testability.
+The frontend is a single-page Alpine.js 3 application served by PocketBase from `pb_public/`.
+JavaScript is split into focused section files — each section is a factory function that returns
+an object merged into the main `zaplab()` Alpine component.
 
 ---
 
-## Target Structure
+## File Structure
 
 ```
 pb_public/
-  index.html              ← HTML only (~400 lines after stripping CSS + JS)
+  index.html              ← HTML structure (sidebar, sections, Alpine directives)
   css/
-    zaplab.css            ← extracted <style> block (~36 lines)
+    zaplab.css            ← custom CSS (dark/light variables, scrollbar, syntax highlight)
   js/
     utils.js              ← shared helpers: highlight, escapeHtml, highlightCurl,
-                            fmtTime, typeClass, previewText  (~60 lines)
+                            fmtTime, typeClass, previewText
     sections/
-      events.js           ← eventsSection(): state + Live Events methods  (~110 lines)
-      send.js             ← sendSection(): state + Send Message methods   (~230 lines)
-      sendraw.js          ← sendRawSection(): state + Send Raw methods     (~105 lines)
-      ctrl.js             ← ctrlSection(): state + Message Control methods (~110 lines)
-      contacts.js         ← contactsSection(): state + Contacts/Polls      (~140 lines)
-      groups.js           ← groupsSection(): state + Groups methods        (~145 lines)
-    zaplab.js             ← zaplab() factory: merges sections, shared
-                            state, init(), navigation helpers              (~90 lines)
+      events.js           ← eventsSection(): Live Events state + methods
+      send.js             ← sendSection(): Send Message state + methods
+      sendraw.js          ← sendRawSection(): Send Raw state + methods
+      ctrl.js             ← ctrlSection(): Message Control state + methods
+      spoof.js            ← spoofSection(): Spoof Messages state + methods
+      contacts.js         ← contactsSection(): Contacts & Polls (send-only)
+      contactsmgmt.js     ← contactsMgmtSection(): Contacts Management (list/check/info)
+      groups.js           ← groupsSection(): Groups state + methods
+      media.js            ← mediaSection(): Media Download state + methods
+      simulation.js       ← simulationSection(): Route Simulation state + methods
+      pairing.js          ← pairingSection(): QR pairing + account state + methods
+      account.js          ← accountSection(): Account info state + methods
+    zaplab.js             ← zaplab() factory: merges all sections, shared
+                            state, init(), navigation helpers
 ```
 
-**Total lines across all files ≈ same as current.** Each file has a single
-responsibility and a predictable name.
+Each file has a single responsibility and a predictable name.
 
 ---
 
@@ -88,12 +89,18 @@ function zaplab() {
   return Object.assign(
     {},
     utilsSection(),
+    pairingSection(),
+    accountSection(),
     eventsSection(),
     sendSection(),
     sendRawSection(),
     ctrlSection(),
+    spoofSection(),
     contactsSection(),
+    contactsMgmtSection(),
     groupsSection(),
+    mediaSection(),
+    simulationSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -112,16 +119,23 @@ function zaplab() {
         this.$watch('sidebarExpanded', val => { /* ... */ });
         this.$watch('activeSection',   val => { /* ... */ });
 
+        this.initPairing();
+        this.initAccount();
         this.initSend();
         this.initSendRaw();
         this.initCtrl();
+        this.initSpoof();
         this.initContacts();
+        this.initContactsMgmt();
         this.initGroups();
+        this.initMedia();
+        this.initSimulation();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;
         await this.loadInitialEvents();
         this.subscribeEvents();
+        this.fetchAccount();
       },
     }
   );
@@ -145,12 +159,18 @@ needed.
 
   <!-- Section modules (sync, define global functions before Alpine initializes) -->
   <script src="js/utils.js"></script>
+  <script src="js/sections/pairing.js"></script>
+  <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
   <script src="js/sections/send.js"></script>
   <script src="js/sections/sendraw.js"></script>
   <script src="js/sections/ctrl.js"></script>
+  <script src="js/sections/spoof.js"></script>
   <script src="js/sections/contacts.js"></script>
+  <script src="js/sections/contactsmgmt.js"></script>
   <script src="js/sections/groups.js"></script>
+  <script src="js/sections/media.js"></script>
+  <script src="js/sections/simulation.js"></script>
   <!-- Factory (must come after sections, before Alpine) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -185,39 +205,31 @@ fetch — not worth the complexity.
 
 ---
 
-## Files Changed
+## Section Files
 
-| File | Change |
+| File | Factory Function | Section Name (`activeSection`) |
+|------|-----------------|-------------------------------|
+| `js/sections/pairing.js` | `pairingSection()` | `pairing` |
+| `js/sections/account.js` | `accountSection()` | `account` |
+| `js/sections/events.js` | `eventsSection()` | `events` (default) |
+| `js/sections/send.js` | `sendSection()` | `send` |
+| `js/sections/sendraw.js` | `sendRawSection()` | `sendraw` |
+| `js/sections/ctrl.js` | `ctrlSection()` | `ctrl` |
+| `js/sections/spoof.js` | `spoofSection()` | `spoof` |
+| `js/sections/contacts.js` | `contactsSection()` | `contacts` |
+| `js/sections/contactsmgmt.js` | `contactsMgmtSection()` | `contactsmgmt` |
+| `js/sections/groups.js` | `groupsSection()` | `groups` |
+| `js/sections/media.js` | `mediaSection()` | `media` |
+| `js/sections/simulation.js` | `simulationSection()` | `simulation` |
+
+## What Does NOT Change
+
+| Item | Status |
 |------|--------|
-| `pb_public/index.html` | Remove `<style>` block → `<link>`; remove `<script>` block → `<script src>` tags; HTML section divs unchanged |
-| `pb_public/css/zaplab.css` | New — extracted CSS |
-| `pb_public/js/utils.js` | New — shared helpers |
-| `pb_public/js/sections/events.js` | New — events section |
-| `pb_public/js/sections/send.js` | New — send section |
-| `pb_public/js/sections/sendraw.js` | New — send raw section |
-| `pb_public/js/sections/ctrl.js` | New — message control section |
-| `pb_public/js/sections/contacts.js` | New — contacts & polls section |
-| `pb_public/js/sections/groups.js` | New — groups section |
-| `pb_public/js/zaplab.js` | New — factory + shared state + init |
-| `README.md` | Update project structure section |
-| `README.pt-BR.md` | Idem em português |
-
----
-
-## Estimated Line Count per File (after split)
-
-| File | Estimated Lines |
-|------|----------------|
-| `index.html` | ~1 700 (HTML only, no inline scripts) |
-| `css/zaplab.css` | ~40 |
-| `js/utils.js` | ~60 |
-| `js/sections/events.js` | ~110 |
-| `js/sections/send.js` | ~230 |
-| `js/sections/sendraw.js` | ~105 |
-| `js/sections/ctrl.js` | ~110 |
-| `js/sections/contacts.js` | ~140 |
-| `js/sections/groups.js` | ~145 |
-| `js/zaplab.js` | ~90 |
-| **Total** | **~2 730** |
-
-Same total — but each file is focused, navigable, and independently editable.
+| PocketBase route `/tools/{path...}` | Unchanged — still serves `pb_public/` |
+| Alpine version (3.14.9) | Unchanged |
+| All `x-data`, `x-model`, `x-show` directives | Unchanged |
+| All method and state names | Unchanged |
+| API backend | Unchanged |
+| Tailwind CDN | Unchanged |
+| PocketBase CDN | Unchanged |

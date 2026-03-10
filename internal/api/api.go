@@ -50,6 +50,12 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/createpoll", postCreatePoll)
 	e.Router.POST("/votepoll", postVotePoll)
 	e.Router.POST("/media/download", postMediaDownload).Bind(apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/spoof/reply", postSpoofReply)
+	e.Router.POST("/spoof/reply-private", postSpoofReplyPrivate)
+	e.Router.POST("/spoof/reply-img", postSpoofReplyImg).Bind(apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/spoof/reply-location", postSpoofReplyLocation)
+	e.Router.POST("/spoof/timed", postSpoofTimed)
+	e.Router.POST("/spoof/demo", postSpoofDemo).Bind(apis.BodyLimit(mediaBodyLimit))
 	e.Router.GET("/contacts", getContacts)
 	e.Router.POST("/contacts/check", postContactsCheck)
 	e.Router.GET("/contacts/{jid}", getContactInfo)
@@ -1021,4 +1027,175 @@ func deleteSimulateRoute(e *core.RequestEvent) error {
 
 func getSimulateRoutes(e *core.RequestEvent) error {
 	return e.JSON(http.StatusOK, map[string]any{"simulations": simulation.List()})
+}
+
+// ── Spoof endpoints ───────────────────────────────────────────────────────────
+
+func parseSpoofBase(e *core.RequestEvent, to, fromJID *string) (whatsapp.JID, whatsapp.JID, bool, error) {
+	chatJID, ok := whatsapp.ParseJID(*to)
+	if !ok {
+		return whatsapp.JID{}, whatsapp.JID{}, false, e.JSON(http.StatusBadRequest, map[string]any{"message": "to is not a valid JID"})
+	}
+	spoofJID, ok := whatsapp.ParseJID(*fromJID)
+	if !ok {
+		return whatsapp.JID{}, whatsapp.JID{}, false, e.JSON(http.StatusBadRequest, map[string]any{"message": "from_jid is not a valid JID"})
+	}
+	return chatJID, spoofJID, true, nil
+}
+
+func resolveMsgID(msgID string) string {
+	if msgID == "" {
+		return whatsapp.GetClient().GenerateMessageID()
+	}
+	return msgID
+}
+
+func postSpoofReply(e *core.RequestEvent) error {
+	var req struct {
+		To         string `json:"to"`
+		FromJID    string `json:"from_jid"`
+		MsgID      string `json:"msg_id"`
+		QuotedText string `json:"quoted_text"`
+		Text       string `json:"text"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	chatJID, spoofJID, ok, jsonErr := parseSpoofBase(e, &req.To, &req.FromJID)
+	if !ok {
+		return jsonErr
+	}
+	msg, resp, err := whatsapp.SpoofReply(chatJID, spoofJID, resolveMsgID(req.MsgID), req.QuotedText, req.Text)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Spoofed reply sent", "whatsapp_message": msg, "send_response": resp})
+}
+
+func postSpoofReplyPrivate(e *core.RequestEvent) error {
+	var req struct {
+		To         string `json:"to"`
+		FromJID    string `json:"from_jid"`
+		MsgID      string `json:"msg_id"`
+		QuotedText string `json:"quoted_text"`
+		Text       string `json:"text"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	chatJID, spoofJID, ok, jsonErr := parseSpoofBase(e, &req.To, &req.FromJID)
+	if !ok {
+		return jsonErr
+	}
+	msg, resp, err := whatsapp.SpoofReplyPrivate(chatJID, spoofJID, resolveMsgID(req.MsgID), req.QuotedText, req.Text)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Spoofed private reply sent", "whatsapp_message": msg, "send_response": resp})
+}
+
+func postSpoofReplyImg(e *core.RequestEvent) error {
+	var req struct {
+		To         string `json:"to"`
+		FromJID    string `json:"from_jid"`
+		MsgID      string `json:"msg_id"`
+		Image      string `json:"image"`
+		QuotedText string `json:"quoted_text"`
+		Text       string `json:"text"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	chatJID, spoofJID, ok, jsonErr := parseSpoofBase(e, &req.To, &req.FromJID)
+	if !ok {
+		return jsonErr
+	}
+	if req.Image == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "image (base64) is required"})
+	}
+	imgData, err := base64ToBytes(req.Image)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "Error decoding image"})
+	}
+	msg, resp, err := whatsapp.SpoofReplyImg(chatJID, spoofJID, resolveMsgID(req.MsgID), imgData, req.QuotedText, req.Text)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Spoofed image reply sent", "whatsapp_message": msg, "send_response": resp})
+}
+
+func postSpoofReplyLocation(e *core.RequestEvent) error {
+	var req struct {
+		To      string `json:"to"`
+		FromJID string `json:"from_jid"`
+		MsgID   string `json:"msg_id"`
+		Text    string `json:"text"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	chatJID, spoofJID, ok, jsonErr := parseSpoofBase(e, &req.To, &req.FromJID)
+	if !ok {
+		return jsonErr
+	}
+	msg, resp, err := whatsapp.SpoofReplyLocation(chatJID, spoofJID, resolveMsgID(req.MsgID), req.Text)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Spoofed location reply sent", "whatsapp_message": msg, "send_response": resp})
+}
+
+func postSpoofTimed(e *core.RequestEvent) error {
+	var req struct {
+		To   string `json:"to"`
+		Text string `json:"text"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if req.Text == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "text is required"})
+	}
+	chatJID, ok := whatsapp.ParseJID(req.To)
+	if !ok {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "to is not a valid JID"})
+	}
+	msg, resp, err := whatsapp.SendTimedMessage(chatJID, req.Text)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Timed message sent", "whatsapp_message": msg, "send_response": resp})
+}
+
+func postSpoofDemo(e *core.RequestEvent) error {
+	var req struct {
+		To       string `json:"to"`
+		FromJID  string `json:"from_jid"`
+		Gender   string `json:"gender"`
+		Language string `json:"language"`
+		Image    string `json:"image"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	chatJID, spoofJID, ok, jsonErr := parseSpoofBase(e, &req.To, &req.FromJID)
+	if !ok {
+		return jsonErr
+	}
+	if req.Gender != "boy" && req.Gender != "girl" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "gender must be 'boy' or 'girl'"})
+	}
+	if req.Language != "br" && req.Language != "en" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "language must be 'br' or 'en'"})
+	}
+	var imgData []byte
+	if req.Image != "" {
+		var err error
+		imgData, err = base64ToBytes(req.Image)
+		if err != nil {
+			return e.JSON(http.StatusBadRequest, map[string]any{"message": "Error decoding image"})
+		}
+	}
+	go whatsapp.SpoofDemo(chatJID, spoofJID, req.Gender, req.Language, imgData)
+	return e.JSON(http.StatusOK, map[string]any{"message": fmt.Sprintf("Demo started (%s/%s)", req.Gender, req.Language)})
 }

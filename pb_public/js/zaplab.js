@@ -11,6 +11,7 @@ function zaplab() {
     sendSection(),
     sendRawSection(),
     ctrlSection(),
+    spoofSection(),
     contactsSection(),
     contactsMgmtSection(),
     groupsSection(),
@@ -53,6 +54,7 @@ function zaplab() {
         this.initSend();
         this.initSendRaw();
         this.initCtrl();
+        this.initSpoof();
         this.initContacts();
         this.initContactsMgmt();
         this.initGroups();

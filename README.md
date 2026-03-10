@@ -789,6 +789,144 @@ Returns only the participant list for a group (lighter than `GET /groups/{jid}`)
 
 ---
 
+### `POST /media/download`
+
+Downloads and decrypts a WhatsApp media file. Returns raw binary (not JSON). Body limit: **50 MB**.
+
+```json
+// Request
+{
+  "url":        "https://mmg.whatsapp.net/...",
+  "media_key":  "<base64 media key>",
+  "media_type": "image"
+}
+```
+
+`media_type`: `image` | `video` | `audio` | `document` | `sticker`
+
+---
+
+### `GET /contacts`
+
+Returns all contacts from the local WhatsApp device store.
+
+```json
+// Response
+{ "contacts": [{ "JID": "...", "FullName": "John Doe", "PushName": "Johnny", ... }], "count": 1 }
+```
+
+---
+
+### `POST /contacts/check`
+
+Checks whether phone numbers are registered on WhatsApp.
+
+```json
+// Request
+{ "phones": ["5511999999999", "5522888888888"] }
+
+// Response
+{ "results": [{ "Query": "5511999999999", "JID": "5511999999999@s.whatsapp.net", "IsIn": true }], "count": 1 }
+```
+
+---
+
+### `GET /contacts/{jid}`
+
+Returns stored info for a specific contact (JID must be URL-encoded).
+
+```json
+// Response
+{ "JID": "5511999999999@s.whatsapp.net", "Found": true, "FullName": "John Doe", "PushName": "Johnny", ... }
+```
+
+---
+
+### `POST /spoof/reply`
+
+Sends a message that appears to reply to a fake quoted message from a spoofed sender.
+
+```json
+// Request
+{
+  "to":          "5511999999999",
+  "from_jid":    "5533777777777@s.whatsapp.net",
+  "msg_id":      "",
+  "quoted_text": "This never happened",
+  "text":        "Yes it did!"
+}
+```
+
+---
+
+### `POST /spoof/reply-private`
+
+Same as `/spoof/reply` but sends to the recipient's private DM regardless of `to`.
+
+---
+
+### `POST /spoof/reply-img`
+
+Spoofed reply with a fake image bubble attributed to `from_jid`. Body limit: **50 MB**.
+
+```json
+// Request
+{
+  "to":          "5511999999999",
+  "from_jid":    "5533777777777@s.whatsapp.net",
+  "msg_id":      "",
+  "image":       "<base64>",
+  "quoted_text": "Caption in the fake bubble",
+  "text":        "My reply"
+}
+```
+
+---
+
+### `POST /spoof/reply-location`
+
+Spoofed reply with a fake location bubble attributed to `from_jid`.
+
+```json
+// Request
+{ "to": "5511999999999", "from_jid": "5533777777777@s.whatsapp.net", "msg_id": "", "text": "Reply" }
+```
+
+---
+
+### `POST /spoof/timed`
+
+Sends a self-destructing (ephemeral) text message.
+
+```json
+// Request
+{ "to": "5511999999999", "text": "This will disappear" }
+```
+
+---
+
+### `POST /spoof/demo`
+
+Runs a pre-scripted spoofed conversation in the background. Returns immediately. Body limit: **50 MB**.
+
+```json
+// Request
+{
+  "to":       "5511999999999",
+  "from_jid": "5533777777777@s.whatsapp.net",
+  "gender":   "boy",
+  "language": "br",
+  "image":    "<base64 — optional>"
+}
+
+// Response (immediate)
+{ "message": "Demo started (boy/br)" }
+```
+
+`gender`: `boy` | `girl` · `language`: `br` | `en`
+
+---
+
 ### `POST /wa/qrtext`
 
 Generates a QR Code PNG (base64) for any text string.
@@ -1021,8 +1159,11 @@ A built-in web interface for interacting with all API features without writing a
 | **Send Message** | Send all message types with curl preview and response viewer |
 | **Send Raw** | Send any `waE2E.Message` JSON directly — full protocol exploration |
 | **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |
+| **Spoof Messages** | Spoofed replies (text, image, location), timed messages, demo conversation sequences |
 | **Contacts & Polls** | Send vCard contacts (single or multiple), create polls, cast votes |
+| **Contacts Management** | List device contacts, check phone numbers on WhatsApp, get contact info |
 | **Groups** | List, get info, create, manage participants (add/remove/promote/demote), update settings, leave, get/reset invite link with QR code, join by link |
+| **Media** | Download and decrypt WhatsApp media files (image, video, audio, document, sticker) |
 | **Route Simulation** ⚠️ *WIP* | Simulate device movement along a GPX route sending live location updates — **experimental, not fully functional** |
 | **Settings** | Configure API token stored in localStorage |
 

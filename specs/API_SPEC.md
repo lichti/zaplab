@@ -1099,6 +1099,306 @@ curl -X POST http://localhost:8090/cmd \
 
 ---
 
+### `POST /media/download` 🔒
+
+Downloads and decrypts a WhatsApp media file. Body limit: **50 MB**.
+
+Returns the raw decrypted binary as a file download (not JSON).
+
+**Body:**
+```json
+{
+  "url":        "https://mmg.whatsapp.net/...",
+  "media_key":  "<base64-encoded media key>",
+  "media_type": "image"
+}
+```
+
+| Field        | Type   | Required | Description                                                                            |
+|--------------|--------|----------|----------------------------------------------------------------------------------------|
+| `url`        | string | yes      | WhatsApp CDN URL (from `url` or `directPath` field of the media message)              |
+| `media_key`  | string | yes      | Base64-encoded media key from the WhatsApp message protobuf                           |
+| `media_type` | string | yes      | One of: `image`, `video`, `audio`, `document`, `sticker`                              |
+
+**Response 200:**
+
+Raw binary file with headers:
+```
+Content-Type: image/jpeg  (detected from decrypted bytes)
+Content-Disposition: attachment; filename="media.jpg"
+```
+
+**Response 400 — missing field:**
+```json
+{ "message": "url is required" }
+{ "message": "media_key is required" }
+{ "message": "media_type is required (image, video, audio, document, sticker)" }
+```
+
+**Response 400 — decrypt error:**
+```json
+{ "message": "..." }
+```
+
+---
+
+### `GET /contacts` 🔒
+
+Returns all contacts stored in the local WhatsApp device store.
+
+**Response 200:**
+```json
+{
+  "contacts": [
+    {
+      "JID":          "5511999999999@s.whatsapp.net",
+      "Found":        true,
+      "FirstName":    "John",
+      "FullName":     "John Doe",
+      "PushName":     "Johnny",
+      "BusinessName": ""
+    }
+  ],
+  "count": 1
+}
+```
+
+**Response 503 — not connected:**
+```json
+{ "message": "..." }
+```
+
+---
+
+### `POST /contacts/check` 🔒
+
+Checks whether a list of phone numbers are registered on WhatsApp.
+
+**Body:**
+```json
+{
+  "phones": ["5511999999999", "5522888888888"]
+}
+```
+
+| Field    | Type     | Required | Description                               |
+|----------|----------|----------|-------------------------------------------|
+| `phones` | string[] | yes      | List of phone numbers (digits only or `+` prefix) |
+
+**Response 200:**
+```json
+{
+  "results": [
+    { "Query": "5511999999999", "JID": "5511999999999@s.whatsapp.net", "IsIn": true, "VerifiedName": "" }
+  ],
+  "count": 1
+}
+```
+
+**Response 400:**
+```json
+{ "message": "phones array is required" }
+```
+
+---
+
+### `GET /contacts/{jid}` 🔒
+
+Returns stored info for a specific contact. `{jid}` must be URL-encoded.
+
+**Response 200:**
+```json
+{
+  "JID":          "5511999999999@s.whatsapp.net",
+  "Found":        true,
+  "FirstName":    "John",
+  "FullName":     "John Doe",
+  "PushName":     "Johnny",
+  "BusinessName": ""
+}
+```
+
+**Response 400 — invalid JID:**
+```json
+{ "message": "Invalid JID" }
+```
+
+---
+
+### `POST /spoof/reply` 🔒
+
+Sends a spoofed reply — the quoted message shows a fake sender (`from_jid`) and fake content (`quoted_text`), but the outer message is sent by the bot.
+
+**Body:**
+```json
+{
+  "to":          "5511999999999",
+  "from_jid":    "5533777777777@s.whatsapp.net",
+  "msg_id":      "",
+  "quoted_text": "Original message that never existed",
+  "text":        "My reply to it"
+}
+```
+
+| Field         | Type   | Required | Description                                                   |
+|---------------|--------|----------|---------------------------------------------------------------|
+| `to`          | string | yes      | Chat JID (number, full JID, or group JID)                     |
+| `from_jid`    | string | yes      | JID that appears as the quoted message author (spoofed)       |
+| `msg_id`      | string | no       | Message ID to embed in the `ContextInfo`; auto-generated if empty |
+| `quoted_text` | string | no       | Text shown in the reply bubble preview (spoofed content)      |
+| `text`        | string | no       | Actual message text sent by the bot                           |
+
+**Response 200:**
+```json
+{
+  "message":          "Spoofed reply sent",
+  "whatsapp_message": { "extendedTextMessage": { ... } },
+  "send_response":    { "Timestamp": "...", "ID": "...", "Sender": "..." }
+}
+```
+
+---
+
+### `POST /spoof/reply-private` 🔒
+
+Same as `/spoof/reply` but the message is sent to the recipient's **private chat** (DM), even if the spoofed context references a group message. Useful for out-of-context spoofing in DMs.
+
+**Body:** identical to `/spoof/reply`.
+
+**Response 200:**
+```json
+{ "message": "Spoofed private reply sent", "whatsapp_message": { ... }, "send_response": { ... } }
+```
+
+---
+
+### `POST /spoof/reply-img` 🔒
+
+Sends a spoofed reply where the quoted bubble shows an image (uploaded to WhatsApp CDN) attributed to the fake sender. Body limit: **50 MB**.
+
+**Body:**
+```json
+{
+  "to":          "5511999999999",
+  "from_jid":    "5533777777777@s.whatsapp.net",
+  "msg_id":      "",
+  "image":       "<base64-encoded image>",
+  "quoted_text": "Caption shown inside the quoted bubble",
+  "text":        "My reply text"
+}
+```
+
+| Field         | Type   | Required | Description                                                    |
+|---------------|--------|----------|----------------------------------------------------------------|
+| `to`          | string | yes      | Chat JID                                                       |
+| `from_jid`    | string | yes      | Spoofed sender JID                                             |
+| `msg_id`      | string | no       | Embedded message ID; auto-generated if empty                   |
+| `image`       | string | yes      | Raw base64 image data (no `data:` prefix)                      |
+| `quoted_text` | string | no       | Caption shown inside the image bubble in the reply preview     |
+| `text`        | string | no       | Actual text message the bot sends alongside the spoofed quote  |
+
+**Response 200:**
+```json
+{ "message": "Spoofed image reply sent", "whatsapp_message": { ... }, "send_response": { ... } }
+```
+
+**Response 400:**
+```json
+{ "message": "image (base64) is required" }
+{ "message": "Error decoding image" }
+```
+
+---
+
+### `POST /spoof/reply-location` 🔒
+
+Sends a spoofed reply where the quoted bubble shows a location pin attributed to the fake sender.
+
+**Body:**
+```json
+{
+  "to":       "5511999999999",
+  "from_jid": "5533777777777@s.whatsapp.net",
+  "msg_id":   "",
+  "text":     "My reply to this location"
+}
+```
+
+| Field      | Type   | Required | Description                              |
+|------------|--------|----------|------------------------------------------|
+| `to`       | string | yes      | Chat JID                                 |
+| `from_jid` | string | yes      | Spoofed sender JID                       |
+| `msg_id`   | string | no       | Embedded message ID; auto-generated if empty |
+| `text`     | string | no       | Actual text message sent by the bot      |
+
+**Response 200:**
+```json
+{ "message": "Spoofed location reply sent", "whatsapp_message": { ... }, "send_response": { ... } }
+```
+
+---
+
+### `POST /spoof/timed` 🔒
+
+Sends a self-destructing (timed) message. The message disappears from the recipient's screen after a short time.
+
+**Body:**
+```json
+{
+  "to":   "5511999999999",
+  "text": "This message will self-destruct"
+}
+```
+
+| Field  | Type   | Required | Description           |
+|--------|--------|----------|-----------------------|
+| `to`   | string | yes      | Chat JID              |
+| `text` | string | yes      | Message text to send  |
+
+**Response 200:**
+```json
+{ "message": "Timed message sent", "whatsapp_message": { ... }, "send_response": { ... } }
+```
+
+---
+
+### `POST /spoof/demo` 🔒
+
+Runs a pre-scripted spoofed conversation demo — sends a sequence of messages with delays. Returns immediately; the demo runs in the background. Body limit: **50 MB**.
+
+**Body:**
+```json
+{
+  "to":       "5511999999999",
+  "from_jid": "5533777777777@s.whatsapp.net",
+  "gender":   "boy",
+  "language": "br",
+  "image":    "<base64-encoded image (optional)>"
+}
+```
+
+| Field      | Type   | Required | Description                                           |
+|------------|--------|----------|-------------------------------------------------------|
+| `to`       | string | yes      | Chat JID                                              |
+| `from_jid` | string | yes      | Spoofed conversation partner JID                      |
+| `gender`   | string | yes      | `"boy"` or `"girl"` — selects the demo script variant|
+| `language` | string | yes      | `"br"` (Portuguese) or `"en"` (English)               |
+| `image`    | string | no       | Optional base64 image to embed in the demo sequence   |
+
+**Response 200** (returned immediately, before demo completes):
+```json
+{ "message": "Demo started (boy/br)" }
+```
+
+**Response 400:**
+```json
+{ "message": "gender must be 'boy' or 'girl'" }
+{ "message": "language must be 'br' or 'en'" }
+{ "message": "Error decoding image" }
+```
+
+---
+
 ### `GET /tools/{path...}`
 
 Serves static files from the `pb_public/` directory. No authentication required.
@@ -1111,13 +1411,16 @@ Used to serve the frontend (`index.html`) directly from the bot.
 
 ### Body limits
 
-| Endpoint        | Limit              |
-|-----------------|--------------------|
-| `/sendimage`    | 50 MB              |
-| `/sendvideo`    | 50 MB              |
-| `/sendaudio`    | 50 MB              |
-| `/senddocument` | 50 MB              |
-| Others          | PocketBase default |
+| Endpoint              | Limit              |
+|-----------------------|--------------------|
+| `/sendimage`          | 50 MB              |
+| `/sendvideo`          | 50 MB              |
+| `/sendaudio`          | 50 MB              |
+| `/senddocument`       | 50 MB              |
+| `/media/download`     | 50 MB              |
+| `/spoof/reply-img`    | 50 MB              |
+| `/spoof/demo`         | 50 MB              |
+| Others                | PocketBase default |
 
 ### Mimetype detection for media sends
 

