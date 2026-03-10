@@ -9,12 +9,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v1.0.0-beta.3] — 2026-03-10
+
 ### Added
+
+#### Spoof Messages API & UI
+- `POST /spoof/reply` — send a text message that appears to reply to a fake quoted message from a spoofed sender
+- `POST /spoof/reply-private` — same as above, but delivered to the recipient's private DM
+- `POST /spoof/reply-img` — spoofed reply with a fake image bubble attributed to a spoofed JID (body limit: 50 MB)
+- `POST /spoof/reply-location` — spoofed reply with a fake location bubble attributed to a spoofed JID
+- `POST /spoof/timed` — send a self-destructing (ephemeral) text message
+- `POST /spoof/demo` — run a pre-scripted spoofed conversation sequence in the background (`boy`/`girl` × `br`/`en`)
+- Exported Go wrappers in `internal/whatsapp/spoof.go`: `SpoofReply`, `SpoofReplyPrivate`, `SpoofReplyImg`, `SpoofReplyLocation`, `SendTimedMessage`, `SpoofDemo`
+- **Spoof Messages** frontend section (`pb_public/js/sections/spoof.js`) with per-type conditional fields, image file picker, gender/language selectors, curl preview, and response viewer
+
+#### Contact Management API & UI
+- `GET /contacts` — list all contacts from the local WhatsApp device store
+- `POST /contacts/check` — check whether phone numbers are registered on WhatsApp (`IsOnWhatsApp`)
+- `GET /contacts/{jid}` — fetch stored info for a specific contact
+- **Contacts Management** frontend section (`pb_public/js/sections/contactsmgmt.js`) with contact list table (filterable, CSV export), phone check results, info card, and contact picker
+
+#### Media Download API
+- `POST /media/download` — download and decrypt a WhatsApp media file from the CDN (image, video, audio, document, sticker); returns raw binary with detected mime type (body limit: 50 MB)
+
+#### Device Spoof (experimental)
 - `--device-spoof` flag (`companion` / `android` / `ios`) — configures the identity payload
   sent to WhatsApp during the WebSocket handshake to impersonate different device types.
   For `android` and `ios` modes, also overrides `ClientPayload.Device=0` via the
   `client.GetClientPayload` hook to attempt primary device impersonation.
   Experimental; re-pair after changing. See `specs/DEVICE_SPOOF_SPEC.md`.
+
+### Changed
+- **Contacts & Polls** frontend section is now send-only (`contact`, `contacts`, `poll`, `votepoll`) — management actions moved to dedicated **Contacts Management** section
+
+### Documentation
+- Created `specs/SPOOF_SPEC.md` — protocol details, endpoint reference, Go implementation, frontend mapping
+- Created `specs/CONTACTS_MGMT_SPEC.md` — contact management endpoint reference and frontend spec
+- Updated `specs/API_SPEC.md` — added all new endpoints and updated body limits table
+- Updated `specs/FRONTEND_ARCHITECTURE_SPEC.md` — reflects current section file list and `zaplab()` factory
+- Updated `specs/CONTACTS_POLLS_SPEC.md` — noted management split
+- Updated `README.md` and `README.pt-BR.md` — all new endpoints and UI sections documented
 
 ---
 
@@ -133,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.2...HEAD
+[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.3...HEAD
+[v1.0.0-beta.3]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [v1.0.0-beta.2]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [v1.0.0-beta.1]: https://github.com/lichti/zaplab/releases/tag/v1.0.0-beta.1
