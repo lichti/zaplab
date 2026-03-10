@@ -15,7 +15,7 @@ git push origin main
 2. Clique na aba **Settings** (Configurações).
 3. No menu lateral esquerdo, clique em **Pages**.
 4. Em **Build and deployment** > **Source**, selecione "Deploy from a branch".
-5. Em **Branch**, selecione `main` (ou a sua branch principal) e mude a pasta de `/ (root)` para `/site`.
+5. Em **Branch**, selecione `main` (ou a sua branch principal) e mude a pasta de `/ (root)` para `/docs`.
 6. Clique em **Save**.
 
 ## Passo 3: Verificação
@@ -30,4 +30,4 @@ O GitHub levará alguns minutos para processar os arquivos. Após a conclusão, 
 Se você tiver um domínio próprio, pode configurá-lo na mesma página de configurações do GitHub Pages em "Custom domain".
 
 ### Assets (Imagens)
-As imagens usadas no site foram copiadas para `site/images/`. Se você adicionar novas capturas de tela em `docs/images/`, lembre-se de copiá-las também para a pasta `site/images/` para que fiquem visíveis no site estático.
+As imagens usadas no site foram copiadas para `docs/images/`. Se você adicionar novas capturas de tela em `docs/images/`, lembre-se de que elas agora residem no mesmo diretório do site estático para que fiquem visíveis no GitHub Pages.
