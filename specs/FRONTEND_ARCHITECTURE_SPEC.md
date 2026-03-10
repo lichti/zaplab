@@ -19,9 +19,10 @@ pb_public/
     utils.js              ← shared helpers: highlight, escapeHtml, highlightCurl,
                             fmtTime, typeClass, previewText
     sections/
+      dashboard.js        ← dashboardSection(): Dashboard stats, account summary, recent events
       events.js           ← eventsSection(): Live Events state + methods
       eventbrowser.js     ← eventBrowserSection(): Event Browser search/filter/inspect/replay
-      msghistory.js       ← msgHistorySection(): Message History edited/deleted lookup
+      msghistory.js       ← msgHistorySection(): Message History edited/deleted lookup + diff
       send.js             ← sendSection(): Send Message state + methods
       sendraw.js          ← sendRawSection(): Send Raw state + methods
       ctrl.js             ← ctrlSection(): Message Control state + methods
@@ -91,10 +92,12 @@ function zaplab() {
   return Object.assign(
     {},
     utilsSection(),
+    dashboardSection(),
     pairingSection(),
     accountSection(),
     eventsSection(),
     eventBrowserSection(),
+    msgHistorySection(),
     sendSection(),
     sendRawSection(),
     ctrlSection(),
@@ -122,9 +125,11 @@ function zaplab() {
         this.$watch('sidebarExpanded', val => { /* ... */ });
         this.$watch('activeSection',   val => { /* ... */ });
 
+        this.initDashboard();
         this.initPairing();
         this.initAccount();
         this.initEventBrowser();
+        this.initMsgHistory();
         this.initSend();
         this.initSendRaw();
         this.initCtrl();
@@ -163,10 +168,12 @@ needed.
 
   <!-- Section modules (sync, define global functions before Alpine initializes) -->
   <script src="js/utils.js"></script>
+  <script src="js/sections/dashboard.js"></script>
   <script src="js/sections/pairing.js"></script>
   <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
   <script src="js/sections/eventbrowser.js"></script>
+  <script src="js/sections/msghistory.js"></script>
   <script src="js/sections/send.js"></script>
   <script src="js/sections/sendraw.js"></script>
   <script src="js/sections/ctrl.js"></script>
@@ -214,6 +221,7 @@ fetch — not worth the complexity.
 
 | File | Factory Function | Section Name (`activeSection`) |
 |------|-----------------|-------------------------------|
+| `js/sections/dashboard.js` | `dashboardSection()` | `dashboard` |
 | `js/sections/pairing.js` | `pairingSection()` | `pairing` |
 | `js/sections/account.js` | `accountSection()` | `account` |
 | `js/sections/events.js` | `eventsSection()` | `events` (default) |

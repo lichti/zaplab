@@ -1154,11 +1154,12 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 
 | Seção | Descrição |
 |---|---|
+| **Dashboard** | Visão geral da instância: status de conexão, dados da conta, estatísticas totais e últimas 24h (eventos, recebidos, enviados, editados, deletados, erros), lista de eventos recentes e botões de ação rápida; atualiza automaticamente a cada 60 s |
 | **Connection** | Pareamento via QR code, indicador de status em tempo real, logout |
 | **Account** | Visualizar foto de perfil, push name, número, nome comercial, recado e plataforma |
 | **Live Events** | Stream de eventos em tempo real do PocketBase — filtrável por tipo, JSON com syntax highlight, painel redimensionável |
 | **Event Browser** | Pesquise e filtre eventos armazenados por tipo, intervalo de data, ID de mensagem, remetente, destinatário ou texto livre; inspecione o JSON completo; visualize e baixe mídias; replaye a mensagem via Send Raw |
-| **Message History** | Lista todas as mensagens editadas e apagadas capturadas no banco de eventos; filtre por tipo (Todas / Editadas / Apagadas), remetente, grupo/chat e intervalo de data; exibe o payload do evento de ação e busca automaticamente a mensagem original pelo `msgID` (conteúdo, mídia e JSON completo) |
+| **Message History** | Lista todas as mensagens editadas e apagadas capturadas no banco de eventos; filtre por tipo, remetente, chat e intervalo de data; exibe o payload do evento e a mensagem original; diff visual palavra a palavra para edições |
 | **Send Message** | Envio de todos os tipos de mensagem com preview curl e visualizador de resposta |
 | **Send Raw** | Envio de qualquer JSON `waE2E.Message` diretamente — exploração completa do protocolo |
 | **Message Control** | Reagir, editar, revogar/apagar, indicador de digitação, timer de mensagens temporárias |

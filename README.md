@@ -1153,11 +1153,12 @@ A built-in web interface for interacting with all API features without writing a
 
 | Section | Description |
 |---|---|
+| **Dashboard** | Overview of the running instance: connection status, account info, all-time and last-24h stats (events, received, sent, edited, deleted, errors), recent events list, and quick action buttons; auto-refreshes every 60 s |
 | **Connection** | WhatsApp pairing via QR code, live connection status indicator, logout |
 | **Account** | View profile picture, push name, phone number, business name, about and platform |
 | **Live Events** | Real-time event stream from PocketBase — filterable by type, syntax-highlighted JSON, resizable panel |
 | **Event Browser** | Search and filter stored events by type, date range, message ID, sender, recipient, or free text; inspect full JSON; preview and download media; replay message via Send Raw |
-| **Message History** | List all edited and deleted messages; filter by kind (All / Edited / Deleted), sender, chat and date range; shows the action event payload and automatically retrieves the original message content (text, media, full JSON) from the events store |
+| **Message History** | List all edited and deleted messages; filter by kind (All / Edited / Deleted), sender, chat and date range; shows the action event payload and the original message content; word-level Edit Diff for edited messages |
 | **Send Message** | Send all message types with curl preview and response viewer |
 | **Send Raw** | Send any `waE2E.Message` JSON directly — full protocol exploration |
 | **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |

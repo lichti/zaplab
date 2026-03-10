@@ -151,10 +151,49 @@ Media reuses the shared `ebMediaType()`, `ebFileUrl()`, `ebThumbUrl()` helpers f
 
 ---
 
+---
+
+## Edit Diff
+
+When an edited message is selected and its original message is found, the detail panel shows
+a word-level visual diff between the original and new content.
+
+### Algorithm
+
+- **Tokenization**: text is split into words and whitespace runs (`/\S+|\s+/g`).
+- **LCS**: a flat `Int32Array` DP table of size `(m+1)*(n+1)` computes the longest common
+  subsequence between the two token arrays, then backtracks to produce `{type, val}` operations
+  (`eq` / `del` / `ins`).
+- **Fallback**: texts with more than 400 tokens on either side use block-level diff (whole
+  old text struck through, whole new text highlighted) to avoid O(n²) freeze.
+
+### CSS Classes
+
+| Class | Meaning | Style |
+|---|---|---|
+| `.diff-del` | Removed tokens | Red background, strikethrough |
+| `.diff-ins` | Inserted tokens | Green background |
+
+Both classes have dark-mode and light-mode variants defined in `pb_public/css/zaplab.css`.
+
+### JS Methods
+
+| Method | Description |
+|---|---|
+| `_mhTokenize(text)` | Splits text into word/whitespace tokens |
+| `_mhLCS(a, b)` | LCS DP + backtrack — returns `[{type, val}]` operations |
+| `mhDiffHtml(item)` | Calls `_mhLCS`, maps ops to HTML spans, returns safe HTML string |
+
+`mhDiffHtml` is bound to `x-html` in the Edit Diff panel. Returns `null` when either side
+is unavailable (panel hidden via `x-if`).
+
+---
+
 ## Files Changed
 
 | File | Change |
 |---|---|
-| `pb_public/js/sections/msghistory.js` | New — `msgHistorySection()` factory |
+| `pb_public/js/sections/msghistory.js` | New — `msgHistorySection()` factory with LCS diff methods |
 | `pb_public/js/zaplab.js` | Added `msgHistorySection()` to `Object.assign`, `this.initMsgHistory()` to `init()` |
-| `pb_public/index.html` | Added `<script src>` tag, nav button (eye-slash icon), and full section HTML |
+| `pb_public/index.html` | Added `<script src>` tag, nav button (eye-slash icon), full section HTML, and Edit Diff panel |
+| `pb_public/css/zaplab.css` | Added `.diff-del` and `.diff-ins` classes (dark + light mode) |
