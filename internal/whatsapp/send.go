@@ -16,23 +16,35 @@ import (
 
 // ReplyInfo holds the data needed to build a quoted-message reply ContextInfo.
 type ReplyInfo struct {
-	MessageID string
-	Sender    types.JID
-	Text      string // optional: text shown inside the reply bubble
+	MessageID     string
+	Sender        types.JID
+	Text          string   // optional: text shown inside the reply bubble
+	MentionedJIDs []string // optional: JID strings for @user mentions
 }
 
-// buildContextInfo builds a ContextInfo for a reply. Returns nil when reply is nil or has no MessageID.
+// buildContextInfo builds a ContextInfo for a reply and/or mentions.
+// Returns nil when there is nothing to encode (no reply, no mentions).
 func buildContextInfo(r *ReplyInfo) *waE2E.ContextInfo {
-	if r == nil || r.MessageID == "" {
+	if r == nil {
 		return nil
 	}
-	return &waE2E.ContextInfo{
-		StanzaID:    proto.String(r.MessageID),
-		Participant: proto.String(r.Sender.String()),
-		QuotedMessage: &waE2E.Message{
-			Conversation: proto.String(r.Text),
-		},
+	hasReply := r.MessageID != ""
+	hasMentions := len(r.MentionedJIDs) > 0
+	if !hasReply && !hasMentions {
+		return nil
 	}
+	ctx := &waE2E.ContextInfo{}
+	if hasMentions {
+		ctx.MentionedJID = r.MentionedJIDs
+	}
+	if hasReply {
+		ctx.StanzaID = proto.String(r.MessageID)
+		ctx.Participant = proto.String(r.Sender.String())
+		ctx.QuotedMessage = &waE2E.Message{
+			Conversation: proto.String(r.Text),
+		}
+	}
+	return ctx
 }
 
 func sendMessage(to types.JID, msg *waE2E.Message) (*waE2E.Message, *whatsmeow.SendResponse, error) {
@@ -50,7 +62,7 @@ func sendMessage(to types.JID, msg *waE2E.Message) (*waE2E.Message, *whatsmeow.S
 func SendConversationMessage(to types.JID, text string, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
 	var msg *waE2E.Message
 	if ctx := buildContextInfo(reply); ctx != nil {
-		// reply requires ExtendedTextMessage — Conversation has no ContextInfo field
+		// reply or mentions require ExtendedTextMessage — Conversation has no ContextInfo field
 		msg = &waE2E.Message{
 			ExtendedTextMessage: &waE2E.ExtendedTextMessage{
 				Text:        proto.String(text),
@@ -63,14 +75,14 @@ func SendConversationMessage(to types.JID, text string, reply *ReplyInfo) (*waE2
 	return sendMessage(to, msg)
 }
 
-func SendImage(to types.JID, data []byte, caption string, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+func SendImage(to types.JID, data []byte, caption string, reply *ReplyInfo, viewOnce bool) (*waE2E.Message, *whatsmeow.SendResponse, error) {
 	uploaded, err := client.Upload(context.Background(), data, whatsmeow.MediaImage)
 	if err != nil {
 		saveError("SendImage", "Failed to upload file", &sentErrorPayload{Message: nil, Response: nil, Error: err})
 		logger.Debugf("Failed to upload file: %v", err)
 		return &waE2E.Message{}, &whatsmeow.SendResponse{}, fmt.Errorf("failed to upload file: %v", err)
 	}
-	msg := &waE2E.Message{
+	inner := &waE2E.Message{
 		ImageMessage: &waE2E.ImageMessage{
 			Caption:       proto.String(caption),
 			URL:           proto.String(uploaded.URL),
@@ -81,9 +93,13 @@ func SendImage(to types.JID, data []byte, caption string, reply *ReplyInfo) (*wa
 			FileSHA256:    uploaded.FileSHA256,
 			FileLength:    proto.Uint64(uint64(len(data))),
 			ContextInfo:   buildContextInfo(reply),
+			ViewOnce:      proto.Bool(viewOnce),
 		},
 	}
-	return sendMessage(to, msg)
+	if viewOnce {
+		return sendMessage(to, &waE2E.Message{ViewOnceMessage: &waE2E.FutureProofMessage{Message: inner}})
+	}
+	return sendMessage(to, inner)
 }
 
 func SendAudio(to types.JID, data []byte, isPtt bool, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
@@ -110,14 +126,14 @@ func SendAudio(to types.JID, data []byte, isPtt bool, reply *ReplyInfo) (*waE2E.
 	return sendMessage(to, msg)
 }
 
-func SendVideo(to types.JID, data []byte, caption string, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+func SendVideo(to types.JID, data []byte, caption string, reply *ReplyInfo, viewOnce bool) (*waE2E.Message, *whatsmeow.SendResponse, error) {
 	uploaded, err := client.Upload(context.Background(), data, whatsmeow.MediaVideo)
 	if err != nil {
 		saveError("SendVideo", "Failed to upload file", &sentErrorPayload{Message: nil, Response: nil, Error: err})
 		logger.Debugf("Failed to upload file: %v", err)
 		return &waE2E.Message{}, &whatsmeow.SendResponse{}, fmt.Errorf("failed to upload file: %v", err)
 	}
-	msg := &waE2E.Message{
+	inner := &waE2E.Message{
 		VideoMessage: &waE2E.VideoMessage{
 			Caption:       proto.String(caption),
 			URL:           proto.String(uploaded.URL),
@@ -128,9 +144,13 @@ func SendVideo(to types.JID, data []byte, caption string, reply *ReplyInfo) (*wa
 			FileSHA256:    uploaded.FileSHA256,
 			FileLength:    proto.Uint64(uint64(len(data))),
 			ContextInfo:   buildContextInfo(reply),
+			ViewOnce:      proto.Bool(viewOnce),
 		},
 	}
-	return sendMessage(to, msg)
+	if viewOnce {
+		return sendMessage(to, &waE2E.Message{ViewOnceMessage: &waE2E.FutureProofMessage{Message: inner}})
+	}
+	return sendMessage(to, inner)
 }
 
 // SendRaw unmarshals msgJSON (a protobuf-JSON encoded waE2E.Message) and sends it as-is.

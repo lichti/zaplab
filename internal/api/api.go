@@ -65,6 +65,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/groups", postCreateGroup)
 	e.Router.POST("/zaplab/api/groups/{jid}/participants", postGroupParticipants)
 	e.Router.PATCH("/zaplab/api/groups/{jid}", patchGroup)
+	e.Router.POST("/zaplab/api/groups/{jid}/photo", postGroupPhoto).Bind(apis.BodyLimit(mediaBodyLimit))
 	e.Router.POST("/zaplab/api/groups/{jid}/leave", postLeaveGroup)
 	e.Router.GET("/zaplab/api/groups/{jid}/invitelink", getGroupInviteLink)
 	e.Router.POST("/zaplab/api/groups/join", postJoinGroup)
@@ -120,6 +121,24 @@ func parseReplyTo(r *replyToRequest) *whatsapp.ReplyInfo {
 		Sender:    senderJID,
 		Text:      r.Text,
 	}
+}
+
+// parseReplyToWithMentions creates a ReplyInfo from a reply_to block and a top-level mentions list.
+// Returns nil only when both reply and mentions are absent.
+func parseReplyToWithMentions(r *replyToRequest, mentions []string) *whatsapp.ReplyInfo {
+	hasReply := r != nil && r.MessageID != ""
+	hasMentions := len(mentions) > 0
+	if !hasReply && !hasMentions {
+		return nil
+	}
+	info := &whatsapp.ReplyInfo{MentionedJIDs: mentions}
+	if hasReply {
+		senderJID, _ := whatsapp.ParseJID(r.SenderJID)
+		info.MessageID = r.MessageID
+		info.Sender = senderJID
+		info.Text = r.Text
+	}
+	return info
 }
 
 func base64ToBytes(b64 string) ([]byte, error) {
@@ -200,9 +219,10 @@ func postSendCmd(e *core.RequestEvent) error {
 
 func postSendMessage(e *core.RequestEvent) error {
 	var req struct {
-		To      string          `json:"to"`
-		Message string          `json:"message"`
-		ReplyTo *replyToRequest `json:"reply_to"`
+		To       string          `json:"to"`
+		Message  string          `json:"message"`
+		ReplyTo  *replyToRequest `json:"reply_to"`
+		Mentions []string        `json:"mentions"`
 	}
 	if err := e.BindBody(&req); err != nil {
 		return apis.NewBadRequestError("Failed to read request data", err)
@@ -211,7 +231,7 @@ func postSendMessage(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusBadRequest, map[string]any{"message": "To field is not a valid"})
 	}
-	msg, resp, err := whatsapp.SendConversationMessage(toJID, req.Message, parseReplyTo(req.ReplyTo))
+	msg, resp, err := whatsapp.SendConversationMessage(toJID, req.Message, parseReplyToWithMentions(req.ReplyTo, req.Mentions))
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]any{"message": "Error to send message"})
 	}
@@ -224,10 +244,12 @@ func postSendMessage(e *core.RequestEvent) error {
 
 func postSendImage(e *core.RequestEvent) error {
 	var req struct {
-		To      string          `json:"to"`
-		Message string          `json:"message"`
-		Image   string          `json:"image"`
-		ReplyTo *replyToRequest `json:"reply_to"`
+		To       string          `json:"to"`
+		Message  string          `json:"message"`
+		Image    string          `json:"image"`
+		ReplyTo  *replyToRequest `json:"reply_to"`
+		Mentions []string        `json:"mentions"`
+		ViewOnce bool            `json:"view_once"`
 	}
 	if err := e.BindBody(&req); err != nil {
 		return apis.NewBadRequestError("Failed to read request data", err)
@@ -240,7 +262,7 @@ func postSendImage(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusBadRequest, map[string]any{"message": "To field is not a valid"})
 	}
-	msg, resp, err := whatsapp.SendImage(toJID, data, req.Message, parseReplyTo(req.ReplyTo))
+	msg, resp, err := whatsapp.SendImage(toJID, data, req.Message, parseReplyToWithMentions(req.ReplyTo, req.Mentions), req.ViewOnce)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]any{"message": "Error to send image message"})
 	}
@@ -253,10 +275,12 @@ func postSendImage(e *core.RequestEvent) error {
 
 func postSendVideo(e *core.RequestEvent) error {
 	var req struct {
-		To      string          `json:"to"`
-		Message string          `json:"message"`
-		Video   string          `json:"video"`
-		ReplyTo *replyToRequest `json:"reply_to"`
+		To       string          `json:"to"`
+		Message  string          `json:"message"`
+		Video    string          `json:"video"`
+		ReplyTo  *replyToRequest `json:"reply_to"`
+		Mentions []string        `json:"mentions"`
+		ViewOnce bool            `json:"view_once"`
 	}
 	if err := e.BindBody(&req); err != nil {
 		return apis.NewBadRequestError("Failed to read request data", err)
@@ -269,7 +293,7 @@ func postSendVideo(e *core.RequestEvent) error {
 	if !ok {
 		return e.JSON(http.StatusBadRequest, map[string]any{"message": "To field is not a valid"})
 	}
-	msg, resp, err := whatsapp.SendVideo(toJID, data, req.Message, parseReplyTo(req.ReplyTo))
+	msg, resp, err := whatsapp.SendVideo(toJID, data, req.Message, parseReplyToWithMentions(req.ReplyTo, req.Mentions), req.ViewOnce)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, map[string]any{"message": "Error to send video message"})
 	}
@@ -787,6 +811,32 @@ func patchGroup(e *core.RequestEvent) error {
 		}
 	}
 	return e.JSON(http.StatusOK, map[string]any{"message": "Group updated"})
+}
+
+func postGroupPhoto(e *core.RequestEvent) error {
+	jidStr := e.Request.PathValue("jid")
+	groupJID, ok := whatsapp.ParseJID(jidStr)
+	if !ok {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "Invalid group JID"})
+	}
+	var req struct {
+		Image string `json:"image"` // base64 JPEG or PNG
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if req.Image == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "image is required (base64 JPEG or PNG)"})
+	}
+	data, err := base64ToBytes(req.Image)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "Error decoding image"})
+	}
+	pictureID, err := whatsapp.SetGroupPhoto(groupJID, data)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": fmt.Sprintf("Error setting group photo: %v", err)})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "Group photo updated", "picture_id": pictureID})
 }
 
 func postLeaveGroup(e *core.RequestEvent) error {

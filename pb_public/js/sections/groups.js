@@ -16,6 +16,8 @@ function groupsSection() {
       locked:            false,
       resetInviteLink:   false,
       inviteLink:        '',
+      photoData:         '',
+      photoName:         '',
       loading:           false,
       toast:             null,
       result:            null,
@@ -64,19 +66,20 @@ function groupsSection() {
 
     // ── helpers ──
     groupsNeedsJID() {
-      return ['info', 'participants', 'settings', 'leave', 'invitelink'].includes(this.groups.type);
+      return ['info', 'participants', 'settings', 'photo', 'leave', 'invitelink'].includes(this.groups.type);
     },
 
     groupsEndpoint() {
       const jid = encodeURIComponent(this.groups.jid || '<jid>');
       switch (this.groups.type) {
         case 'list':         return '/zaplab/api/groups';
-        case 'info':         return `/groups/${jid}`;
+        case 'info':         return `/zaplab/api/groups/${jid}`;
         case 'create':       return '/zaplab/api/groups';
-        case 'participants': return `/groups/${jid}/participants`;
-        case 'settings':     return `/groups/${jid}`;
-        case 'leave':        return `/groups/${jid}/leave`;
-        case 'invitelink':   return `/groups/${jid}/invitelink${this.groups.resetInviteLink ? '?reset=true' : ''}`;
+        case 'participants': return `/zaplab/api/groups/${jid}/participants`;
+        case 'settings':     return `/zaplab/api/groups/${jid}`;
+        case 'photo':        return `/zaplab/api/groups/${jid}/photo`;
+        case 'leave':        return `/zaplab/api/groups/${jid}/leave`;
+        case 'invitelink':   return `/zaplab/api/groups/${jid}/invitelink${this.groups.resetInviteLink ? '?reset=true' : ''}`;
         case 'join':         return '/zaplab/api/groups/join';
         default: return '/zaplab/api/groups';
       }
@@ -99,6 +102,7 @@ function groupsSection() {
         create:       'Create Group',
         participants: 'Update Participants',
         settings:     'Update Settings',
+        photo:        'Set Photo',
         leave:        'Leave Group',
         invitelink:   'Get Invite Link',
         join:         'Join Group',
@@ -114,17 +118,28 @@ function groupsSection() {
           return { action: this.groups.participantAction, participants: parseLines(this.groups.participantsList) };
         case 'settings': {
           const body = {};
-          if (this.groups.newName)    body.name    = this.groups.newName;
-          if (this.groups.newTopic)   body.topic   = this.groups.newTopic;
+          if (this.groups.newName)     body.name     = this.groups.newName;
+          if (this.groups.newTopic)    body.topic    = this.groups.newTopic;
           if (this.groups.setAnnounce) body.announce = this.groups.announce;
           if (this.groups.setLocked)   body.locked   = this.groups.locked;
           return body;
         }
+        case 'photo':
+          return { image: this.groups.photoData ? `<base64: ${this.groups.photoName}>` : '<base64 JPEG or PNG>' };
         case 'join':
           return { link: this.groups.inviteLink || '<invite_link>' };
         default:
           return null;
       }
+    },
+
+    handleGroupPhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      this.groups.photoName = file.name;
+      const reader = new FileReader();
+      reader.onload = e => { this.groups.photoData = e.target.result.split(',')[1]; };
+      reader.readAsDataURL(file);
     },
 
     groupsCurlPreview() {
@@ -334,12 +349,18 @@ function groupsSection() {
         this.confirmLeave();
         return;
       }
+      if (this.groups.type === 'photo' && !this.groups.photoData) {
+        this.groups.toast = { ok: false, message: 'Please select an image file first' };
+        return;
+      }
       this.groupsLeaveConfirm = false;
       this.groups.toast       = null;
       this.groups.loading     = true;
       try {
         const method  = this.groupsMethod();
-        const payload = this.groupsCurlPayload();
+        let payload = this.groupsCurlPayload();
+        // For photo, replace preview placeholder with actual base64 data
+        if (this.groups.type === 'photo') payload = { image: this.groups.photoData };
         const opts = {
           method,
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },

@@ -19,6 +19,7 @@ function msgHistorySection() {
       origLoading:    false,
       origEvent:      null,     // original message record (looked up by targetId)
       origNotFound:   false,
+      exporting:      false,
     },
     mhCopied:     false,
     mhOrigCopied: false,
@@ -92,6 +93,7 @@ function msgHistorySection() {
         filterDateFrom: '', filterDateTo: '',
         items: [], total: 0, page: 1,
         selected: null, origLoading: false, origEvent: null, origNotFound: false,
+        exporting: false,
       });
       this.mhCopied     = false;
       this.mhOrigCopied = false;
@@ -283,6 +285,59 @@ function msgHistorySection() {
         if (op.type === 'ins') return `<span class="diff-ins">${e}</span>`;
         return e;
       }).join('');
+    },
+
+    // ── CSV export ──
+
+    // Exports all records matching the current filter as a CSV file (up to 1 000 rows).
+    async mhExportCSV() {
+      this.mh.exporting = true;
+      try {
+        const filter = this._mhBuildFilter();
+        const opts   = { sort: '-created', requestKey: null };
+        if (filter) opts.filter = filter;
+
+        const perPage = 200;
+        let page = 1, all = [];
+        while (all.length < 1000) {
+          const res = await pb.collection('events').getList(page, perPage, opts);
+          all = all.concat(res.items);
+          if (all.length >= res.totalItems || res.items.length < perPage) break;
+          page++;
+        }
+        all = all.slice(0, 1000);
+
+        const esc = v => {
+          const s = v == null ? '' : String(v);
+          return s.includes(',') || s.includes('"') || s.includes('\n')
+            ? '"' + s.replace(/"/g, '""') + '"'
+            : s;
+        };
+
+        const headers = ['id', 'kind', 'msgID', 'created', 'sender', 'chat', 'targetID', 'newContent'];
+        const rows = all.map(item => {
+          const kind       = this.mhKind(item);
+          const sender     = this.mhSenderLabel(item);
+          const chat       = this.mhChatLabel(item);
+          const targetID   = this.mhTargetId(item);
+          const newContent = this.mhNewContent(item) || '';
+          return [item.id, kind, item.msgID || '', item.created, sender, chat, targetID, newContent]
+            .map(esc).join(',');
+        });
+
+        const csv  = [headers.join(','), ...rows].join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'msg_history_export.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('mh export csv:', err);
+      } finally {
+        this.mh.exporting = false;
+      }
     },
 
     // ── copy helpers ──

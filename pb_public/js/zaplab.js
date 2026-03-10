@@ -10,6 +10,7 @@ function zaplab() {
     accountSection(),
     eventsSection(),
     eventBrowserSection(),
+    errorBrowserSection(),
     msgHistorySection(),
     sendSection(),
     sendRawSection(),
@@ -56,6 +57,7 @@ function zaplab() {
         this.initPairing();
         this.initAccount();
         this.initEventBrowser();
+        this.initErrorBrowser();
         this.initMsgHistory();
         this.initSend();
         this.initSendRaw();

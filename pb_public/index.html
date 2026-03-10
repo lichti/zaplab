@@ -27,6 +27,7 @@
   <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
   <script src="js/sections/eventbrowser.js"></script>
+  <script src="js/sections/errorbrowser.js"></script>
   <script src="js/sections/msghistory.js"></script>
   <script src="js/sections/send.js"></script>
   <script src="js/sections/sendraw.js"></script>
@@ -255,6 +256,22 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Message History</span>
+        </button>
+
+        <!-- Error Browser -->
+        <button
+          @click="setSection('errorbrowser')"
+          :title="sidebarExpanded ? '' : 'Error Browser'"
+          aria-label="Error Browser"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'errorbrowser'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Error Browser</span>
         </button>
 
         <!-- Send Message -->
@@ -895,10 +912,11 @@
             <!-- Event rows -->
             <template x-for="item in dash.recentEvents" :key="item.id">
               <div
-                @click="setSection('eventbrowser')"
+                @click="dashGoToEvent(item)"
                 class="flex items-center gap-3 px-4 py-2.5 border-b cursor-pointer
                        border-gray-50 dark:border-[#21262d]
                        hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors last:border-0"
+                title="Open in Event Browser"
               >
                 <span class="text-xs text-gray-400 dark:text-[#484f58] flex-shrink-0 w-16 text-right"
                       x-text="fmtTime(item.created)"></span>
@@ -921,6 +939,7 @@
                 ['send',         'Send Message',     'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:hover:bg-blue-500/30'],
                 ['eventbrowser', 'Event Browser',    'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:hover:bg-purple-500/30'],
                 ['msghistory',   'Message History',  'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-300 dark:hover:bg-red-500/30'],
+                ['errorbrowser', 'Error Browser',    'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'],
                 ['groups',       'Groups',           'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:hover:bg-green-500/30'],
                 ['contacts',     'Contacts & Polls', 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:hover:bg-yellow-500/30'],
                 ['media',        'Media Download',   'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:hover:bg-gray-500/30'],
@@ -1562,6 +1581,17 @@
                        bg-gray-100 text-gray-700 hover:bg-gray-200
                        dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
               >Reset</button>
+              <button
+                @click="mhExportCSV()"
+                :disabled="mh.exporting || mh.total === 0"
+                class="px-3 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-green-600 text-white hover:bg-green-700
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Export all matching records as CSV (up to 1 000 rows)"
+              >
+                <span x-show="!mh.exporting">Export CSV</span>
+                <span x-show="mh.exporting">Exporting…</span>
+              </button>
             </div>
 
           </div>
@@ -1898,6 +1928,162 @@
         </div>
       </div>
 
+      <!-- ── Section: Error Browser ────────────────────────────────────── -->
+      <div x-show="activeSection === 'errorbrowser'" class="flex flex-col h-full overflow-hidden">
+        <!-- Filter bar -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d]
+                    bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap gap-3 items-end">
+            <!-- Type -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Type</label>
+              <input type="text" x-model="errbr.filterType" placeholder="e.g. SendImage"
+                @keydown.enter="errbrSearch()"
+                class="px-2 py-1.5 rounded border text-xs w-36
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <!-- Text search -->
+            <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Contains text</label>
+              <input type="text" x-model="errbr.filterText" placeholder="search in error and raw…"
+                @keydown.enter="errbrSearch()"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <!-- Date From -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">From</label>
+              <input type="date" x-model="errbr.filterDateFrom"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <!-- Date To -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">To</label>
+              <input type="date" x-model="errbr.filterDateTo"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <!-- Buttons -->
+            <div class="flex gap-2 items-end flex-shrink-0">
+              <button @click="errbrSearch()" :disabled="errbr.loading"
+                class="px-4 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-blue-600 text-white hover:bg-blue-700
+                       disabled:opacity-50 disabled:cursor-not-allowed">
+                <span x-show="!errbr.loading">Search</span>
+                <span x-show="errbr.loading">Searching…</span>
+              </button>
+              <button @click="errbrReset()"
+                class="px-3 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-gray-100 text-gray-700 hover:bg-gray-200
+                       dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]">Reset</button>
+              <button @click="errbrExportCSV()" :disabled="errbr.exporting || errbr.total === 0"
+                title="Export all matching errors as CSV (up to 1 000 rows)"
+                class="px-3 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-green-600 text-white hover:bg-green-700
+                       disabled:opacity-50 disabled:cursor-not-allowed">
+                <span x-show="!errbr.exporting">Export CSV</span>
+                <span x-show="errbr.exporting">Exporting…</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Two-pane layout -->
+        <div class="flex flex-1 overflow-hidden">
+          <!-- List -->
+          <div class="w-80 flex-shrink-0 flex flex-col border-r border-gray-200 dark:border-[#30363d] overflow-hidden">
+            <div class="px-3 py-2 text-xs text-gray-400 dark:text-[#484f58] border-b border-gray-100 dark:border-[#21262d] flex-shrink-0">
+              <span x-text="errbr.total"></span> total,
+              <span x-text="errbr.items.length"></span> loaded
+            </div>
+            <div class="flex-1 overflow-y-auto">
+              <!-- Empty state -->
+              <div x-show="!errbr.loading && errbr.items.length === 0"
+                   class="px-4 py-8 text-center text-xs text-gray-400 dark:text-[#484f58]">
+                No errors found. Run a search to load records.
+              </div>
+              <!-- Error rows -->
+              <template x-for="item in errbr.items" :key="item.id">
+                <div
+                  @click="errbrSelect(item)"
+                  :class="errbr.selected?.id === item.id
+                    ? 'bg-blue-50 dark:bg-[#1c3a5e] border-l-2 border-blue-500'
+                    : 'hover:bg-gray-50 dark:hover:bg-[#161b22] border-l-2 border-transparent'"
+                  class="flex flex-col gap-0.5 px-3 py-2 cursor-pointer border-b
+                         border-gray-50 dark:border-[#21262d] transition-colors last:border-0"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-gray-400 dark:text-[#484f58]"
+                          x-text="fmtTime(item.created)"></span>
+                    <span class="text-[10px] font-semibold px-1 py-0.5 rounded
+                                 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 truncate max-w-[140px]"
+                          x-text="item.type || 'error'"></span>
+                  </div>
+                  <span class="text-xs text-gray-600 dark:text-[#8b949e] truncate"
+                        x-text="errbrErrorLabel(item)"></span>
+                  <span class="text-[10px] text-gray-400 dark:text-[#484f58] truncate"
+                        x-text="errbrPreviewText(item)"></span>
+                </div>
+              </template>
+              <!-- Load more -->
+              <div x-show="errbrHasMore()" class="px-3 py-2">
+                <button @click="errbrLoadMore()" :disabled="errbr.loading"
+                  class="w-full py-1.5 rounded text-xs font-medium transition-colors
+                         bg-gray-100 text-gray-600 hover:bg-gray-200
+                         dark:bg-[#21262d] dark:text-[#8b949e] dark:hover:bg-[#30363d]
+                         disabled:opacity-50 disabled:cursor-not-allowed">
+                  Load more (<span x-text="errbr.total - errbr.items.length"></span> remaining)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail panel -->
+          <div class="flex-1 overflow-y-auto">
+            <div x-show="!errbr.selected"
+                 class="flex items-center justify-center h-full text-xs text-gray-400 dark:text-[#484f58]">
+              Select an error to inspect its payload
+            </div>
+            <div x-show="errbr.selected" class="p-4 flex flex-col gap-4">
+              <!-- Header -->
+              <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div class="flex flex-col gap-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded
+                                 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
+                          x-text="errbr.selected?.type || 'error'"></span>
+                    <span class="text-xs text-gray-400 dark:text-[#484f58]"
+                          x-text="errbrFmtDateTime(errbr.selected?.created)"></span>
+                  </div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-[#c9d1d9]"
+                        x-text="errbrErrorLabel(errbr.selected)"></span>
+                </div>
+                <button @click="errbrCopyJSON()"
+                  class="px-3 py-1 rounded text-xs font-medium transition-colors flex-shrink-0
+                         bg-gray-100 text-gray-600 hover:bg-gray-200
+                         dark:bg-[#21262d] dark:text-[#8b949e] dark:hover:bg-[#30363d]">
+                  <span x-text="errbrCopied ? 'Copied!' : 'Copy JSON'"></span>
+                </button>
+              </div>
+              <!-- Full JSON -->
+              <div class="rounded-md overflow-auto text-xs font-mono p-3
+                          bg-gray-900 dark:bg-[#0d1117] border border-gray-700 dark:border-[#30363d]">
+                <pre x-html="highlight(errbr.selected)"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Section: Send Message ─────────────────────────────────────── -->
       <div x-show="activeSection === 'send'" class="h-full overflow-y-auto">
         <div class="max-w-5xl mx-auto w-full p-6 flex flex-col lg:flex-row gap-6 items-start">
@@ -2089,6 +2275,34 @@
                          dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
                          focus:outline-none focus:ring-1 focus:ring-blue-500" />
               </div>
+            </div>
+
+            <!-- Mentions (text, image, video) -->
+            <div x-show="['text','image','video'].includes(send.type)" class="flex flex-col gap-2">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="mentionsEnabled" x-model="send.mentionsEnabled"
+                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <label for="mentionsEnabled" class="text-xs text-gray-500 dark:text-[#8b949e] cursor-pointer">
+                  @mention users
+                </label>
+              </div>
+              <div x-show="send.mentionsEnabled" class="flex flex-col gap-1 pl-4 border-l-2 border-purple-200 dark:border-purple-900">
+                <label class="text-xs text-gray-400 dark:text-[#484f58]">JIDs to mention — one per line (e.g. 5511999999999@s.whatsapp.net)</label>
+                <textarea x-model="send.mentionsList" rows="3" placeholder="5511999999999@s.whatsapp.net"
+                  class="w-full px-3 py-2 rounded-md border text-sm font-mono
+                         bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                         dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                         focus:outline-none focus:ring-1 focus:ring-purple-500"></textarea>
+              </div>
+            </div>
+
+            <!-- View-once (image, video only) -->
+            <div x-show="['image','video'].includes(send.type)" class="flex items-center gap-2">
+              <input type="checkbox" id="viewOnce" x-model="send.viewOnce"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <label for="viewOnce" class="text-xs text-gray-500 dark:text-[#8b949e] cursor-pointer">
+                View once (recipient can only open once)
+              </label>
             </div>
 
             <!-- PTT checkbox (audio only) -->
@@ -3500,6 +3714,7 @@
                 <option value="create">Create — create a new group</option>
                 <option value="participants">Participants — add / remove / promote / demote</option>
                 <option value="settings">Settings — update name / topic / announce / locked</option>
+                <option value="photo">Photo — set group profile picture</option>
                 <option value="leave">Leave — leave a group</option>
                 <option value="invitelink">Invite Link — get or reset invite link</option>
                 <option value="join">Join — join via invite link</option>
@@ -3754,6 +3969,19 @@
                 <input type="checkbox" x-model="groups.resetInviteLink" class="rounded" />
                 Reset link (revoke current and generate new)
               </label>
+            </div>
+
+            <!-- Photo: image file picker -->
+            <div x-show="groups.type === 'photo'" class="flex flex-col gap-2">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Profile Picture (JPEG or PNG)</label>
+              <input type="file" accept="image/jpeg,image/png,image/*"
+                @change="handleGroupPhoto($event)"
+                class="text-xs text-gray-700 dark:text-[#c9d1d9] file:mr-2 file:py-1 file:px-3
+                       file:rounded file:border-0 file:text-xs file:font-medium
+                       file:bg-gray-100 file:text-gray-700 dark:file:bg-[#21262d] dark:file:text-[#c9d1d9]
+                       hover:file:bg-gray-200 dark:hover:file:bg-[#30363d] cursor-pointer" />
+              <p x-show="groups.photoName" class="text-xs text-green-600 dark:text-green-400"
+                 x-text="`Selected: ${groups.photoName}`"></p>
             </div>
 
             <!-- Join: invite link input -->

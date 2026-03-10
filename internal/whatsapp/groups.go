@@ -87,3 +87,9 @@ func GetGroupInviteLink(jid types.JID, reset bool) (string, error) {
 func JoinGroupWithLink(code string) (types.JID, error) {
 	return client.JoinGroupWithLink(context.Background(), code)
 }
+
+// SetGroupPhoto sets the group profile picture.
+// Returns the server-assigned picture ID or an error.
+func SetGroupPhoto(jid types.JID, data []byte) (string, error) {
+	return client.SetGroupPhoto(context.Background(), jid, data)
+}

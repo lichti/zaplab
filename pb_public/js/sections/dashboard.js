@@ -167,6 +167,12 @@ function dashboardSection() {
       return 'bg-gray-400';
     },
 
+    // Navigate to Event Browser and select the given event record.
+    dashGoToEvent(item) {
+      this.eb.selected = item;
+      this.setSection('eventbrowser');
+    },
+
     dashConnCardClass() {
       if (this.wa.status === 'connected')                                      return 'border-green-300  dark:border-green-800  bg-green-50  dark:bg-green-950/30';
       if (['connecting', 'qr'].includes(this.wa.status))                      return 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/30';

@@ -497,17 +497,14 @@ Returns `503` when WhatsApp is not connected. `avatar_url` is empty if the accou
 
 ### `POST /sendmessage`
 
-Sends a text message.
+Sends a text message. Supports `@user` mentions via the `mentions` field.
 
 ```json
-// Request
 {
   "to": "5511999999999",
-  "message": "Hello!"
+  "message": "Hello @Alice!",
+  "mentions": ["5511888888888@s.whatsapp.net"]
 }
-
-// Response 200
-{ "message": "Message sent" }
 ```
 
 The `to` field accepts:
@@ -518,23 +515,28 @@ The `to` field accepts:
 
 ### `POST /sendimage`
 
-Sends an image. The `image` field must be **Base64**-encoded.
+Sends an image. `image` must be **Base64**-encoded. Supports `view_once` (recipient can open once only) and `mentions`.
 
 ```json
 {
   "to": "5511999999999",
   "message": "Optional caption",
-  "image": "<base64>"
+  "image": "<base64>",
+  "view_once": false,
+  "mentions": []
 }
 ```
 
 ### `POST /sendvideo`
 
+Supports `view_once` and `mentions`.
+
 ```json
 {
   "to": "5511999999999",
   "message": "Optional caption",
-  "video": "<base64>"
+  "video": "<base64>",
+  "view_once": false
 }
 ```
 
@@ -749,6 +751,19 @@ Updates group settings. Include only the fields to change.
 
 ```json
 { "name": "New Name", "topic": "New description", "announce": true, "locked": false }
+```
+
+### `POST /groups/{jid}/photo`
+
+Sets the group profile picture. `image` must be **Base64**-encoded JPEG or PNG.
+
+```json
+{ "image": "<base64>" }
+```
+
+```json
+// Response 200
+{ "message": "Group photo updated", "picture_id": "..." }
 ```
 
 ### `POST /groups/{jid}/leave`
@@ -1158,7 +1173,8 @@ A built-in web interface for interacting with all API features without writing a
 | **Account** | View profile picture, push name, phone number, business name, about and platform |
 | **Live Events** | Real-time event stream from PocketBase — filterable by type, syntax-highlighted JSON, resizable panel |
 | **Event Browser** | Search and filter stored events by type, date range, message ID, sender, recipient, or free text; inspect full JSON; preview and download media; replay message via Send Raw; **Export CSV** (up to 1 000 rows matching the active filter) |
-| **Message History** | List all edited and deleted messages; filter by kind (All / Edited / Deleted), sender, chat and date range; shows the action event payload and the original message content; word-level Edit Diff for edited messages |
+| **Error Browser** | Browse the `errors` PocketBase collection; filter by type, date range, and free text; inspect full raw JSON; **Export CSV** |
+| **Message History** | List all edited and deleted messages; filter by kind (All / Edited / Deleted), sender, chat and date range; shows the action event payload and the original message content; word-level Edit Diff for edited messages; **Export CSV** |
 | **Send Message** | Send all message types with curl preview and response viewer |
 | **Send Raw** | Send any `waE2E.Message` JSON directly — full protocol exploration |
 | **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |

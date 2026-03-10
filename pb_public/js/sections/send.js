@@ -26,6 +26,11 @@ function sendSection() {
       replyId:      '',
       replySender:  '',
       replyText:    '',
+      // mentions
+      mentionsEnabled: false,
+      mentionsList:    '',
+      // view-once (image, video only)
+      viewOnce:        false,
     },
     sendPreviewTab:    localStorage.getItem('zaplab-send-preview-tab') || 'json',
     sendPreviewCopied: false,
@@ -45,7 +50,10 @@ function sendSection() {
         this.send.locAccuracy  = 10;
         this.send.locSpeed     = 0;
         this.send.locBearing   = 0;
-        this.send.replyEnabled = false;
+        this.send.replyEnabled    = false;
+        this.send.mentionsEnabled = false;
+        this.send.mentionsList    = '';
+        this.send.viewOnce        = false;
         if (this.sendPreviewTab === 'response') this.sendPreviewTab = 'json';
       });
       this.$watch('sendPreviewTab', val => {
@@ -155,20 +163,34 @@ function sendSection() {
       };
     },
 
+    _sendMentions() {
+      if (!this.send.mentionsEnabled || !this.send.mentionsList.trim()) return null;
+      return this.send.mentionsList.split('\n').map(l => l.trim()).filter(Boolean);
+    },
+
     sendCurlPayload() {
-      const fileVal = this.send.fileData
-        ? `<base64: ${this.send.fileName}>`
-        : '<no file selected>';
-      const reply = this.sendReplyPayload();
-      const withReply = obj => reply ? { ...obj, reply_to: reply } : obj;
+      const fileVal   = this.send.fileData ? `<base64: ${this.send.fileName}>` : '<no file selected>';
+      const reply     = this.sendReplyPayload();
+      const mentions  = this._sendMentions();
+      const withExtra = obj => {
+        if (reply)    obj.reply_to = reply;
+        if (mentions) obj.mentions = mentions;
+        return obj;
+      };
+      const withMedia = obj => {
+        if (reply)               obj.reply_to  = reply;
+        if (mentions)            obj.mentions  = mentions;
+        if (this.send.viewOnce && ['image','video'].includes(this.send.type)) obj.view_once = true;
+        return obj;
+      };
       const map = {
-        text:          withReply({ to: this.send.to, message: this.send.message }),
-        image:         withReply({ to: this.send.to, message: this.send.message, image:    fileVal }),
-        video:         withReply({ to: this.send.to, message: this.send.message, video:    fileVal }),
-        audio:         withReply({ to: this.send.to, ptt: this.send.ptt,         audio:    fileVal }),
-        document:      withReply({ to: this.send.to, message: this.send.message, document: fileVal }),
-        location:      withReply({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, name: this.send.locName || '', address: this.send.locAddress || '' }),
-        live_location: withReply({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, accuracy_in_meters: this.send.locAccuracy || 0, speed_in_mps: this.send.locSpeed || 0, degrees_clockwise_from_magnetic_north: this.send.locBearing || 0, caption: this.send.message || '' }),
+        text:          withExtra({ to: this.send.to, message: this.send.message }),
+        image:         withMedia({ to: this.send.to, message: this.send.message, image:    fileVal }),
+        video:         withMedia({ to: this.send.to, message: this.send.message, video:    fileVal }),
+        audio:         withExtra({ to: this.send.to, ptt: this.send.ptt,         audio:    fileVal }),
+        document:      withExtra({ to: this.send.to, message: this.send.message, document: fileVal }),
+        location:      withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, name: this.send.locName || '', address: this.send.locAddress || '' }),
+        live_location: withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, accuracy_in_meters: this.send.locAccuracy || 0, speed_in_mps: this.send.locSpeed || 0, degrees_clockwise_from_magnetic_north: this.send.locBearing || 0, caption: this.send.message || '' }),
       };
       return map[this.send.type] || {};
     },
@@ -252,16 +274,27 @@ function sendSection() {
         'X-API-Token':  this.apiToken,
       };
 
-      const reply = this.sendReplyPayload();
-      const withReply = obj => reply ? { ...obj, reply_to: reply } : obj;
+      const reply    = this.sendReplyPayload();
+      const mentions = this._sendMentions();
+      const withExtra = obj => {
+        if (reply)    obj.reply_to = reply;
+        if (mentions) obj.mentions = mentions;
+        return obj;
+      };
+      const withMedia = obj => {
+        if (reply)               obj.reply_to  = reply;
+        if (mentions)            obj.mentions  = mentions;
+        if (this.send.viewOnce && ['image','video'].includes(this.send.type)) obj.view_once = true;
+        return obj;
+      };
       const endpointMap = {
-        text:          ['/zaplab/api/sendmessage',      withReply({ to: this.send.to, message: this.send.message })],
-        image:         ['/zaplab/api/sendimage',         withReply({ to: this.send.to, message: this.send.message, image:    this.send.fileData })],
-        video:         ['/zaplab/api/sendvideo',         withReply({ to: this.send.to, message: this.send.message, video:    this.send.fileData })],
-        audio:         ['/zaplab/api/sendaudio',         withReply({ to: this.send.to, ptt: this.send.ptt,         audio:    this.send.fileData })],
-        document:      ['/zaplab/api/senddocument',      withReply({ to: this.send.to, message: this.send.message, document: this.send.fileData })],
-        location:      ['/zaplab/api/sendlocation',      withReply({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, name: this.send.locName || '', address: this.send.locAddress || '' })],
-        live_location: ['/zaplab/api/sendelivelocation', withReply({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, accuracy_in_meters: this.send.locAccuracy || 0, speed_in_mps: this.send.locSpeed || 0, degrees_clockwise_from_magnetic_north: this.send.locBearing || 0, caption: this.send.message || '' })],
+        text:          ['/zaplab/api/sendmessage',      withExtra({ to: this.send.to, message: this.send.message })],
+        image:         ['/zaplab/api/sendimage',         withMedia({ to: this.send.to, message: this.send.message, image:    this.send.fileData })],
+        video:         ['/zaplab/api/sendvideo',         withMedia({ to: this.send.to, message: this.send.message, video:    this.send.fileData })],
+        audio:         ['/zaplab/api/sendaudio',         withExtra({ to: this.send.to, ptt: this.send.ptt,         audio:    this.send.fileData })],
+        document:      ['/zaplab/api/senddocument',      withExtra({ to: this.send.to, message: this.send.message, document: this.send.fileData })],
+        location:      ['/zaplab/api/sendlocation',      withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, name: this.send.locName || '', address: this.send.locAddress || '' })],
+        live_location: ['/zaplab/api/sendelivelocation', withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, accuracy_in_meters: this.send.locAccuracy || 0, speed_in_mps: this.send.locSpeed || 0, degrees_clockwise_from_magnetic_north: this.send.locBearing || 0, caption: this.send.message || '' })],
       };
 
       const [endpoint, body] = endpointMap[this.send.type];
