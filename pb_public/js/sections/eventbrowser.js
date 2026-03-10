@@ -19,6 +19,7 @@ function eventBrowserSection() {
       replayTo:      '',
       replayLoading: false,
       replayToast:   null,
+      exporting:     false,
     },
     ebCopied:      false,
     ebFiltersOpen: true,
@@ -184,6 +185,65 @@ function eventBrowserSection() {
         this.ebCopied = true;
         setTimeout(() => { this.ebCopied = false; }, 2000);
       } catch {}
+    },
+
+    // ── CSV export ──
+
+    // Export all records matching the current filter as a CSV file (up to 1 000 rows).
+    async ebExportCSV() {
+      this.eb.exporting = true;
+      try {
+        const filter = this._ebBuildFilter();
+        const opts   = { sort: '-created', requestKey: null };
+        if (filter) opts.filter = filter;
+
+        // Fetch all pages up to a hard limit of 1 000 records
+        const perPage = 200;
+        let page = 1, all = [];
+        while (all.length < 1000) {
+          const res = await pb.collection('events').getList(page, perPage, opts);
+          all = all.concat(res.items);
+          if (all.length >= res.totalItems || res.items.length < perPage) break;
+          page++;
+        }
+        all = all.slice(0, 1000);
+
+        const esc = v => {
+          const s = v == null ? '' : String(v);
+          return s.includes(',') || s.includes('"') || s.includes('\n')
+            ? '"' + s.replace(/"/g, '""') + '"'
+            : s;
+        };
+
+        const headers = ['id', 'type', 'msgID', 'created', 'sender', 'chat', 'preview', 'file'];
+        const rows = all.map(item => {
+          const r       = this._ebRaw(item);
+          const sender  = this.ebSenderLabel(item);
+          const chat    = (() => {
+            try {
+              const c = r?.Info?.MessageSource?.Chat || r?.Info?.Chat;
+              if (!c) return '';
+              return String(typeof c === 'object' ? (c.User || '') : c).split('@')[0];
+            } catch { return ''; }
+          })();
+          const preview = this.ebPreviewText(item);
+          return [item.id, item.type, item.msgID || '', item.created, sender, chat, preview, item.file || '']
+            .map(esc).join(',');
+        });
+
+        const csv  = [headers.join(','), ...rows].join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'events_export.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('eb export csv:', err);
+      } finally {
+        this.eb.exporting = false;
+      }
     },
 
     // ── replay ──

@@ -14,6 +14,7 @@ The Event Browser provides a searchable, filterable view of all events stored in
 - Full JSON inspection with syntax highlighting
 - Media preview and download (for events with attached files)
 - Replay: re-send the event's `Message` payload to any JID via `/zaplab/api/sendraw`
+- CSV export: download all matching events (up to 1 000 rows) as a CSV file
 
 ---
 
@@ -23,7 +24,7 @@ The Event Browser provides a searchable, filterable view of all events stored in
 ┌── Filter bar (sticky) ────────────────────────────────────────────────┐
 │  Type [autocomplete]  From [date]  To [date]  MsgID [text]            │
 │  Sender [text]  Recipient/Chat [text]  Text (contains) [text]         │
-│                                              [Search]  [Reset]        │
+│                                [Search]  [Reset]  [Export CSV]        │
 └───────────────────────────────────────────────────────────────────────┘
 ┌── Event list (w-80, scroll) ──┬── Detail panel (flex-1, scroll) ──────┐
 │  N total, M loaded            │  [type badge]  [datetime]  [msgID]    │
@@ -154,6 +155,33 @@ If `raw` does not contain a recognizable `Message` field, the Send Raw button is
 | `_ebReplayMessage()` | Extracts `Message` object from `raw` |
 | `ebReplayHighlight()` | Syntax-highlighted HTML of the replay payload |
 | `ebReplay()` | POSTs `{ to, message }` to `/zaplab/api/sendraw` |
+| `ebExportCSV()` | Fetches all matching records (up to 1 000), builds and downloads a CSV file |
+
+---
+
+## CSV Export
+
+The **Export CSV** button is enabled only after a search returns at least one result (`eb.total > 0`).
+
+### Behavior
+
+1. Fetches all pages matching the current filter in batches of 200, stopping at 1 000 total records.
+2. All calls use `requestKey: null` to avoid SDK auto-cancellation.
+3. Builds a CSV string with proper RFC 4180 escaping (values containing commas, quotes, or newlines are double-quoted; internal quotes are doubled).
+4. Triggers a browser download as `events_export.csv`.
+
+### CSV Columns
+
+| Column | Source |
+|---|---|
+| `id` | PocketBase record ID |
+| `type` | Event type string |
+| `msgID` | WhatsApp message ID |
+| `created` | ISO timestamp |
+| `sender` | `ebSenderLabel()` — PushName or JID prefix |
+| `chat` | Chat/group JID prefix extracted from `raw.Info.MessageSource.Chat` |
+| `preview` | `ebPreviewText()` — human-readable message preview |
+| `file` | Attached filename (empty if none) |
 
 ---
 
@@ -161,6 +189,6 @@ If `raw` does not contain a recognizable `Message` field, the Send Raw button is
 
 | File | Change |
 |---|---|
-| `pb_public/js/sections/eventbrowser.js` | New — `eventBrowserSection()` factory |
+| `pb_public/js/sections/eventbrowser.js` | New — `eventBrowserSection()` factory; added `ebExportCSV()` and `eb.exporting` state |
 | `pb_public/js/zaplab.js` | Added `eventBrowserSection()` to `Object.assign`, `this.initEventBrowser()` to `init()` |
-| `pb_public/index.html` | Added `<script src>` tag, nav button (database icon), and full section HTML |
+| `pb_public/index.html` | Added `<script src>` tag, nav button (database icon), full section HTML, and Export CSV button |
