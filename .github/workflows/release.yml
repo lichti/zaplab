@@ -35,19 +35,19 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
             echo "suffix=" >> $GITHUB_OUTPUT
-            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "is_tag=true" >> $GITHUB_OUTPUT
           elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             echo "version=unstable-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
             echo "suffix=-unstable" >> $GITHUB_OUTPUT
-            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> $GITHUB_OUTPUT
           elif [[ "${GITHUB_REF}" == refs/heads/dev ]]; then
             echo "version=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
             echo "suffix=-dev" >> $GITHUB_OUTPUT
-            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> $GITHUB_OUTPUT
           else
             echo "version=latest" >> $GITHUB_OUTPUT
             echo "suffix=" >> $GITHUB_OUTPUT
-            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Build Binaries
@@ -66,19 +66,25 @@ jobs:
           # Windows amd64
           GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-windows-amd64$SUFFIX.exe .
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+      - name: Upload Artifacts (dev/unstable)
+        if: steps.info.outputs.is_tag == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zaplab-binaries-${{ steps.info.outputs.version }}
+          path: bin/
+          retention-days: 7
+
+      - name: Create GitHub Release (Tags only)
+        if: steps.info.outputs.is_tag == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.info.outputs.version }}
           files: |
-            bin/zaplab-linux-amd64${{ steps.info.outputs.suffix }}
-            bin/zaplab-linux-arm64${{ steps.info.outputs.suffix }}
-            bin/zaplab-darwin-amd64${{ steps.info.outputs.suffix }}
-            bin/zaplab-darwin-arm64${{ steps.info.outputs.suffix }}
-            bin/zaplab-windows-amd64${{ steps.info.outputs.suffix }}.exe
+            bin/zaplab-linux-amd64
+            bin/zaplab-linux-arm64
+            bin/zaplab-darwin-amd64
+            bin/zaplab-darwin-arm64
+            bin/zaplab-windows-amd64.exe
           generate_release_notes: true
-          prerelease: ${{ steps.info.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
