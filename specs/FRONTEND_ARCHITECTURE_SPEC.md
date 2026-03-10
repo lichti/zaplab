@@ -21,6 +21,7 @@ pb_public/
     sections/
       events.js           ← eventsSection(): Live Events state + methods
       eventbrowser.js     ← eventBrowserSection(): Event Browser search/filter/inspect/replay
+      msghistory.js       ← msgHistorySection(): Message History edited/deleted lookup
       send.js             ← sendSection(): Send Message state + methods
       sendraw.js          ← sendRawSection(): Send Raw state + methods
       ctrl.js             ← ctrlSection(): Message Control state + methods
@@ -217,6 +218,7 @@ fetch — not worth the complexity.
 | `js/sections/account.js` | `accountSection()` | `account` |
 | `js/sections/events.js` | `eventsSection()` | `events` (default) |
 | `js/sections/eventbrowser.js` | `eventBrowserSection()` | `eventbrowser` |
+| `js/sections/msghistory.js` | `msgHistorySection()` | `msghistory` |
 | `js/sections/send.js` | `sendSection()` | `send` |
 | `js/sections/sendraw.js` | `sendRawSection()` | `sendraw` |
 | `js/sections/ctrl.js` | `ctrlSection()` | `ctrl` |

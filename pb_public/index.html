@@ -26,6 +26,7 @@
   <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
   <script src="js/sections/eventbrowser.js"></script>
+  <script src="js/sections/msghistory.js"></script>
   <script src="js/sections/send.js"></script>
   <script src="js/sections/sendraw.js"></script>
   <script src="js/sections/ctrl.js"></script>
@@ -221,6 +222,22 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Event Browser</span>
+        </button>
+
+        <!-- Message History -->
+        <button
+          @click="setSection('msghistory')"
+          :title="sidebarExpanded ? '' : 'Message History'"
+          aria-label="Message History"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'msghistory'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Message History</span>
         </button>
 
         <!-- Send Message -->
@@ -1140,6 +1157,423 @@
                         x-html="ebReplayHighlight()"
                       ></pre>
                     </div>
+                  </div>
+
+                </div>
+              </div>
+            </template>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section: Message History ──────────────────────────────────── -->
+      <div x-show="activeSection === 'msghistory'" class="flex flex-col h-full overflow-hidden">
+
+        <!-- ── Filters bar ── -->
+        <div class="flex-shrink-0 border-b px-4 py-3
+                    bg-gray-50 border-gray-200
+                    dark:bg-[#161b22] dark:border-[#30363d]">
+          <div class="flex flex-wrap gap-x-3 gap-y-2 items-end">
+
+            <!-- Kind -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Kind</label>
+              <select
+                x-model="mh.filterKind"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">All (Edited + Deleted)</option>
+                <option value="edit">Edited only</option>
+                <option value="delete">Deleted only</option>
+              </select>
+            </div>
+
+            <!-- Sender -->
+            <div class="flex flex-col gap-1 min-w-[10rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Sender</label>
+              <input
+                type="text"
+                x-model="mh.filterSender"
+                @keydown.enter="mhSearch()"
+                placeholder="JID or name"
+                class="w-full px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Chat -->
+            <div class="flex flex-col gap-1 min-w-[10rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Chat / Group</label>
+              <input
+                type="text"
+                x-model="mh.filterChat"
+                @keydown.enter="mhSearch()"
+                placeholder="JID or number"
+                class="w-full px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Date From -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">From</label>
+              <input
+                type="date"
+                x-model="mh.filterDateFrom"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Date To -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">To</label>
+              <input
+                type="date"
+                x-model="mh.filterDateTo"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-2 items-end flex-shrink-0">
+              <button
+                @click="mhSearch()"
+                :disabled="mh.loading"
+                class="px-4 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-blue-600 text-white hover:bg-blue-700
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span x-show="!mh.loading">Search</span>
+                <span x-show="mh.loading">Searching…</span>
+              </button>
+              <button
+                @click="mhReset()"
+                class="px-3 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-gray-100 text-gray-700 hover:bg-gray-200
+                       dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
+              >Reset</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Two-pane layout ── -->
+        <div class="flex flex-1 overflow-hidden min-h-0">
+
+          <!-- Left: event list -->
+          <div class="flex flex-col w-80 flex-shrink-0 border-r overflow-hidden
+                      border-gray-200 dark:border-[#30363d]">
+
+            <!-- List header -->
+            <div class="flex items-center px-3 py-1 flex-shrink-0 border-b text-xs uppercase tracking-wider
+                        bg-gray-50 border-gray-200 text-gray-400
+                        dark:bg-[#161b22] dark:border-[#30363d] dark:text-[#8b949e]">
+              <span x-text="mh.total + ' total, ' + mh.items.length + ' loaded'"></span>
+            </div>
+
+            <!-- Items -->
+            <div class="overflow-y-auto flex-1">
+              <template x-for="item in mh.items" :key="item.id">
+                <div
+                  @click="mhSelect(item)"
+                  class="px-3 py-2 cursor-pointer border-b border-l-2 transition-colors"
+                  :class="mh.selected && mh.selected.id === item.id
+                    ? 'border-l-blue-500 bg-gray-100 dark:bg-[#21262d] border-b-transparent'
+                    : 'border-l-transparent border-b-gray-100 dark:border-b-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]'"
+                >
+                  <!-- Row: time + kind badge + sender -->
+                  <div class="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                    <span class="text-gray-400 dark:text-[#8b949e] text-xs flex-shrink-0"
+                          x-text="fmtTime(item.created)"></span>
+                    <span
+                      class="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                      :class="mhKindBadgeClass(mhKind(item))"
+                      x-text="mhKindLabel(mhKind(item))"
+                    ></span>
+                    <span
+                      x-show="mhSenderLabel(item)"
+                      class="text-xs text-gray-500 dark:text-[#8b949e] truncate"
+                      x-text="mhSenderLabel(item)"
+                    ></span>
+                  </div>
+                  <!-- Row: chat + target message ID -->
+                  <div class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-[#484f58]">
+                    <span x-show="mhChatLabel(item)" x-text="mhChatLabel(item)" class="truncate"></span>
+                    <span x-show="mhTargetId(item)" class="font-mono truncate text-gray-300 dark:text-[#30363d]"
+                          x-text="'→ ' + mhTargetId(item).slice(0, 16) + '…'"></span>
+                  </div>
+                  <!-- Row: new content preview (edit only) -->
+                  <div
+                    x-show="mhKind(item) === 'edit' && mhNewContent(item)"
+                    class="mt-0.5 text-xs text-blue-500 dark:text-blue-400 truncate"
+                    x-text="mhNewContent(item)"
+                  ></div>
+                </div>
+              </template>
+
+              <!-- Empty state -->
+              <div
+                x-show="mh.items.length === 0 && !mh.loading"
+                class="px-4 py-10 text-center text-xs text-gray-400 dark:text-[#484f58]"
+              >
+                Use the filters above and press <strong>Search</strong>.
+              </div>
+
+              <!-- Loading indicator -->
+              <div
+                x-show="mh.loading && mh.items.length === 0"
+                class="px-4 py-6 text-center text-xs text-gray-400 dark:text-[#484f58]"
+              >Loading…</div>
+
+              <!-- Load more -->
+              <div x-show="mhHasMore()" class="p-3">
+                <button
+                  @click="mhLoadMore()"
+                  :disabled="mh.loading"
+                  class="w-full py-1.5 rounded text-xs font-medium transition-colors
+                         bg-gray-100 text-gray-600 hover:bg-gray-200
+                         dark:bg-[#21262d] dark:text-[#8b949e] dark:hover:bg-[#30363d]
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span x-show="!mh.loading">Load more (<span x-text="mh.total - mh.items.length"></span> remaining)</span>
+                  <span x-show="mh.loading">Loading…</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right: detail panel -->
+          <div class="flex flex-col flex-1 overflow-hidden min-w-0">
+
+            <!-- No selection placeholder -->
+            <div
+              x-show="!mh.selected"
+              class="flex-1 flex items-center justify-center text-xs text-gray-400 dark:text-[#484f58]"
+            >&larr; click an event to inspect</div>
+
+            <!-- Detail content -->
+            <template x-if="mh.selected">
+              <div class="flex flex-col h-full overflow-hidden">
+
+                <!-- Detail header -->
+                <div class="flex items-center gap-2 px-4 py-2 flex-shrink-0 border-b flex-wrap
+                            bg-gray-50 border-gray-200 text-xs
+                            dark:bg-[#161b22] dark:border-[#30363d]">
+                  <span
+                    class="font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                    :class="mhKindBadgeClass(mhKind(mh.selected))"
+                    x-text="mhKindLabel(mhKind(mh.selected))"
+                  ></span>
+                  <span class="text-gray-400 dark:text-[#8b949e] flex-shrink-0"
+                        x-text="mhFmtDateTime(mh.selected.created)"></span>
+                  <span
+                    x-show="mhSenderLabel(mh.selected)"
+                    class="text-gray-600 dark:text-[#c9d1d9] flex-shrink-0"
+                    x-text="mhSenderLabel(mh.selected)"
+                  ></span>
+                  <span
+                    x-show="mhChatLabel(mh.selected)"
+                    class="text-gray-400 dark:text-[#8b949e] flex-shrink-0"
+                    x-text="'in ' + mhChatLabel(mh.selected)"
+                  ></span>
+                  <span
+                    x-show="mhTargetId(mh.selected)"
+                    class="font-mono text-gray-400 dark:text-[#8b949e] truncate"
+                    x-text="'target: ' + mhTargetId(mh.selected)"
+                  ></span>
+                  <button
+                    @click="mhCopyJSON()"
+                    class="ml-auto flex items-center gap-1 transition-colors
+                           text-gray-400 hover:text-blue-500
+                           dark:text-[#8b949e] dark:hover:text-[#58a6ff]"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/>
+                    </svg>
+                    <span x-text="mhCopied ? 'Copied!' : 'Copy JSON'"></span>
+                  </button>
+                </div>
+
+                <!-- Scrollable body -->
+                <div class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-[#21262d]">
+
+                  <!-- ── Action Event section ── -->
+                  <div class="px-4 py-4">
+                    <div class="text-xs font-semibold uppercase tracking-wider mb-3
+                                text-gray-400 dark:text-[#8b949e]">Action Event</div>
+
+                    <!-- Edit: new content highlight -->
+                    <template x-if="mhKind(mh.selected) === 'edit' && mhNewContent(mh.selected)">
+                      <div class="mb-3 flex items-start gap-2 px-3 py-2 rounded-md border
+                                  bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30">
+                        <svg class="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                        <div>
+                          <div class="text-xs font-medium text-blue-700 dark:text-blue-300 mb-0.5">New content</div>
+                          <div class="text-xs text-blue-800 dark:text-blue-200 break-words"
+                               x-text="mhNewContent(mh.selected)"></div>
+                        </div>
+                      </div>
+                    </template>
+
+                    <!-- Delete: target message reference -->
+                    <template x-if="mhKind(mh.selected) === 'delete'">
+                      <div class="mb-3 flex items-start gap-2 px-3 py-2 rounded-md border
+                                  bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/30">
+                        <svg class="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                        </svg>
+                        <div>
+                          <div class="text-xs font-medium text-red-700 dark:text-red-400 mb-0.5">Deleted message</div>
+                          <div class="text-xs font-mono text-red-600 dark:text-red-300 break-all"
+                               x-text="mhTargetId(mh.selected)"></div>
+                        </div>
+                      </div>
+                    </template>
+
+                    <!-- Action event JSON -->
+                    <div class="rounded-md border overflow-hidden border-gray-200 dark:border-[#30363d]">
+                      <pre
+                        class="p-3 text-xs leading-relaxed whitespace-pre overflow-x-auto max-h-64
+                               bg-white dark:bg-[#0d1117]"
+                        x-html="highlight(mh.selected)"
+                      ></pre>
+                    </div>
+                  </div>
+
+                  <!-- ── Original Message section ── -->
+                  <div class="px-4 py-4">
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="text-xs font-semibold uppercase tracking-wider
+                                  text-gray-400 dark:text-[#8b949e]">Original Message</div>
+                      <!-- Loading spinner -->
+                      <svg x-show="mh.origLoading"
+                           class="h-3.5 w-3.5 animate-spin text-gray-400 dark:text-[#8b949e]"
+                           fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    </div>
+
+                    <!-- Not found -->
+                    <div
+                      x-show="mh.origNotFound && !mh.origLoading"
+                      class="px-3 py-3 rounded-md border text-xs text-gray-500 dark:text-[#8b949e]
+                             border-gray-200 bg-gray-50 dark:bg-[#161b22] dark:border-[#30363d]"
+                    >
+                      Original message not found in events database.
+                      <span class="block mt-1 font-mono text-gray-400 dark:text-[#484f58]"
+                            x-text="mhTargetId(mh.selected) ? 'msgID: ' + mhTargetId(mh.selected) : ''"></span>
+                    </div>
+
+                    <!-- Found -->
+                    <template x-if="mh.origEvent && !mh.origLoading">
+                      <div class="flex flex-col gap-3">
+
+                        <!-- Original message summary card -->
+                        <div class="flex items-start gap-3 px-3 py-3 rounded-md border
+                                    border-gray-200 bg-gray-50 dark:bg-[#161b22] dark:border-[#30363d]">
+                          <span
+                            class="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                            :class="typeClass(mh.origEvent.type)"
+                            x-text="mh.origEvent.type"
+                          ></span>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-xs text-gray-700 dark:text-[#c9d1d9] break-words"
+                                 x-text="ebPreviewText(mh.origEvent)"></div>
+                            <div class="text-xs text-gray-400 dark:text-[#8b949e] mt-1"
+                                 x-text="mhFmtDateTime(mh.origEvent.created)"></div>
+                          </div>
+                          <button
+                            @click="mhCopyOrigJSON()"
+                            class="flex-shrink-0 flex items-center gap-1 text-xs transition-colors
+                                   text-gray-400 hover:text-blue-500
+                                   dark:text-[#8b949e] dark:hover:text-[#58a6ff]"
+                          >
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/>
+                            </svg>
+                            <span x-text="mhOrigCopied ? 'Copied!' : 'Copy'"></span>
+                          </button>
+                        </div>
+
+                        <!-- Original media (if present) -->
+                        <template x-if="ebMediaType(mh.origEvent)">
+                          <div class="rounded-md border overflow-hidden border-gray-200 dark:border-[#30363d]">
+                            <div class="px-3 py-2 border-b text-xs text-gray-400 dark:text-[#8b949e]
+                                        bg-gray-50 dark:bg-[#161b22] dark:border-[#30363d]">Media</div>
+                            <div class="p-3 bg-white dark:bg-[#0d1117]">
+                              <!-- Image -->
+                              <template x-if="ebMediaType(mh.origEvent) === 'image'">
+                                <img
+                                  :src="ebThumbUrl(mh.origEvent)"
+                                  @click="window.open(ebFileUrl(mh.origEvent), '_blank')"
+                                  class="max-h-48 max-w-full rounded cursor-zoom-in object-contain
+                                         bg-gray-100 dark:bg-[#21262d]"
+                                />
+                              </template>
+                              <!-- Video -->
+                              <template x-if="ebMediaType(mh.origEvent) === 'video'">
+                                <video controls class="max-h-48 w-full rounded bg-black"
+                                       :src="ebFileUrl(mh.origEvent)"></video>
+                              </template>
+                              <!-- Audio -->
+                              <template x-if="ebMediaType(mh.origEvent) === 'audio'">
+                                <audio controls class="w-full" :src="ebFileUrl(mh.origEvent)"></audio>
+                              </template>
+                              <!-- Generic file -->
+                              <template x-if="ebMediaType(mh.origEvent) === 'file'">
+                                <div class="flex items-center gap-2 text-xs font-mono text-gray-600 dark:text-[#c9d1d9]"
+                                     x-text="mh.origEvent.file"></div>
+                              </template>
+                              <!-- Download link -->
+                              <a
+                                :href="ebFileUrl(mh.origEvent)"
+                                :download="mh.origEvent.file"
+                                class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors
+                                       bg-gray-100 text-gray-700 hover:bg-gray-200
+                                       dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
+                              >
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                </svg>
+                                Download
+                              </a>
+                            </div>
+                          </div>
+                        </template>
+
+                        <!-- Original message full JSON -->
+                        <div class="rounded-md border overflow-hidden border-gray-200 dark:border-[#30363d]">
+                          <div class="px-3 py-2 border-b text-xs text-gray-400 dark:text-[#8b949e]
+                                      bg-gray-50 dark:bg-[#161b22] dark:border-[#30363d]">Full Payload</div>
+                          <pre
+                            class="p-3 text-xs leading-relaxed whitespace-pre overflow-x-auto max-h-96
+                                   bg-white dark:bg-[#0d1117]"
+                            x-html="highlight(mh.origEvent)"
+                          ></pre>
+                        </div>
+
+                      </div>
+                    </template>
+
                   </div>
 
                 </div>
