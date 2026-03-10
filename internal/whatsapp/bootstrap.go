@@ -27,10 +27,12 @@ import (
 // applyDeviceSpoof configures store.DeviceProps and store.BaseClientPayload to present the
 // client as the specified device type to the WhatsApp server.
 //
-// WARNING: Experimental. These changes affect the identity payload sent during the WebSocket
-// handshake. For full effect, re-pair the device after changing this setting. Already-paired
-// companion devices retain their companion Device ID (>0) in the stored JID regardless of
-// these fields.
+// WARNING: Work in Progress — not fully functional. These changes affect the identity payload
+// sent during the WebSocket handshake but have not been confirmed to unlock restricted
+// features (e.g. live location). Connection failures, session termination, or account bans
+// are possible. For full effect, re-pair the device after changing this setting.
+// Already-paired companion devices retain their companion Device ID (>0) in the stored JID
+// regardless of these fields.
 //
 // Modes:
 //   - "companion" (default) — standard whatsmeow companion/linked device (ANDROID_PHONE type, WEB platform)

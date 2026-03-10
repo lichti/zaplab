@@ -400,7 +400,7 @@ In addition to PocketBase's standard flags (`serve`, `--http`, `--dir`, etc.), t
 | `--whatsapp-request-full-sync` | `false` | Request full history (10 years) on first login |
 | `--whatsapp-history-path` | `<data-dir>/history` | Directory for HistorySync JSON dumps |
 | `--webhook-config-file` | `<data-dir>/webhook.json` | Path to webhook configuration file |
-| `--device-spoof` | `companion` | Device identity presented to WhatsApp: `companion` (default), `android`, `ios` — experimental, re-pair after changing |
+| `--device-spoof` | `companion` | Device identity presented to WhatsApp: `companion` (default), `android`, `ios` — ⚠️ **WIP**, experimental, re-pair after changing |
 
 > PocketBase's `--dir` flag (pb_data location) also defaults to `<data-dir>/pb_data`.
 

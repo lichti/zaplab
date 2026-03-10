@@ -1,8 +1,10 @@
 # Device Spoof Spec
 
-> **Status: Experimental**
+> **Status: Work in Progress — not fully functional**
 > These settings change the identity payload sent during the WhatsApp WebSocket handshake.
-> Effects on server behavior (feature gating, live location, etc.) are not guaranteed.
+> Effects on server behavior (feature gating, live location, etc.) are not guaranteed and
+> have not been confirmed to work. Connection failures, session termination, or account bans
+> are possible. Do not use in production.
 > Re-pair the device after changing `--device-spoof` for full effect.
 
 ---
