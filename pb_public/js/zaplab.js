@@ -12,7 +12,9 @@ function zaplab() {
     sendRawSection(),
     ctrlSection(),
     contactsSection(),
+    contactsMgmtSection(),
     groupsSection(),
+    mediaSection(),
     simulationSection(),
     {
       // ── shared persistent state ──
@@ -52,7 +54,9 @@ function zaplab() {
         this.initSendRaw();
         this.initCtrl();
         this.initContacts();
+        this.initContactsMgmt();
         this.initGroups();
+        this.initMedia();
         this.initSimulation();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));

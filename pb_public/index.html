@@ -29,7 +29,9 @@
   <script src="js/sections/sendraw.js"></script>
   <script src="js/sections/ctrl.js"></script>
   <script src="js/sections/contacts.js"></script>
+  <script src="js/sections/contactsmgmt.js"></script>
   <script src="js/sections/groups.js"></script>
+  <script src="js/sections/media.js"></script>
   <script src="js/sections/simulation.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
@@ -267,6 +269,22 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Contacts &amp; Polls</span>
         </button>
 
+        <!-- Contacts Management -->
+        <button
+          @click="setSection('contactsmgmt')"
+          :title="sidebarExpanded ? '' : 'Contacts Management'"
+          aria-label="Contacts Management"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'contactsmgmt'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3M13.5 3.75a6.75 6.75 0 1 1 0 13.5 6.75 6.75 0 0 1 0-13.5Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Contacts Management</span>
+        </button>
+
         <!-- Groups -->
         <button
           @click="setSection('groups')"
@@ -281,6 +299,22 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Groups</span>
+        </button>
+
+        <!-- Media Decrypt -->
+        <button
+          @click="setSection('media')"
+          :title="sidebarExpanded ? '' : 'Media Decrypt'"
+          aria-label="Media Decrypt"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'media'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Media Decrypt</span>
         </button>
 
         <!-- Simulation -->
@@ -1425,7 +1459,7 @@
           <div class="w-full lg:w-[420px] flex-shrink-0 flex flex-col gap-5">
 
             <h2 class="text-base font-semibold">Contacts &amp; Polls
-              <span class="ml-2 text-xs font-normal text-gray-400 dark:text-[#8b949e]">list · check · info · send · poll</span>
+              <span class="ml-2 text-xs font-normal text-gray-400 dark:text-[#8b949e]">send · poll</span>
             </h2>
 
             <!-- API Token -->
@@ -1450,111 +1484,15 @@
                        bg-white border-gray-200 text-gray-900
                        dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
                        focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                <optgroup label="── Management ──">
-                  <option value="list">List — all contacts from local store</option>
-                  <option value="check">Check — verify numbers on WhatsApp</option>
-                  <option value="info">Info — get contact details &amp; avatar</option>
-                </optgroup>
-                <optgroup label="── Send ──">
-                  <option value="contact">Contact — send single vCard</option>
-                  <option value="contacts">Contacts — send multiple vCards</option>
-                  <option value="poll">Poll — create a poll</option>
-                  <option value="votepoll">Vote — vote on a poll</option>
-                </optgroup>
+                <option value="contact">Contact — send single vCard</option>
+                <option value="contacts">Contacts — send multiple vCards</option>
+                <option value="poll">Poll — create a poll</option>
+                <option value="votepoll">Vote — vote on a poll</option>
               </select>
             </div>
 
-            <!-- ── Management: Check — phone numbers ── -->
-            <div x-show="contacts.type === 'check'" class="flex flex-col gap-1.5">
-              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
-                Phone Numbers
-                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(one per line, with or without +)</span>
-              </label>
-              <textarea x-model="contacts.phonesToCheck" rows="5"
-                placeholder="5511999999999&#10;5521888888888&#10;+441234567890"
-                class="w-full px-3 py-2 rounded-md border text-sm resize-y font-mono
-                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
-                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
-                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"></textarea>
-            </div>
-
-            <!-- ── Management: Info — JID input + picker ── -->
-            <div x-show="contacts.type === 'info'" class="flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
-                  Contact JID / Phone
-                  <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(e.g. 5511999999999)</span>
-                </label>
-                <button
-                  @click="contactsPickerOpen = !contactsPickerOpen; if (contactsPickerOpen && contactsStoreList.length === 0) loadContactsStore()"
-                  class="text-xs px-2 py-1 rounded border transition-colors
-                         border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400
-                         dark:border-[#30363d] dark:text-[#8b949e] dark:hover:text-[#58a6ff] dark:hover:border-[#58a6ff]"
-                  x-text="contactsPickerOpen ? 'Hide picker' : 'Browse'"></button>
-              </div>
-              <input type="text" x-model="contacts.infoJid" placeholder="5511999999999"
-                class="w-full px-3 py-2 rounded-md border text-sm
-                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
-                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
-                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
-
-              <!-- Contact Picker -->
-              <div x-show="contactsPickerOpen" class="rounded-md border overflow-hidden
-                           bg-white border-gray-200 dark:bg-[#0d1117] dark:border-[#30363d]">
-                <div class="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-[#30363d]">
-                  <input type="text" x-model="contactsStoreFilter" placeholder="Search by name or phone…"
-                    class="flex-1 px-2 py-1 rounded text-xs border
-                           bg-white border-gray-200 text-gray-900 placeholder-gray-400
-                           dark:bg-[#161b22] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
-                           focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  <button @click="loadContactsStore()" :disabled="contactsStoreLoading"
-                    class="flex items-center gap-1 px-2 py-1 rounded text-xs border transition-colors
-                           border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400
-                           dark:border-[#30363d] dark:text-[#8b949e] dark:hover:text-[#58a6ff]
-                           disabled:opacity-50">
-                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Refresh
-                  </button>
-                </div>
-                <div x-show="contactsStoreLoading"
-                  class="px-4 py-6 text-xs text-center text-gray-400 dark:text-[#8b949e]">Loading contacts…</div>
-                <div x-show="!contactsStoreLoading && contactsStoreList.length === 0"
-                  class="px-4 py-6 text-xs text-center text-gray-400 dark:text-[#8b949e]">
-                  No contacts loaded.
-                  <button @click="loadContactsStore()" class="ml-1 text-blue-500 hover:underline">Load now</button>
-                </div>
-                <div x-show="!contactsStoreLoading && contactsStoreList.length > 0" class="overflow-x-auto max-h-48">
-                  <table class="w-full text-xs">
-                    <thead>
-                      <tr class="border-b border-gray-200 dark:border-[#30363d]">
-                        <th class="px-3 py-1.5 text-left font-medium text-gray-500 dark:text-[#8b949e]">Name / Phone</th>
-                        <th class="px-3 py-1.5 text-left font-medium text-gray-500 dark:text-[#8b949e]">JID</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <template x-for="c in contactsStoreFiltered()" :key="c.jid">
-                        <tr @click="selectContactFromPicker(c)"
-                          class="cursor-pointer border-b last:border-0 transition-colors
-                                 border-gray-100 hover:bg-blue-50
-                                 dark:border-[#21262d] dark:hover:bg-[#1c2128]"
-                          :class="contacts.infoJid === c.jid ? 'bg-blue-50 dark:bg-[#1c2128]' : ''">
-                          <td class="px-3 py-2">
-                            <div class="font-medium text-gray-800 dark:text-[#c9d1d9]" x-text="contactDisplayName(c)"></div>
-                            <div class="text-gray-400 dark:text-[#484f58] font-mono text-xs" x-text="c.phone"></div>
-                          </td>
-                          <td class="px-3 py-2 text-gray-400 dark:text-[#484f58] font-mono truncate max-w-[120px]" x-text="c.jid"></td>
-                        </tr>
-                      </template>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <!-- ── Send: To field ── -->
-            <div x-show="!contactsIsMgmt()" class="flex flex-col gap-1.5">
+            <!-- To field -->
+            <div class="flex flex-col gap-1.5">
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 To
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(phone number or JID)</span>
@@ -1715,9 +1653,8 @@
             <button @click="submitContacts()" :disabled="contactsIsDisabled()"
               class="w-full py-2 px-4 rounded-md text-sm font-medium transition-colors
                      bg-blue-600 text-white hover:bg-blue-700
-                     disabled:opacity-50 disabled:cursor-not-allowed">
-              <span x-show="!contacts.loading" x-text="contactsLabel()"></span>
-              <span x-show="contacts.loading">Loading…</span>
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              x-text="contacts.loading ? 'Loading…' : contactsLabel()">
             </button>
 
             <!-- Toast -->
@@ -1743,14 +1680,6 @@
                 :class="contactsPreviewTab === 'curl'
                   ? 'border-blue-500 text-blue-600 dark:text-[#58a6ff]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">cURL</button>
-              <button @click="contactsPreviewTab = 'table'" x-show="contactsHasTable()"
-                class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
-                :class="contactsPreviewTab === 'table'
-                  ? 'border-purple-500 text-purple-600 dark:text-[#bc8cff]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">
-                Table
-                <span x-show="contacts.result" class="ml-1 h-1.5 w-1.5 rounded-full bg-purple-500 inline-block"></span>
-              </button>
               <button @click="contactsPreviewTab = 'response'"
                 class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
                 :class="contactsPreviewTab === 'response'
@@ -1760,16 +1689,7 @@
                 <span x-show="contacts.result" class="ml-1 h-1.5 w-1.5 rounded-full bg-green-500 inline-block"></span>
               </button>
               <span class="ml-2 text-xs text-gray-400 dark:text-[#484f58]" x-text="contactsEndpoint()"></span>
-              <!-- CSV export -->
-              <button x-show="contactsPreviewTab === 'table' && contacts.type === 'list'" @click="exportContactsCSV()"
-                class="ml-auto mr-2 flex items-center gap-1 text-xs transition-colors
-                       text-gray-400 hover:text-green-600 dark:text-[#8b949e] dark:hover:text-[#3fb950]">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-                </svg>
-                CSV
-              </button>
-              <button @click="copyContactsPreview()" x-show="contactsPreviewTab !== 'table'" aria-label="Copy"
+              <button @click="copyContactsPreview()" aria-label="Copy"
                 class="ml-auto mr-3 flex items-center gap-1 text-xs transition-colors
                        text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff]">
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1780,12 +1700,217 @@
             </div>
 
             <!-- cURL / Response tab -->
-            <div x-show="contactsPreviewTab !== 'table'" class="overflow-x-auto min-h-[300px]">
+            <div class="overflow-x-auto min-h-[300px]">
               <pre class="p-4 text-xs leading-relaxed whitespace-pre" x-html="contactsPreviewContent()"></pre>
             </div>
 
-            <!-- Table: contact list ── -->
-            <div x-show="contactsPreviewTab === 'table' && contacts.type === 'list'" class="overflow-auto">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section: Contacts Management ────────────────────────────── -->
+      <div x-show="activeSection === 'contactsmgmt'" class="h-full overflow-y-auto">
+        <div class="max-w-5xl mx-auto w-full p-6 flex flex-col lg:flex-row gap-6 items-start">
+
+          <!-- ── Left: form ────────────────────────────────────────────── -->
+          <div class="w-full lg:w-[420px] flex-shrink-0 flex flex-col gap-5">
+
+            <h2 class="text-base font-semibold">Contacts Management
+              <span class="ml-2 text-xs font-normal text-gray-400 dark:text-[#8b949e]">list · check · info</span>
+            </h2>
+
+            <!-- API Token -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                API Token
+                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+              </label>
+              <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
+                class="w-full px-3 py-2 rounded-md border text-sm opacity-50
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+
+            <!-- Action selector -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Action</label>
+              <select x-model="mgmt.type"
+                class="w-full px-3 py-2 rounded-md border text-sm
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                <option value="list">List — all contacts from local store</option>
+                <option value="check">Check — verify numbers on WhatsApp</option>
+                <option value="info">Info — get contact details &amp; avatar</option>
+              </select>
+            </div>
+
+            <!-- Check — phone numbers -->
+            <div x-show="mgmt.type === 'check'" class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                Phone Numbers
+                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(one per line, with or without +)</span>
+              </label>
+              <textarea x-model="mgmt.phonesToCheck" rows="5"
+                placeholder="5511999999999&#10;5521888888888&#10;+441234567890"
+                class="w-full px-3 py-2 rounded-md border text-sm resize-y font-mono
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+
+            <!-- Info — JID input + picker -->
+            <div x-show="mgmt.type === 'info'" class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                  Contact JID / Phone
+                  <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(e.g. 5511999999999)</span>
+                </label>
+                <button
+                  @click="mgmtPickerOpen = !mgmtPickerOpen; if (mgmtPickerOpen && mgmtStoreList.length === 0) loadMgmtStore()"
+                  class="text-xs px-2 py-1 rounded border transition-colors
+                         border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400
+                         dark:border-[#30363d] dark:text-[#8b949e] dark:hover:text-[#58a6ff] dark:hover:border-[#58a6ff]"
+                  x-text="mgmtPickerOpen ? 'Hide picker' : 'Browse'"></button>
+              </div>
+              <input type="text" x-model="mgmt.infoJid" placeholder="5511999999999"
+                class="w-full px-3 py-2 rounded-md border text-sm
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+
+              <!-- Contact Picker -->
+              <div x-show="mgmtPickerOpen" class="rounded-md border overflow-hidden
+                           bg-white border-gray-200 dark:bg-[#0d1117] dark:border-[#30363d]">
+                <div class="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-[#30363d]">
+                  <input type="text" x-model="mgmtStoreFilter" placeholder="Search by name or phone…"
+                    class="flex-1 px-2 py-1 rounded text-xs border
+                           bg-white border-gray-200 text-gray-900 placeholder-gray-400
+                           dark:bg-[#161b22] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                           focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  <button @click="loadMgmtStore()" :disabled="mgmtStoreLoading"
+                    class="flex items-center gap-1 px-2 py-1 rounded text-xs border transition-colors
+                           border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400
+                           dark:border-[#30363d] dark:text-[#8b949e] dark:hover:text-[#58a6ff]
+                           disabled:opacity-50">
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Refresh
+                  </button>
+                </div>
+                <div x-show="mgmtStoreLoading"
+                  class="px-4 py-6 text-xs text-center text-gray-400 dark:text-[#8b949e]">Loading contacts…</div>
+                <div x-show="!mgmtStoreLoading && mgmtStoreList.length === 0"
+                  class="px-4 py-6 text-xs text-center text-gray-400 dark:text-[#8b949e]">
+                  No contacts loaded.
+                  <button @click="loadMgmtStore()" class="ml-1 text-blue-500 hover:underline">Load now</button>
+                </div>
+                <div x-show="!mgmtStoreLoading && mgmtStoreList.length > 0" class="overflow-x-auto max-h-48">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="border-b border-gray-200 dark:border-[#30363d]">
+                        <th class="px-3 py-1.5 text-left font-medium text-gray-500 dark:text-[#8b949e]">Name / Phone</th>
+                        <th class="px-3 py-1.5 text-left font-medium text-gray-500 dark:text-[#8b949e]">JID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="c in mgmtStoreFiltered()" :key="c.jid">
+                        <tr @click="selectMgmtFromPicker(c)"
+                          class="cursor-pointer border-b last:border-0 transition-colors
+                                 border-gray-100 hover:bg-blue-50
+                                 dark:border-[#21262d] dark:hover:bg-[#1c2128]"
+                          :class="mgmt.infoJid === c.jid ? 'bg-blue-50 dark:bg-[#1c2128]' : ''">
+                          <td class="px-3 py-2">
+                            <div class="font-medium text-gray-800 dark:text-[#c9d1d9]" x-text="mgmtDisplayName(c)"></div>
+                            <div class="text-gray-400 dark:text-[#484f58] font-mono text-xs" x-text="c.phone"></div>
+                          </td>
+                          <td class="px-3 py-2 text-gray-400 dark:text-[#484f58] font-mono truncate max-w-[120px]" x-text="c.jid"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button @click="submitMgmt()" :disabled="mgmtIsDisabled()"
+              class="w-full py-2 px-4 rounded-md text-sm font-medium transition-colors
+                     bg-blue-600 text-white hover:bg-blue-700
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              x-text="mgmt.loading ? 'Loading…' : mgmtLabel()">
+            </button>
+
+            <!-- Toast -->
+            <div x-show="mgmt.toast" x-transition
+              class="px-4 py-3 rounded-md text-sm break-all"
+              :class="mgmt.toast && mgmt.toast.ok
+                ? 'bg-green-50 text-green-800 dark:bg-[#1b3a2e] dark:text-[#3fb950]'
+                : 'bg-red-50 text-red-800 dark:bg-[#3a1c1c] dark:text-[#f85149]'"
+              x-text="mgmt.toast ? mgmt.toast.message : ''"></div>
+
+          </div>
+
+          <!-- ── Right: preview + results ───────────────────────────────── -->
+          <div class="w-full lg:flex-1 min-w-0 flex flex-col rounded-md border overflow-hidden
+                      bg-white border-gray-200
+                      dark:bg-[#161b22] dark:border-[#30363d]">
+
+            <!-- Preview header -->
+            <div class="flex items-center gap-0 border-b flex-shrink-0
+                        border-gray-200 dark:border-[#30363d]">
+              <button @click="mgmtPreviewTab = 'curl'"
+                class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+                :class="mgmtPreviewTab === 'curl'
+                  ? 'border-blue-500 text-blue-600 dark:text-[#58a6ff]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">cURL</button>
+              <button @click="mgmtPreviewTab = 'table'" x-show="mgmtHasTable()"
+                class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+                :class="mgmtPreviewTab === 'table'
+                  ? 'border-purple-500 text-purple-600 dark:text-[#bc8cff]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">
+                Table
+                <span x-show="mgmt.result" class="ml-1 h-1.5 w-1.5 rounded-full bg-purple-500 inline-block"></span>
+              </button>
+              <button @click="mgmtPreviewTab = 'response'"
+                class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+                :class="mgmtPreviewTab === 'response'
+                  ? 'border-green-500 text-green-600 dark:text-[#3fb950]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">
+                Response
+                <span x-show="mgmt.result" class="ml-1 h-1.5 w-1.5 rounded-full bg-green-500 inline-block"></span>
+              </button>
+              <span class="ml-2 text-xs text-gray-400 dark:text-[#484f58]" x-text="mgmtEndpoint()"></span>
+              <!-- CSV export -->
+              <button x-show="mgmtPreviewTab === 'table' && mgmt.type === 'list'" @click="exportMgmtCSV()"
+                class="ml-auto mr-2 flex items-center gap-1 text-xs transition-colors
+                       text-gray-400 hover:text-green-600 dark:text-[#8b949e] dark:hover:text-[#3fb950]">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                CSV
+              </button>
+              <button @click="copyMgmtPreview()" x-show="mgmtPreviewTab !== 'table'" aria-label="Copy"
+                class="ml-auto mr-3 flex items-center gap-1 text-xs transition-colors
+                       text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff]">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/>
+                </svg>
+                <span x-text="mgmtPreviewCopied ? 'Copied!' : 'Copy'"></span>
+              </button>
+            </div>
+
+            <!-- cURL / Response tab -->
+            <div x-show="mgmtPreviewTab !== 'table'" class="overflow-x-auto min-h-[300px]">
+              <pre class="p-4 text-xs leading-relaxed whitespace-pre" x-html="mgmtPreviewContent()"></pre>
+            </div>
+
+            <!-- Table: contact list -->
+            <div x-show="mgmtPreviewTab === 'table' && mgmt.type === 'list'" class="overflow-auto">
               <table class="w-full text-xs">
                 <thead class="sticky top-0 bg-white dark:bg-[#161b22]">
                   <tr class="border-b border-gray-200 dark:border-[#30363d]">
@@ -1795,12 +1920,12 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="c in (contacts.result && contacts.result.contacts || [])" :key="c.jid">
+                  <template x-for="c in (mgmt.result && mgmt.result.contacts || [])" :key="c.jid">
                     <tr class="border-b last:border-0 transition-colors
                                border-gray-100 hover:bg-gray-50
                                dark:border-[#21262d] dark:hover:bg-[#1c2128]">
                       <td class="px-3 py-2">
-                        <div class="font-medium text-gray-800 dark:text-[#c9d1d9]" x-text="contactDisplayName(c)"></div>
+                        <div class="font-medium text-gray-800 dark:text-[#c9d1d9]" x-text="mgmtDisplayName(c)"></div>
                         <div x-show="c.business_name" class="text-gray-400 dark:text-[#484f58] text-xs" x-text="c.business_name"></div>
                       </td>
                       <td class="px-3 py-2 font-mono">
@@ -1808,7 +1933,7 @@
                         <div class="text-gray-400 dark:text-[#484f58] text-xs truncate max-w-[180px]" x-text="c.jid"></div>
                       </td>
                       <td class="px-3 py-2 whitespace-nowrap">
-                        <button @click="contactsQuickInfo(c.jid)"
+                        <button @click="mgmtQuickInfo(c.jid)"
                           class="text-xs px-2 py-1 rounded border transition-colors
                                  border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400
                                  dark:border-[#30363d] dark:text-[#8b949e] dark:hover:text-[#58a6ff] dark:hover:border-[#58a6ff]">
@@ -1817,18 +1942,18 @@
                       </td>
                     </tr>
                   </template>
-                  <tr x-show="!contacts.result || (contacts.result.contacts || []).length === 0">
+                  <tr x-show="!mgmt.result || (mgmt.result.contacts || []).length === 0">
                     <td colspan="3" class="px-4 py-8 text-center text-gray-400 dark:text-[#8b949e]">No contacts.</td>
                   </tr>
                 </tbody>
               </table>
-              <div x-show="contacts.result && contacts.result.count > 0"
+              <div x-show="mgmt.result && mgmt.result.count > 0"
                 class="px-4 py-2 text-xs text-gray-400 dark:text-[#484f58] border-t border-gray-100 dark:border-[#21262d]"
-                x-text="`${contacts.result.count} contacts in local store`"></div>
+                x-text="`${mgmt.result.count} contacts in local store`"></div>
             </div>
 
-            <!-- Table: check results ── -->
-            <div x-show="contactsPreviewTab === 'table' && contacts.type === 'check'" class="overflow-auto">
+            <!-- Table: check results -->
+            <div x-show="mgmtPreviewTab === 'table' && mgmt.type === 'check'" class="overflow-auto">
               <table class="w-full text-xs">
                 <thead class="sticky top-0 bg-white dark:bg-[#161b22]">
                   <tr class="border-b border-gray-200 dark:border-[#30363d]">
@@ -1839,7 +1964,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="r in (contacts.result && contacts.result.results || [])" :key="r.query">
+                  <template x-for="r in (mgmt.result && mgmt.result.results || [])" :key="r.query">
                     <tr class="border-b last:border-0 transition-colors
                                border-gray-100 hover:bg-gray-50
                                dark:border-[#21262d] dark:hover:bg-[#1c2128]">
@@ -1859,7 +1984,7 @@
                         <div x-show="r.verified_name" class="text-gray-400 dark:text-[#484f58]" x-text="r.verified_name"></div>
                       </td>
                       <td class="px-3 py-2">
-                        <button x-show="r.is_on_whatsapp" @click="contactsQuickInfo(r.jid)"
+                        <button x-show="r.is_on_whatsapp" @click="mgmtQuickInfo(r.jid)"
                           class="text-xs px-2 py-1 rounded border transition-colors
                                  border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400
                                  dark:border-[#30363d] dark:text-[#8b949e] dark:hover:text-[#58a6ff] dark:hover:border-[#58a6ff]">
@@ -1868,23 +1993,23 @@
                       </td>
                     </tr>
                   </template>
-                  <tr x-show="!contacts.result || (contacts.result.results || []).length === 0">
+                  <tr x-show="!mgmt.result || (mgmt.result.results || []).length === 0">
                     <td colspan="4" class="px-4 py-8 text-center text-gray-400 dark:text-[#8b949e]">No results.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <!-- Info card: contact info ── -->
-            <div x-show="contactsPreviewTab === 'response' && contacts.type === 'info' && contacts.result && contacts.result.jid"
+            <!-- Info card: contact info -->
+            <div x-show="mgmtPreviewTab === 'response' && mgmt.type === 'info' && mgmt.result && mgmt.result.jid"
               class="p-5 flex flex-col gap-4">
               <div class="flex items-start gap-4">
                 <div class="flex-shrink-0">
-                  <img x-show="contacts.result && contacts.result.avatar_url"
-                    :src="contacts.result && contacts.result.avatar_url"
+                  <img x-show="mgmt.result && mgmt.result.avatar_url"
+                    :src="mgmt.result && mgmt.result.avatar_url"
                     class="h-14 w-14 rounded-full object-cover border-2 border-gray-200 dark:border-[#30363d]"
                     alt="avatar" />
-                  <div x-show="!contacts.result || !contacts.result.avatar_url"
+                  <div x-show="!mgmt.result || !mgmt.result.avatar_url"
                     class="h-14 w-14 rounded-full bg-gray-200 dark:bg-[#30363d] flex items-center justify-center">
                     <svg class="h-7 w-7 text-gray-400 dark:text-[#8b949e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
@@ -1893,28 +2018,28 @@
                 </div>
                 <div class="flex flex-col gap-1 min-w-0">
                   <div class="font-semibold text-gray-800 dark:text-[#c9d1d9] text-sm"
-                    x-text="(contacts.result && (contacts.result.full_name || contacts.result.push_name || contacts.result.phone)) || '—'"></div>
-                  <div x-show="contacts.result && contacts.result.business_name"
-                    class="text-xs text-gray-500 dark:text-[#8b949e]" x-text="contacts.result && contacts.result.business_name"></div>
-                  <div class="text-xs font-mono text-gray-400 dark:text-[#484f58]" x-text="contacts.result && contacts.result.jid"></div>
+                    x-text="(mgmt.result && (mgmt.result.full_name || mgmt.result.push_name || mgmt.result.phone)) || '—'"></div>
+                  <div x-show="mgmt.result && mgmt.result.business_name"
+                    class="text-xs text-gray-500 dark:text-[#8b949e]" x-text="mgmt.result && mgmt.result.business_name"></div>
+                  <div class="text-xs font-mono text-gray-400 dark:text-[#484f58]" x-text="mgmt.result && mgmt.result.jid"></div>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3 text-xs">
                 <div class="flex flex-col gap-0.5">
                   <span class="text-gray-400 dark:text-[#484f58] uppercase tracking-wide text-[10px]">Phone</span>
-                  <span class="text-gray-700 dark:text-[#c9d1d9] font-mono" x-text="(contacts.result && contacts.result.phone) || '—'"></span>
+                  <span class="text-gray-700 dark:text-[#c9d1d9] font-mono" x-text="(mgmt.result && mgmt.result.phone) || '—'"></span>
                 </div>
                 <div class="flex flex-col gap-0.5">
                   <span class="text-gray-400 dark:text-[#484f58] uppercase tracking-wide text-[10px]">Push Name</span>
-                  <span class="text-gray-700 dark:text-[#c9d1d9]" x-text="(contacts.result && contacts.result.push_name) || '—'"></span>
+                  <span class="text-gray-700 dark:text-[#c9d1d9]" x-text="(mgmt.result && mgmt.result.push_name) || '—'"></span>
                 </div>
                 <div class="flex flex-col gap-0.5 col-span-2">
                   <span class="text-gray-400 dark:text-[#484f58] uppercase tracking-wide text-[10px]">Status / About</span>
-                  <span class="text-gray-700 dark:text-[#c9d1d9] italic" x-text="(contacts.result && contacts.result.status) || '—'"></span>
+                  <span class="text-gray-700 dark:text-[#c9d1d9] italic" x-text="(mgmt.result && mgmt.result.status) || '—'"></span>
                 </div>
               </div>
               <div class="border-t border-gray-100 dark:border-[#30363d] pt-3">
-                <pre class="text-xs leading-relaxed whitespace-pre" x-html="highlight(contacts.result)"></pre>
+                <pre class="text-xs leading-relaxed whitespace-pre" x-html="highlight(mgmt.result)"></pre>
               </div>
             </div>
 
@@ -2529,6 +2654,219 @@
         </div>
       </div>
 
+
+      <!-- ── Section: Media Decrypt ───────────────────────────────────── -->
+      <div x-show="activeSection === 'media'" class="h-full overflow-y-auto">
+        <div class="max-w-5xl mx-auto w-full p-6 flex flex-col lg:flex-row gap-6 items-start">
+
+          <!-- ── Left: form ─────────────────────────────────────────────── -->
+          <div class="w-full lg:w-[420px] flex-shrink-0 flex flex-col gap-5">
+
+            <h2 class="text-base font-semibold">Media Decrypt
+              <span class="ml-2 text-xs font-normal text-gray-400 dark:text-[#8b949e]">download · decrypt · preview</span>
+            </h2>
+
+            <div class="px-3 py-2 rounded-md text-xs bg-blue-50 text-blue-700 dark:bg-[#0c1929] dark:text-[#58a6ff] leading-relaxed">
+              Provide a WhatsApp CDN URL and the media key from an event to download and decrypt the file.
+              The media key is the <code class="font-mono">MediaKey</code> field (base64) from the raw event JSON.
+            </div>
+
+            <!-- API Token -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                API Token
+                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+              </label>
+              <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
+                class="w-full px-3 py-2 rounded-md border text-sm opacity-50
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+
+            <!-- CDN URL -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                CDN URL
+                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(from event's URL or DirectPath field)</span>
+              </label>
+              <input type="text" x-model="media.url"
+                placeholder="https://mmg.whatsapp.net/v/t62.7141-24/..."
+                class="w-full px-3 py-2 rounded-md border text-sm font-mono
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+
+            <!-- Media Key -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                Media Key
+                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(base64 from MediaKey field in event)</span>
+              </label>
+              <input type="text" x-model="media.mediaKey"
+                placeholder="A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0=="
+                class="w-full px-3 py-2 rounded-md border text-sm font-mono
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+
+            <!-- Media Type -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
+                Media Type
+                <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(must match the message type)</span>
+              </label>
+              <select x-model="media.mediaType"
+                class="w-full px-3 py-2 rounded-md border text-sm
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                <option value="image">image — JPEG, PNG, WebP, GIF</option>
+                <option value="video">video — MP4, MOV</option>
+                <option value="audio">audio — OGG, MP3, AAC</option>
+                <option value="document">document — PDF, DOCX, ZIP…</option>
+                <option value="sticker">sticker — WebP animated</option>
+              </select>
+            </div>
+
+            <!-- Tip -->
+            <div class="px-3 py-2 rounded-md text-xs bg-gray-50 text-gray-500
+                        dark:bg-[#161b22] dark:text-[#8b949e] leading-relaxed">
+              <strong class="text-gray-700 dark:text-[#c9d1d9]">How to get these values:</strong><br/>
+              1. Go to <strong>Live Events</strong> and click an incoming media event.<br/>
+              2. In the raw JSON, find <code class="font-mono">ImageMessage</code> (or Video/Audio/Document/Sticker).<br/>
+              3. Copy the <code class="font-mono">Url</code> and <code class="font-mono">MediaKey</code> fields.
+            </div>
+
+            <!-- Submit -->
+            <button @click="submitMedia()" :disabled="mediaIsDisabled()"
+              class="w-full py-2 px-4 rounded-md text-sm font-medium transition-colors
+                     bg-blue-600 text-white hover:bg-blue-700
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              x-text="media.loading ? 'Downloading…' : 'Download & Decrypt'">
+            </button>
+
+            <!-- Toast -->
+            <div x-show="media.toast" x-transition
+              class="px-4 py-3 rounded-md text-sm break-all"
+              :class="media.toast && media.toast.ok
+                ? 'bg-green-50 text-green-800 dark:bg-[#1b3a2e] dark:text-[#3fb950]'
+                : 'bg-red-50 text-red-800 dark:bg-[#3a1c1c] dark:text-[#f85149]'"
+              x-text="media.toast ? media.toast.message : ''"></div>
+
+          </div>
+
+          <!-- ── Right: preview ──────────────────────────────────────────── -->
+          <div class="w-full lg:flex-1 min-w-0 flex flex-col rounded-md border overflow-hidden
+                      bg-white border-gray-200 dark:bg-[#161b22] dark:border-[#30363d]">
+
+            <!-- Tab header -->
+            <div class="flex items-center gap-0 border-b flex-shrink-0
+                        border-gray-200 dark:border-[#30363d]">
+              <button @click="mediaPreviewTab = 'curl'"
+                class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+                :class="mediaPreviewTab === 'curl'
+                  ? 'border-blue-500 text-blue-600 dark:text-[#58a6ff]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">cURL</button>
+              <button @click="mediaPreviewTab = 'result'" x-show="mediaResult"
+                class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+                :class="mediaPreviewTab === 'result'
+                  ? 'border-green-500 text-green-600 dark:text-[#3fb950]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">
+                Result
+                <span x-show="mediaResult" class="ml-1 h-1.5 w-1.5 rounded-full bg-green-500 inline-block"></span>
+              </button>
+              <span class="flex-1"></span>
+              <!-- Copy curl -->
+              <button x-show="mediaPreviewTab === 'curl'" @click="copyMediaPreview()" aria-label="Copy"
+                class="mr-3 flex items-center gap-1 text-xs transition-colors
+                       text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff]">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/>
+                </svg>
+                <span x-text="mediaPreviewCopied ? 'Copied!' : 'Copy'"></span>
+              </button>
+              <!-- Download button -->
+              <button x-show="mediaPreviewTab === 'result' && mediaResult" @click="mediaDownload()"
+                class="mr-3 flex items-center gap-1 text-xs transition-colors
+                       text-gray-400 hover:text-green-600 dark:text-[#8b949e] dark:hover:text-[#3fb950]">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Download
+              </button>
+            </div>
+
+            <!-- cURL tab -->
+            <div x-show="mediaPreviewTab === 'curl'" class="overflow-x-auto min-h-[300px]">
+              <pre class="p-4 text-xs leading-relaxed whitespace-pre" x-html="mediaPreviewContent()"></pre>
+            </div>
+
+            <!-- Result tab -->
+            <div x-show="mediaPreviewTab === 'result' && mediaResult" class="flex flex-col items-center gap-4 p-6">
+
+              <!-- Meta info -->
+              <div x-show="mediaResult" class="w-full flex items-center gap-3 px-4 py-3 rounded-md
+                           bg-gray-50 dark:bg-[#0d1117] border border-gray-200 dark:border-[#30363d]">
+                <svg class="h-5 w-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-gray-700 dark:text-[#c9d1d9]"
+                    x-text="mediaResult && mediaResult.mime"></div>
+                  <div class="text-xs text-gray-400 dark:text-[#484f58]"
+                    x-text="mediaResult && mediaFormatSize(mediaResult.size)"></div>
+                </div>
+              </div>
+
+              <!-- Image preview -->
+              <div x-show="mediaResult && mediaResult.previewType === 'image'" class="w-full">
+                <img :src="mediaResult && mediaResult.blobURL"
+                  class="max-w-full max-h-[400px] mx-auto rounded-md border border-gray-200 dark:border-[#30363d] object-contain"
+                  alt="Decrypted image" />
+              </div>
+
+              <!-- Audio preview -->
+              <div x-show="mediaResult && mediaResult.previewType === 'audio'" class="w-full">
+                <audio controls :src="mediaResult && mediaResult.blobURL"
+                  class="w-full rounded-md" preload="metadata">
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+
+              <!-- Video preview -->
+              <div x-show="mediaResult && mediaResult.previewType === 'video'" class="w-full">
+                <video controls :src="mediaResult && mediaResult.blobURL"
+                  class="w-full max-h-[400px] rounded-md border border-gray-200 dark:border-[#30363d]"
+                  preload="metadata">
+                  Your browser does not support the video element.
+                </video>
+              </div>
+
+              <!-- Other / document -->
+              <div x-show="mediaResult && mediaResult.previewType === 'other'"
+                class="flex flex-col items-center gap-3 py-8">
+                <svg class="h-12 w-12 text-gray-300 dark:text-[#484f58]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                </svg>
+                <p class="text-sm text-gray-500 dark:text-[#8b949e]">File decrypted. Click Download to save it.</p>
+              </div>
+
+            </div>
+
+            <!-- Empty state (no result yet) -->
+            <div x-show="mediaPreviewTab === 'result' && !mediaResult"
+              class="flex items-center justify-center min-h-[300px] text-xs text-gray-400 dark:text-[#484f58]">
+              No result yet — submit a request first.
+            </div>
+
+          </div>
+
+        </div>
+      </div>
 
       <!-- ── Section: Simulation ───────────────────────────────────────── -->
       <div x-show="activeSection === 'simulation'" class="h-full overflow-y-auto">

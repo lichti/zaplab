@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -48,6 +49,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/sendcontacts", postSendContacts)
 	e.Router.POST("/createpoll", postCreatePoll)
 	e.Router.POST("/votepoll", postVotePoll)
+	e.Router.POST("/media/download", postMediaDownload).Bind(apis.BodyLimit(mediaBodyLimit))
 	e.Router.GET("/contacts", getContacts)
 	e.Router.POST("/contacts/check", postContactsCheck)
 	e.Router.GET("/contacts/{jid}", getContactInfo)
@@ -894,6 +896,35 @@ func postSendRaw(e *core.RequestEvent) error {
 		"whatsapp_message": msg,
 		"send_response":    resp,
 	})
+}
+
+// ── Media download & decrypt ──────────────────────────────────────────────────
+
+func postMediaDownload(e *core.RequestEvent) error {
+	var req struct {
+		URL       string `json:"url"`
+		MediaKey  string `json:"media_key"`
+		MediaType string `json:"media_type"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if req.URL == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "url is required"})
+	}
+	if req.MediaKey == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "media_key is required"})
+	}
+	if req.MediaType == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "media_type is required (image, video, audio, document, sticker)"})
+	}
+	result, err := whatsapp.DownloadAndDecryptMedia(e.Request.Context(), req.URL, req.MediaKey, req.MediaType)
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
+	}
+	disposition := fmt.Sprintf(`attachment; filename="media%s"`, result.Ext)
+	e.Response.Header().Set("Content-Disposition", disposition)
+	return e.Stream(http.StatusOK, result.MimeType, bytes.NewReader(result.Data))
 }
 
 // ── Contact management ────────────────────────────────────────────────────────
