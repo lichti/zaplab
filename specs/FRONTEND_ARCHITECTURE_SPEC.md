@@ -20,6 +20,7 @@ pb_public/
                             fmtTime, typeClass, previewText
     sections/
       events.js           ← eventsSection(): Live Events state + methods
+      eventbrowser.js     ← eventBrowserSection(): Event Browser search/filter/inspect/replay
       send.js             ← sendSection(): Send Message state + methods
       sendraw.js          ← sendRawSection(): Send Raw state + methods
       ctrl.js             ← ctrlSection(): Message Control state + methods
@@ -92,6 +93,7 @@ function zaplab() {
     pairingSection(),
     accountSection(),
     eventsSection(),
+    eventBrowserSection(),
     sendSection(),
     sendRawSection(),
     ctrlSection(),
@@ -121,6 +123,7 @@ function zaplab() {
 
         this.initPairing();
         this.initAccount();
+        this.initEventBrowser();
         this.initSend();
         this.initSendRaw();
         this.initCtrl();
@@ -162,6 +165,7 @@ needed.
   <script src="js/sections/pairing.js"></script>
   <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
+  <script src="js/sections/eventbrowser.js"></script>
   <script src="js/sections/send.js"></script>
   <script src="js/sections/sendraw.js"></script>
   <script src="js/sections/ctrl.js"></script>
@@ -212,6 +216,7 @@ fetch — not worth the complexity.
 | `js/sections/pairing.js` | `pairingSection()` | `pairing` |
 | `js/sections/account.js` | `accountSection()` | `account` |
 | `js/sections/events.js` | `eventsSection()` | `events` (default) |
+| `js/sections/eventbrowser.js` | `eventBrowserSection()` | `eventbrowser` |
 | `js/sections/send.js` | `sendSection()` | `send` |
 | `js/sections/sendraw.js` | `sendRawSection()` | `sendraw` |
 | `js/sections/ctrl.js` | `ctrlSection()` | `ctrl` |
