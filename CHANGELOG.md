@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v1.0.0-beta.5] — 2026-03-10
+
 ### Added
 - **Webhook UI** (`pb_public/js/sections/webhook.js`) — new frontend section for full webhook management: configure default and error webhook URLs, add/remove per-event-type webhooks (with wildcard support), add/remove text-pattern webhooks, and send test payloads; tabbed layout (Event Type | Text Pattern)
 - **Event-type webhook routing** — `EventWebhooks` config field: route specific event types (e.g. `Message.ImageMessage`) or wildcard prefixes (e.g. `Message.*`) to individual URLs; fires in addition to the default webhook
@@ -200,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.4...HEAD
+[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.5...HEAD
+[v1.0.0-beta.5]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.4...v1.0.0-beta.5
 [v1.0.0-beta.4]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.3...v1.0.0-beta.4
 [v1.0.0-beta.3]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [v1.0.0-beta.2]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.1...v1.0.0-beta.2
