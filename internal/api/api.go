@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/lichti/zaplab/internal/simulation"
+	"github.com/lichti/zaplab/internal/webhook"
 	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -20,10 +21,12 @@ import (
 const mediaBodyLimit = 50 * 1024 * 1024 // 50 MB
 
 var pb *pocketbase.PocketBase
+var wh *webhook.Config
 
-// Init injects the PocketBase instance needed for the logger.
-func Init(pbApp *pocketbase.PocketBase) {
+// Init injects the PocketBase instance and webhook config.
+func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config) {
 	pb = pbApp
+	wh = webhookCfg
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -77,6 +80,18 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/simulate/route", postSimulateRoute)
 	e.Router.DELETE("/zaplab/api/simulate/route/{id}", deleteSimulateRoute)
 	e.Router.GET("/zaplab/api/simulate/route", getSimulateRoutes)
+	e.Router.GET("/zaplab/api/webhook", getWebhookConfig)
+	e.Router.PUT("/zaplab/api/webhook/default", putWebhookDefault)
+	e.Router.DELETE("/zaplab/api/webhook/default", deleteWebhookDefault)
+	e.Router.PUT("/zaplab/api/webhook/error", putWebhookError)
+	e.Router.DELETE("/zaplab/api/webhook/error", deleteWebhookError)
+	e.Router.GET("/zaplab/api/webhook/events", getWebhookEvents)
+	e.Router.POST("/zaplab/api/webhook/events", postWebhookEvent)
+	e.Router.DELETE("/zaplab/api/webhook/events", deleteWebhookEvent)
+	e.Router.GET("/zaplab/api/webhook/text", getWebhookText)
+	e.Router.POST("/zaplab/api/webhook/text", postWebhookText)
+	e.Router.DELETE("/zaplab/api/webhook/text", deleteWebhookText)
+	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest)
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(os.DirFS("./pb_public"), false))
 
 	return nil
@@ -1248,4 +1263,162 @@ func postSpoofDemo(e *core.RequestEvent) error {
 	}
 	go whatsapp.SpoofDemo(chatJID, spoofJID, req.Gender, req.Language, imgData)
 	return e.JSON(http.StatusOK, map[string]any{"message": fmt.Sprintf("Demo started (%s/%s)", req.Gender, req.Language)})
+}
+
+// ─── Webhook management ────────────────────────────────────────────────────────
+
+type webhookConfigSummary struct {
+	DefaultURL    string                        `json:"default_url"`
+	ErrorURL      string                        `json:"error_url"`
+	EventWebhooks []webhook.EventTypeWebhookAPI `json:"event_webhooks"`
+	TextWebhooks  []webhook.TextWebhookAPI      `json:"text_webhooks"`
+}
+
+func getWebhookConfig(e *core.RequestEvent) error {
+	return e.JSON(http.StatusOK, webhookConfigSummary{
+		DefaultURL:    wh.GetDefaultWebhook().String(),
+		ErrorURL:      wh.GetErrorWebhook().String(),
+		EventWebhooks: wh.GetEventWebhooks(),
+		TextWebhooks:  wh.GetTextWebhooks(),
+	})
+}
+
+func putWebhookDefault(e *core.RequestEvent) error {
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.URL == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "url is required"})
+	}
+	if err := wh.SetDefaultWebhook(req.URL); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "default webhook updated", "url": req.URL})
+}
+
+func deleteWebhookDefault(e *core.RequestEvent) error {
+	if err := wh.ClearDefaultWebhook(); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "default webhook cleared"})
+}
+
+func putWebhookError(e *core.RequestEvent) error {
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.URL == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "url is required"})
+	}
+	if err := wh.SetErrorWebhook(req.URL); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "error webhook updated", "url": req.URL})
+}
+
+func deleteWebhookError(e *core.RequestEvent) error {
+	if err := wh.ClearErrorWebhook(); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "error webhook cleared"})
+}
+
+func getWebhookEvents(e *core.RequestEvent) error {
+	return e.JSON(http.StatusOK, map[string]any{"event_webhooks": wh.GetEventWebhooks()})
+}
+
+func postWebhookEvent(e *core.RequestEvent) error {
+	var req struct {
+		EventType string `json:"event_type"`
+		URL       string `json:"url"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.EventType == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "event_type is required"})
+	}
+	if req.URL == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "url is required"})
+	}
+	if err := wh.AddEventWebhook(req.EventType, req.URL); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "event webhook saved", "event_type": req.EventType})
+}
+
+func deleteWebhookEvent(e *core.RequestEvent) error {
+	var req struct {
+		EventType string `json:"event_type"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.EventType == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "event_type is required"})
+	}
+	if err := wh.RemoveEventWebhook(req.EventType); err != nil {
+		return e.JSON(http.StatusNotFound, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "event webhook removed", "event_type": req.EventType})
+}
+
+func getWebhookText(e *core.RequestEvent) error {
+	return e.JSON(http.StatusOK, map[string]any{"text_webhooks": wh.GetTextWebhooks()})
+}
+
+func postWebhookText(e *core.RequestEvent) error {
+	var req struct {
+		MatchType     string `json:"match_type"`
+		Pattern       string `json:"pattern"`
+		From          string `json:"from"`
+		CaseSensitive bool   `json:"case_sensitive"`
+		URL           string `json:"url"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if err := wh.AddTextWebhook(req.MatchType, req.Pattern, req.From, req.CaseSensitive, req.URL); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "text webhook added"})
+}
+
+func deleteWebhookText(e *core.RequestEvent) error {
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.ID == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "id is required"})
+	}
+	if err := wh.RemoveTextWebhook(req.ID); err != nil {
+		return e.JSON(http.StatusNotFound, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "text webhook removed"})
+}
+
+func postWebhookTest(e *core.RequestEvent) error {
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.URL == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "url is required"})
+	}
+	testPayload := map[string]any{"test": true, "source": "zaplab", "message": "webhook test payload"}
+	if err := wh.SendTo(req.URL, "Test", testPayload, nil); err != nil {
+		return e.JSON(http.StatusBadGateway, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "test payload delivered", "url": req.URL})
 }

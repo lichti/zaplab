@@ -2,11 +2,14 @@ package webhook
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	waLog "go.mau.fi/whatsmeow/util/log"
@@ -18,9 +21,53 @@ type CmdWebhookConfig struct {
 	Webhook url.URL `json:"webhook"`
 }
 
+// TextWebhook fires when the text content of an incoming Message matches a pattern.
+//
+//	MatchType: "prefix"   → message starts with Pattern
+//	           "contains" → message contains Pattern anywhere
+//	           "exact"    → message equals Pattern exactly
+//	From:      "all"      → match regardless of sender
+//	           "me"       → match only when IsFromMe == true
+//	           "others"   → match only when IsFromMe == false
+//	CaseSensitive: when false (default) comparison is done in lowercase.
+type TextWebhook struct {
+	ID            string  `json:"id"`
+	MatchType     string  `json:"match_type"`
+	Pattern       string  `json:"pattern"`
+	From          string  `json:"from"`
+	CaseSensitive bool    `json:"case_sensitive"`
+	Webhook       url.URL `json:"webhook"`
+}
+
+// TextWebhookAPI is the API-friendly representation with URL as a plain string.
+type TextWebhookAPI struct {
+	ID            string `json:"id"`
+	MatchType     string `json:"match_type"`
+	Pattern       string `json:"pattern"`
+	From          string `json:"from"`
+	CaseSensitive bool   `json:"case_sensitive"`
+	URL           string `json:"url"`
+}
+
+// EventTypeWebhook maps an event type pattern to a webhook URL.
+// Pattern may be an exact type ("Message.ImageMessage") or a wildcard
+// prefix ending in ".*" (e.g. "Message.*" matches all Message sub-types).
+type EventTypeWebhook struct {
+	EventType string  `json:"event_type"`
+	Webhook   url.URL `json:"webhook"`
+}
+
+// EventTypeWebhookAPI is the API-friendly representation with URL as a plain string.
+type EventTypeWebhookAPI struct {
+	EventType string `json:"event_type"`
+	URL       string `json:"url"`
+}
+
 // Config holds the full webhook configuration.
 type Config struct {
 	CmdWebhooks    []CmdWebhookConfig `json:"webhook_config"`
+	EventWebhooks  []EventTypeWebhook `json:"event_webhooks"`
+	TextWebhooks   []TextWebhook      `json:"text_webhooks"`
 	DefaultWebhook url.URL            `json:"default_webhook"`
 	ErrorWebhook   url.URL            `json:"error_webhook"`
 	ConfigFile     string             `json:"-"`
@@ -149,6 +196,205 @@ func validateWebhookURL(strURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("invalid URL: missing host")
 	}
 	return u, nil
+}
+
+// generateID returns a short random hex string used as TextWebhook ID.
+func generateID() string {
+	b := make([]byte, 4)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// matchesText reports whether text matches pattern according to matchType and caseSensitive.
+func matchesText(pattern, matchType, text string, caseSensitive bool) bool {
+	if !caseSensitive {
+		pattern = strings.ToLower(pattern)
+		text = strings.ToLower(text)
+	}
+	switch matchType {
+	case "prefix":
+		return strings.HasPrefix(text, pattern)
+	case "exact":
+		return text == pattern
+	case "contains":
+		return strings.Contains(text, pattern)
+	}
+	return false
+}
+
+// matchesFrom reports whether isFromMe satisfies the from filter.
+func matchesFrom(from string, isFromMe bool) bool {
+	switch from {
+	case "me":
+		return isFromMe
+	case "others":
+		return !isFromMe
+	default: // "all"
+		return true
+	}
+}
+
+// AddTextWebhook registers a new text-pattern webhook.
+// matchType: "prefix" | "contains" | "exact"
+// from:      "all" | "me" | "others"
+func (c *Config) AddTextWebhook(matchType, pattern, from string, caseSensitive bool, strURL string) error {
+	if matchType != "prefix" && matchType != "contains" && matchType != "exact" {
+		return fmt.Errorf("invalid match_type %q — use: prefix, contains, exact", matchType)
+	}
+	if from != "all" && from != "me" && from != "others" {
+		return fmt.Errorf("invalid from %q — use: all, me, others", from)
+	}
+	if pattern == "" {
+		return fmt.Errorf("pattern is required")
+	}
+	u, err := validateWebhookURL(strURL)
+	if err != nil {
+		c.log.Errorf("Invalid webhook URL %s: %v", strURL, err)
+		return err
+	}
+	c.TextWebhooks = append(c.TextWebhooks, TextWebhook{
+		ID:            generateID(),
+		MatchType:     matchType,
+		Pattern:       pattern,
+		From:          from,
+		CaseSensitive: caseSensitive,
+		Webhook:       *u,
+	})
+	return c.writeConfig()
+}
+
+// RemoveTextWebhook removes the text webhook with the given id.
+func (c *Config) RemoveTextWebhook(id string) error {
+	for i, tw := range c.TextWebhooks {
+		if tw.ID == id {
+			c.TextWebhooks = append(c.TextWebhooks[:i], c.TextWebhooks[i+1:]...)
+			return c.writeConfig()
+		}
+	}
+	return fmt.Errorf("text webhook not found: %s", id)
+}
+
+// GetTextWebhooks returns a copy of the current text webhooks as API-friendly structs.
+func (c *Config) GetTextWebhooks() []TextWebhookAPI {
+	result := make([]TextWebhookAPI, len(c.TextWebhooks))
+	for i, tw := range c.TextWebhooks {
+		result[i] = TextWebhookAPI{
+			ID:            tw.ID,
+			MatchType:     tw.MatchType,
+			Pattern:       tw.Pattern,
+			From:          tw.From,
+			CaseSensitive: tw.CaseSensitive,
+			URL:           tw.Webhook.String(),
+		}
+	}
+	return result
+}
+
+// SendToTextWebhooks fires all text webhooks whose pattern and from-filter match.
+// text is the extracted message content; isFromMe indicates if the bot sent it.
+func (c *Config) SendToTextWebhooks(text string, isFromMe bool, raw, extra interface{}) {
+	if text == "" {
+		return
+	}
+	for _, tw := range c.TextWebhooks {
+		if matchesFrom(tw.From, isFromMe) && matchesText(tw.Pattern, tw.MatchType, text, tw.CaseSensitive) {
+			u := tw.Webhook
+			go func() {
+				if err := c.send(&u, "Message.Text", raw, extra); err != nil {
+					c.log.Warnf("Failed to send to text webhook id=%s url=%s error=%v",
+						tw.ID, u.String(), err)
+				}
+			}()
+		}
+	}
+}
+
+// matchesEventType reports whether pattern matches evtType.
+// "Message.*" matches "Message" and any "Message.X" subtype.
+func matchesEventType(pattern, evtType string) bool {
+	if pattern == evtType {
+		return true
+	}
+	if strings.HasSuffix(pattern, ".*") {
+		prefix := strings.TrimSuffix(pattern, ".*")
+		return evtType == prefix || strings.HasPrefix(evtType, prefix+".")
+	}
+	return false
+}
+
+// AddEventWebhook registers or replaces an event-type → webhook URL mapping.
+func (c *Config) AddEventWebhook(eventType, strURL string) error {
+	u, err := validateWebhookURL(strURL)
+	if err != nil {
+		c.log.Errorf("Invalid webhook URL %s: %v", strURL, err)
+		return err
+	}
+	for i, v := range c.EventWebhooks {
+		if v.EventType == eventType {
+			c.EventWebhooks[i].Webhook = *u
+			return c.writeConfig()
+		}
+	}
+	c.EventWebhooks = append(c.EventWebhooks, EventTypeWebhook{EventType: eventType, Webhook: *u})
+	return c.writeConfig()
+}
+
+// RemoveEventWebhook removes the event-type webhook for the given eventType.
+func (c *Config) RemoveEventWebhook(eventType string) error {
+	for i, v := range c.EventWebhooks {
+		if v.EventType == eventType {
+			c.EventWebhooks = append(c.EventWebhooks[:i], c.EventWebhooks[i+1:]...)
+			return c.writeConfig()
+		}
+	}
+	c.log.Errorf("Event webhook not found for event_type: %s", eventType)
+	return fmt.Errorf("event webhook not found for event_type: %s", eventType)
+}
+
+// GetEventWebhooks returns a copy of the current event webhooks as API-friendly structs.
+func (c *Config) GetEventWebhooks() []EventTypeWebhookAPI {
+	result := make([]EventTypeWebhookAPI, len(c.EventWebhooks))
+	for i, ew := range c.EventWebhooks {
+		result[i] = EventTypeWebhookAPI{EventType: ew.EventType, URL: ew.Webhook.String()}
+	}
+	return result
+}
+
+// SendToEventWebhooks fires all event webhooks whose pattern matches evtType.
+// Each dispatch runs in its own goroutine; errors are logged but not returned.
+func (c *Config) SendToEventWebhooks(evtType string, raw, extra interface{}) {
+	for _, ew := range c.EventWebhooks {
+		if matchesEventType(ew.EventType, evtType) {
+			u := ew.Webhook
+			go func() {
+				if err := c.send(&u, evtType, raw, extra); err != nil {
+					c.log.Warnf("Failed to send event to event webhook event_type=%s url=%s error=%v",
+						evtType, u.String(), err)
+				}
+			}()
+		}
+	}
+}
+
+// SendTo sends a test event payload to an arbitrary URL.
+func (c *Config) SendTo(rawURL, evtType string, raw, extra interface{}) error {
+	u, err := validateWebhookURL(rawURL)
+	if err != nil {
+		return err
+	}
+	return c.send(u, evtType, raw, extra)
+}
+
+// ClearDefaultWebhook removes the default webhook URL.
+func (c *Config) ClearDefaultWebhook() error {
+	c.DefaultWebhook = url.URL{}
+	return c.writeConfig()
+}
+
+// ClearErrorWebhook removes the error webhook URL.
+func (c *Config) ClearErrorWebhook() error {
+	c.ErrorWebhook = url.URL{}
+	return c.writeConfig()
 }
 
 // SetDefaultWebhook validates and persists a new default webhook URL.

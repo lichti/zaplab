@@ -100,6 +100,9 @@ func handler(rawEvt interface{}) {
 		}
 		logger.Infof("Received message id=%s from=%s meta=%v", evt.Info.ID, evt.Info.SourceString(), metaParts)
 
+		// Fire text-pattern webhooks for all messages with text content.
+		wh.SendToTextWebhooks(getMsg(evt), evt.Info.IsFromMe, rawEvt, nil)
+
 		if strings.HasPrefix(getMsg(evt), getIDSecret) && evt.Info.IsFromMe {
 			jid, _ := ParseJID(client.Store.ID.User)
 			SendConversationMessage(jid, fmt.Sprintf("-> Cmd output: \nChatID %v", evt.Info.Chat), nil)

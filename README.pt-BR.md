@@ -960,7 +960,7 @@ Executa um comando de bot via API (equivale a digitar `/cmd <cmd> <args>` no Wha
 
 ## Sistema de webhooks
 
-O bot envia eventos para URLs configuradas. A configuração é persistida em `data/webhook.json` e pode ser alterada em runtime via comandos.
+Eventos são despachados para URLs configuradas. A configuração é persistida em `webhook.json` (dentro do diretório de dados) e pode ser alterada em runtime via API REST ou pela seção **Webhooks** da UI — sem necessidade de reiniciar.
 
 ### Estrutura do payload
 
@@ -969,7 +969,7 @@ Todos os webhooks recebem um array JSON:
 ```json
 [
   {
-    "type": "Message",
+    "type": "Message.ImageMessage",
     "raw": { /* evento completo do whatsmeow */ },
     "extra": null
   }
@@ -980,11 +980,49 @@ Todos os webhooks recebem um array JSON:
 
 | Tipo | Descrição |
 |---|---|
-| **Default** | Recebe todos os eventos (mensagens, recibos, presença, etc.) |
-| **Error** | Recebe apenas erros (falhas de envio, download, etc.) |
-| **Cmd** | Recebe apenas mensagens cujo primeiro token corresponda ao comando cadastrado |
+| **Default** | Recebe **todos** os eventos, independentemente do tipo |
+| **Error** | Recebe apenas erros de processamento (falhas de envio, download, etc.) |
+| **Event-type** | Recebe eventos cujo tipo corresponda a um nome exato ou padrão wildcard (ex: `Message.*`) |
+| **Text-pattern** | Recebe mensagens de texto cujo conteúdo corresponda a uma regra (`prefix`, `contains`, `exact`), com filtro opcional por remetente e distinção de maiúsculas/minúsculas |
+| **Cmd** | Legado: recebe mensagens cujo primeiro token corresponda a um comando cadastrado |
 
-### Configurar via comandos WhatsApp
+Webhooks de event-type e text-pattern disparam **em adição** ao webhook padrão — ambos são executados de forma independente.
+
+### API REST de webhooks
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/zaplab/api/webhook` | Retorna a configuração completa (todos os tipos) |
+| `PUT` | `/zaplab/api/webhook/default` | Define URL do webhook padrão `{"url":"..."}` |
+| `DELETE` | `/zaplab/api/webhook/default` | Remove webhook padrão |
+| `PUT` | `/zaplab/api/webhook/error` | Define URL do webhook de erros `{"url":"..."}` |
+| `DELETE` | `/zaplab/api/webhook/error` | Remove webhook de erros |
+| `GET` | `/zaplab/api/webhook/events` | Lista webhooks por tipo de evento |
+| `POST` | `/zaplab/api/webhook/events` | Adiciona/atualiza `{"event_type":"Message.*","url":"..."}` |
+| `DELETE` | `/zaplab/api/webhook/events` | Remove `{"event_type":"..."}` |
+| `GET` | `/zaplab/api/webhook/text` | Lista webhooks por padrão de texto |
+| `POST` | `/zaplab/api/webhook/text` | Adiciona webhook por padrão de texto (ver campos abaixo) |
+| `DELETE` | `/zaplab/api/webhook/text` | Remove `{"id":"..."}` |
+| `POST` | `/zaplab/api/webhook/test` | Envia payload de teste `{"url":"..."}` |
+
+#### Campos do webhook por padrão de texto
+
+| Campo | Valores | Descrição |
+|---|---|---|
+| `match_type` | `prefix` \| `contains` \| `exact` | Tipo de correspondência |
+| `pattern` | qualquer string | O texto a buscar (ex: `/ping`, `pedido`, `olá mundo`) |
+| `from` | `all` \| `me` \| `others` | Filtro por remetente: eu, contatos ou ambos |
+| `case_sensitive` | `true` \| `false` | Padrão `false` (sem distinção de maiúsculas) |
+| `url` | URL | URL de destino do webhook |
+
+```bash
+# Webhook disparado quando uma mensagem de outro contato começa com "/ping"
+curl -X POST http://localhost:8090/zaplab/api/webhook/text \
+  -H "Content-Type: application/json" \
+  -d '{"match_type":"prefix","pattern":"/ping","from":"others","case_sensitive":false,"url":"https://meu-servidor.com/ping"}'
+```
+
+### Configurar via comandos WhatsApp (legado)
 
 ```
 /cmd set-default-webhook https://meu-servidor.com/webhook
@@ -994,28 +1032,23 @@ Todos os webhooks recebem um array JSON:
 /cmd print-cmd-webhooks-config
 ```
 
-### Configurar via API
-
-```bash
-curl -X POST http://localhost:8090/cmd \
-  -H "X-API-Token: $API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"cmd":"set-default-webhook","args":"https://meu-servidor.com/webhook"}'
-```
-
-### Arquivo `webhook.json`
+### Estrutura do `webhook.json`
 
 ```json
 {
-  "default_webhook": { "scheme": "https", "host": "meu-servidor.com", "path": "/webhook" },
-  "error_webhook":   { "scheme": "https", "host": "meu-servidor.com", "path": "/errors" },
-  "webhook_config": [
-    { "cmd": "/pedido", "webhook": { "scheme": "https", "host": "meu-servidor.com", "path": "/pedidos" } }
-  ]
+  "default_webhook": { "Scheme": "https", "Host": "meu-servidor.com", "Path": "/webhook" },
+  "error_webhook":   { "Scheme": "https", "Host": "meu-servidor.com", "Path": "/errors" },
+  "event_webhooks": [
+    { "event_type": "Message.*", "webhook": { "Scheme": "https", "Host": "meu-servidor.com", "Path": "/mensagens" } }
+  ],
+  "text_webhooks": [
+    { "id": "a1b2c3d4", "match_type": "prefix", "pattern": "/ping", "from": "others", "case_sensitive": false, "webhook": { "Scheme": "https", "Host": "meu-servidor.com", "Path": "/ping" } }
+  ],
+  "webhook_config": []
 }
 ```
 
-> O arquivo é reescrito automaticamente a cada alteração. Não é necessário reiniciar o bot.
+> O arquivo é reescrito automaticamente a cada alteração. Não é necessário reiniciar.
 
 ---
 
@@ -1170,6 +1203,7 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Groups** | Listar, ver info, criar, gerenciar participantes (add/remove/promote/demote), atualizar configurações, sair, obter/resetar link de convite com QR code, entrar por link |
 | **Media** | Baixar e descriptografar arquivos de mídia do WhatsApp (imagem, vídeo, áudio, documento, sticker) |
 | **Route Simulation** ⚠️ *Em desenvolvimento* | Simula o movimento de um dispositivo ao longo de uma rota GPX enviando atualizações de localização ao vivo — **experimental, ainda não 100% funcional** |
+| **Webhooks** | Configurar webhooks padrão, de erro, por tipo de evento e por padrão de texto; testar entrega; visualização em abas com CRUD completo para todos os tipos de webhook |
 | **Settings** | Configurar token da API armazenado no localStorage |
 
 ---

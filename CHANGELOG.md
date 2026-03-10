@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **View-once media** — `view_once: bool` field added to `POST /sendimage` and `POST /sendvideo`; wraps the inner message in `ViewOnceMessage/FutureProofMessage` when true; UI: checkbox shown for image and video types
 - All API routes now prefixed: `/zaplab/api/<route>` for API endpoints, `/zaplab/tools/{path...}` for static files
 - Frontend JS updated to match new route prefixes
+- **Webhook UI** (`pb_public/js/sections/webhook.js`) — new frontend section for full webhook management: configure default and error webhook URLs, add/remove per-event-type webhooks (with wildcard support), add/remove text-pattern webhooks, and send test payloads; tabbed layout (Event Type | Text Pattern)
+- **Event-type webhook routing** — `EventWebhooks` config field: route specific event types (e.g. `Message.ImageMessage`) or wildcard prefixes (e.g. `Message.*`) to individual URLs; fires in addition to the default webhook
+- **Text-pattern webhook routing** — `TextWebhooks` config field: route incoming/outgoing text messages to URLs based on content match (`prefix`, `contains`, `exact`), with optional sender filter (`all` / `me` / `others`) and case-sensitivity flag; matching runs on `Conversation` and `ExtendedTextMessage` payloads
+- **Webhook REST API** — 12 new endpoints under `/zaplab/api/webhook`: `GET /webhook`, `PUT|DELETE /webhook/default`, `PUT|DELETE /webhook/error`, `GET|POST|DELETE /webhook/events`, `GET|POST|DELETE /webhook/text`, `POST /webhook/test`
 
 ### Fixed
 - `highlight()` utility: guard against `null`/`undefined` input that caused Alpine expression crash (`Cannot destructure property '_isNew' of null`)

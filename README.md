@@ -975,7 +975,7 @@ Executes a bot command via API (equivalent to typing `/cmd <cmd> <args>` in What
 
 ## Webhook System
 
-The bot sends events to configured URLs. The configuration is persisted in `data/webhook.json` and can be changed at runtime via commands.
+Events are dispatched to configured URLs. Configuration is persisted in `webhook.json` (inside the data directory) and can be changed at runtime via the REST API or the **Webhooks** UI section — no restart needed.
 
 ### Payload structure
 
@@ -984,7 +984,7 @@ All webhooks receive a JSON array:
 ```json
 [
   {
-    "type": "Message",
+    "type": "Message.ImageMessage",
     "raw": { /* complete whatsmeow event */ },
     "extra": null
   }
@@ -995,11 +995,55 @@ All webhooks receive a JSON array:
 
 | Type | Description |
 |---|---|
-| **Default** | Receives all events (messages, receipts, presence, etc.) |
-| **Error** | Receives only errors (send failures, download failures, etc.) |
-| **Cmd** | Receives only messages whose first token matches the registered command |
+| **Default** | Receives **all** events regardless of type |
+| **Error** | Receives only processing errors (send failures, download errors, etc.) |
+| **Event-type** | Receives events whose type matches an exact name or wildcard pattern (e.g. `Message.*`) |
+| **Text-pattern** | Receives text messages whose content matches a rule (`prefix`, `contains`, `exact`), with optional sender filter and case-sensitivity |
+| **Cmd** | Legacy: receives messages whose first token matches a registered command string |
 
-### Configure via WhatsApp commands
+Event-type and text-pattern webhooks fire **in addition to** the default webhook — both run independently.
+
+### Webhook REST API
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/zaplab/api/webhook` | Returns the full config (all webhook types) |
+| `PUT` | `/zaplab/api/webhook/default` | Set default webhook URL `{"url":"..."}` |
+| `DELETE` | `/zaplab/api/webhook/default` | Clear default webhook |
+| `PUT` | `/zaplab/api/webhook/error` | Set error webhook URL `{"url":"..."}` |
+| `DELETE` | `/zaplab/api/webhook/error` | Clear error webhook |
+| `GET` | `/zaplab/api/webhook/events` | List event-type webhooks |
+| `POST` | `/zaplab/api/webhook/events` | Add/update event-type webhook `{"event_type":"Message.*","url":"..."}` |
+| `DELETE` | `/zaplab/api/webhook/events` | Remove event-type webhook `{"event_type":"..."}` |
+| `GET` | `/zaplab/api/webhook/text` | List text-pattern webhooks |
+| `POST` | `/zaplab/api/webhook/text` | Add text-pattern webhook (see below) |
+| `DELETE` | `/zaplab/api/webhook/text` | Remove text-pattern webhook `{"id":"..."}` |
+| `POST` | `/zaplab/api/webhook/test` | Send a test payload `{"url":"..."}` |
+
+#### Event-type webhook — wildcard matching
+
+Use `Message.*` to receive all message sub-types (`Message.ImageMessage`, `Message.AudioMessage`, etc.). Exact names like `Message.ImageMessage` are also supported.
+
+Known event types: `Message`, `Message.ImageMessage`, `Message.AudioMessage`, `Message.VideoMessage`, `Message.DocumentMessage`, `Message.StickerMessage`, `Message.ContactMessage`, `Message.LocationMessage`, `Message.LiveLocationMessage`, `Message.PollUpdateMessage`, `Message.EncReactionMessage`, `ReceiptRead`, `ReceiptDelivered`, `Presence.Online`, `Presence.Offline`, `HistorySync`, `SentMessage`, and more.
+
+#### Text-pattern webhook — fields
+
+| Field | Values | Description |
+|---|---|---|
+| `match_type` | `prefix` \| `contains` \| `exact` | How to match the message text |
+| `pattern` | any string | The text to match (e.g. `/ping`, `order`, `hello world`) |
+| `from` | `all` \| `me` \| `others` | Filter by sender: self, contacts, or both |
+| `case_sensitive` | `true` \| `false` | Default `false` (case-insensitive) |
+| `url` | URL | Destination webhook URL |
+
+```bash
+# Add a text-pattern webhook: fire on messages starting with "/ping" from anyone
+curl -X POST http://localhost:8090/zaplab/api/webhook/text \
+  -H "Content-Type: application/json" \
+  -d '{"match_type":"prefix","pattern":"/ping","from":"all","case_sensitive":false,"url":"https://my-server.com/ping"}'
+```
+
+### Configure via WhatsApp commands (legacy)
 
 ```
 /cmd set-default-webhook https://my-server.com/webhook
@@ -1009,28 +1053,23 @@ All webhooks receive a JSON array:
 /cmd print-cmd-webhooks-config
 ```
 
-### Configure via API
-
-```bash
-curl -X POST http://localhost:8090/cmd \
-  -H "X-API-Token: $API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"cmd":"set-default-webhook","args":"https://my-server.com/webhook"}'
-```
-
-### `webhook.json` file
+### `webhook.json` file structure
 
 ```json
 {
-  "default_webhook": { "scheme": "https", "host": "my-server.com", "path": "/webhook" },
-  "error_webhook":   { "scheme": "https", "host": "my-server.com", "path": "/errors" },
-  "webhook_config": [
-    { "cmd": "/order", "webhook": { "scheme": "https", "host": "my-server.com", "path": "/orders" } }
-  ]
+  "default_webhook": { "Scheme": "https", "Host": "my-server.com", "Path": "/webhook" },
+  "error_webhook":   { "Scheme": "https", "Host": "my-server.com", "Path": "/errors" },
+  "event_webhooks": [
+    { "event_type": "Message.*", "webhook": { "Scheme": "https", "Host": "my-server.com", "Path": "/messages" } }
+  ],
+  "text_webhooks": [
+    { "id": "a1b2c3d4", "match_type": "prefix", "pattern": "/ping", "from": "others", "case_sensitive": false, "webhook": { "Scheme": "https", "Host": "my-server.com", "Path": "/ping" } }
+  ],
+  "webhook_config": []
 }
 ```
 
-> The file is rewritten automatically on every change. No bot restart is needed.
+> The file is rewritten automatically on every change. No restart needed.
 
 ---
 
@@ -1184,6 +1223,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Groups** | List, get info, create, manage participants (add/remove/promote/demote), update settings, leave, get/reset invite link with QR code, join by link |
 | **Media** | Download and decrypt WhatsApp media files (image, video, audio, document, sticker) |
 | **Route Simulation** ⚠️ *WIP* | Simulate device movement along a GPX route sending live location updates — **experimental, not fully functional** |
+| **Webhooks** | Configure default, error, event-type, and text-pattern webhooks; test webhook delivery; tabbed view with full CRUD for all webhook types |
 | **Settings** | Configure API token stored in localStorage |
 
 ---

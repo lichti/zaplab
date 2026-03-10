@@ -38,6 +38,7 @@
   <script src="js/sections/groups.js"></script>
   <script src="js/sections/media.js"></script>
   <script src="js/sections/simulation.js"></script>
+  <script src="js/sections/webhook.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -419,6 +420,23 @@
             <span x-show="simActive" class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
           </span>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Route Simulation <span class="text-yellow-500 dark:text-yellow-400 text-[10px]">⚠ WIP</span></span>
+        </button>
+
+        <!-- Webhooks -->
+        <button
+          @click="setSection('webhook'); loadWebhookConfig()"
+          :title="sidebarExpanded ? '' : 'Webhooks'"
+          aria-label="Webhooks"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'webhook'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Webhooks</span>
         </button>
 
         <!-- Settings -->
@@ -4674,6 +4692,320 @@
             </div>
           </div>
 
+        </div>
+      </div>
+
+
+      <!-- ── Section: Webhooks ─────────────────────────────────────────── -->
+      <div x-show="activeSection === 'webhook'" class="h-full overflow-y-auto">
+        <div class="flex gap-4 p-4 min-h-full flex-wrap">
+
+          <!-- Left column: default + error webhooks + test -->
+          <div class="flex flex-col gap-3 w-72 flex-shrink-0">
+
+            <!-- Default Webhook -->
+            <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4 flex flex-col gap-3">
+              <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Default Webhook</h2>
+              <p class="text-xs text-gray-400 dark:text-[#8b949e]">Receives <strong>all</strong> events regardless of type.</p>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">URL</label>
+                <input x-model="wh.defaultUrl" type="url" placeholder="https://example.com/webhook"
+                  class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+              </div>
+              <div class="flex gap-2">
+                <button @click="whSaveDefault()" :disabled="wh.saving"
+                  class="flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd]">
+                  <span x-show="!wh.saving">Save</span><span x-show="wh.saving">Saving…</span>
+                </button>
+                <button @click="whClearDefault()"
+                  class="rounded px-3 py-1.5 text-xs font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 dark:bg-[#3a1c1c] dark:text-[#f85149] dark:hover:bg-[#4a2020]">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <!-- Error Webhook -->
+            <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4 flex flex-col gap-3">
+              <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Error Webhook</h2>
+              <p class="text-xs text-gray-400 dark:text-[#8b949e]">Receives processing errors only.</p>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">URL</label>
+                <input x-model="wh.errorUrl" type="url" placeholder="https://example.com/errors"
+                  class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+              </div>
+              <div class="flex gap-2">
+                <button @click="whSaveError()" :disabled="wh.saving"
+                  class="flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd]">
+                  <span x-show="!wh.saving">Save</span><span x-show="wh.saving">Saving…</span>
+                </button>
+                <button @click="whClearError()"
+                  class="rounded px-3 py-1.5 text-xs font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 dark:bg-[#3a1c1c] dark:text-[#f85149] dark:hover:bg-[#4a2020]">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <!-- Test Webhook -->
+            <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4 flex flex-col gap-3">
+              <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Test Webhook</h2>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">URL</label>
+                <input x-model="wh.testUrl" type="url" placeholder="https://example.com/test"
+                  class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+              </div>
+              <button @click="whTest()" :disabled="wh.testing"
+                class="w-full rounded px-3 py-1.5 text-xs font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]">
+                <span x-show="!wh.testing">Send Test Payload</span><span x-show="wh.testing">Sending…</span>
+              </button>
+              <div x-show="wh.testResult" x-transition
+                class="rounded bg-gray-50 dark:bg-[#0d1117] border border-gray-100 dark:border-[#21262d] px-2 py-1.5">
+                <pre class="text-xs text-gray-600 dark:text-[#8b949e] whitespace-pre-wrap break-all"
+                     x-text="JSON.stringify(wh.testResult, null, 2)"></pre>
+              </div>
+            </div>
+
+            <!-- Toast -->
+            <div x-show="wh.toast" x-transition
+              class="rounded-md border px-3 py-2 text-xs break-all"
+              :class="wh.toast?.ok
+                ? 'bg-green-50 border-green-200 text-green-700 dark:bg-[#1b3a2e] dark:border-[#1b3a2e] dark:text-[#3fb950]'
+                : 'bg-red-50 border-red-200 text-red-700 dark:bg-[#3a1c1c] dark:border-[#6e2d2d] dark:text-[#f85149]'"
+              x-text="wh.toast?.message || ''">
+            </div>
+          </div>
+
+          <!-- Right column: tabs + content -->
+          <div class="flex-1 min-w-0 flex flex-col gap-3">
+
+            <!-- Tabs -->
+            <div class="flex gap-1 border-b border-gray-200 dark:border-[#30363d]">
+              <button @click="wh.activeTab = 'event'"
+                class="px-4 py-2 text-xs font-medium transition-colors rounded-t border-b-2"
+                :class="wh.activeTab === 'event'
+                  ? 'border-blue-500 text-blue-600 dark:border-[#58a6ff] dark:text-[#58a6ff]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">
+                Event Type
+              </button>
+              <button @click="wh.activeTab = 'text'"
+                class="px-4 py-2 text-xs font-medium transition-colors rounded-t border-b-2"
+                :class="wh.activeTab === 'text'
+                  ? 'border-blue-500 text-blue-600 dark:border-[#58a6ff] dark:text-[#58a6ff]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#8b949e] dark:hover:text-[#c9d1d9]'">
+                Text Pattern
+              </button>
+            </div>
+
+            <!-- ── TAB: Event type webhooks ── -->
+            <div x-show="wh.activeTab === 'event'" class="flex flex-col gap-3">
+
+            <!-- Add form -->
+            <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4 flex flex-col gap-3">
+              <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Add Event Webhook</h2>
+              <p class="text-xs text-gray-400 dark:text-[#8b949e]">
+                Route a specific event type (or wildcard like <code class="font-mono bg-gray-100 dark:bg-[#21262d] px-1 rounded">Message.*</code>) to a URL.
+                Fires independently of the default webhook.
+              </p>
+              <div class="flex gap-2 flex-wrap items-end">
+                <div class="flex flex-col gap-1 w-52">
+                  <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Event type</label>
+                  <select x-model="wh.newEventType"
+                    class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]">
+                    <option value="">— select —</option>
+                    <template x-for="t in whKnownEventTypes" :key="t">
+                      <option :value="t" x-text="t"></option>
+                    </template>
+                  </select>
+                </div>
+                <div class="flex flex-col gap-1 w-40">
+                  <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Custom (optional)</label>
+                  <input x-model="wh.newEventType" type="text" placeholder="or type manually"
+                    class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+                </div>
+                <div class="flex flex-col gap-1 flex-1 min-w-48">
+                  <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Webhook URL</label>
+                  <input x-model="wh.newEventUrl" type="url" placeholder="https://example.com/hook"
+                    class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+                </div>
+                <button @click="whAddEventWebhook()"
+                  class="rounded px-3 py-1.5 text-xs font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] whitespace-nowrap">
+                  Add / Update
+                </button>
+              </div>
+            </div>
+
+            <!-- Event webhooks table -->
+            <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] overflow-hidden">
+              <div class="px-4 py-3 border-b border-gray-100 dark:border-[#21262d] flex items-center justify-between">
+                <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Event Webhooks</h2>
+                <button @click="loadWebhookConfig()"
+                  class="text-xs text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff] transition-colors">Refresh</button>
+              </div>
+              <div x-show="wh.eventWebhooks.length === 0"
+                class="flex items-center justify-center py-10 text-xs text-gray-400 dark:text-[#484f58]">
+                No event webhooks configured yet.
+              </div>
+              <table x-show="wh.eventWebhooks.length > 0" class="w-full text-xs">
+                <thead class="border-b border-gray-100 dark:border-[#21262d]">
+                  <tr class="text-left text-gray-400 dark:text-[#8b949e]">
+                    <th class="px-4 py-2 font-medium">Event Type</th>
+                    <th class="px-4 py-2 font-medium">URL</th>
+                    <th class="px-4 py-2 font-medium w-16">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 dark:divide-[#21262d]">
+                  <template x-for="ew in wh.eventWebhooks" :key="ew.event_type">
+                    <tr class="hover:bg-gray-50 dark:hover:bg-[#21262d]">
+                      <td class="px-4 py-2 font-mono text-blue-600 dark:text-[#58a6ff]" x-text="ew.event_type"></td>
+                      <td class="px-4 py-2 text-gray-600 dark:text-[#8b949e] break-all" x-text="ew.url"></td>
+                      <td class="px-4 py-2">
+                        <button @click="whRemoveEventWebhook(ew.event_type)"
+                          class="text-red-500 hover:text-red-700 dark:text-[#f85149] dark:hover:text-red-400 transition-colors">
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Info box -->
+            <div class="rounded-lg border border-blue-100 dark:border-[#1c3a5e] bg-blue-50 dark:bg-[#0d1a2e] px-4 py-3 text-xs text-blue-700 dark:text-[#58a6ff] leading-relaxed">
+              <strong>Wildcard matching:</strong>
+              Use <code class="font-mono bg-blue-100 dark:bg-[#1c3a5e] px-1 rounded">Message.*</code> to receive all message sub-types (Image, Audio, Video, Document, Sticker…).
+              Event webhooks fire <strong>in addition</strong> to the default webhook — both run independently.
+            </div>
+
+            <!-- Known event types reference -->
+            <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4">
+              <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e] mb-2">Known Event Types</h2>
+              <div class="flex flex-wrap gap-1">
+                <template x-for="t in whKnownEventTypes" :key="t">
+                  <button @click="wh.newEventType = t"
+                    class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e] hover:bg-blue-100 dark:hover:bg-[#1c3a5e] hover:text-blue-600 dark:hover:text-[#58a6ff] transition-colors"
+                    x-text="t"></button>
+                </template>
+              </div>
+            </div>
+
+            </div> <!-- end tab: event type -->
+
+            <!-- ── TAB: Text pattern webhooks ── -->
+            <div x-show="wh.activeTab === 'text'" class="flex flex-col gap-3">
+
+              <!-- Add text webhook form -->
+              <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4 flex flex-col gap-3">
+                <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Add Text Webhook</h2>
+                <p class="text-xs text-gray-400 dark:text-[#8b949e]">
+                  Fires when the text of a received or sent message matches the pattern.
+                  Only applies to text messages (<code class="font-mono bg-gray-100 dark:bg-[#21262d] px-1 rounded">Conversation</code> / <code class="font-mono bg-gray-100 dark:bg-[#21262d] px-1 rounded">ExtendedTextMessage</code>).
+                </p>
+                <div class="flex gap-2 flex-wrap items-end">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Match type</label>
+                    <select x-model="wh.newTextMatchType"
+                      class="rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]">
+                      <option value="prefix">Starts with (prefix)</option>
+                      <option value="contains">Contains</option>
+                      <option value="exact">Exact match</option>
+                    </select>
+                  </div>
+                  <div class="flex flex-col gap-1 flex-1 min-w-32">
+                    <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Pattern</label>
+                    <input x-model="wh.newTextPattern" type="text" placeholder="/ping or hello world"
+                      class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Sender</label>
+                    <select x-model="wh.newTextFrom"
+                      class="rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]">
+                      <option value="all">All (me + others)</option>
+                      <option value="others">Others only</option>
+                      <option value="me">Me only</option>
+                    </select>
+                  </div>
+                  <div class="flex flex-col gap-1 flex-1 min-w-48">
+                    <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Webhook URL</label>
+                    <input x-model="wh.newTextUrl" type="url" placeholder="https://example.com/hook"
+                      class="w-full rounded border px-2 py-1.5 text-xs bg-white dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-400 dark:focus:border-[#58a6ff]" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">Case sensitive</label>
+                    <label class="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer">
+                      <input type="checkbox" x-model="wh.newTextCaseSensitive" class="rounded" />
+                      <span class="text-xs text-gray-600 dark:text-[#8b949e]">Yes</span>
+                    </label>
+                  </div>
+                  <button @click="whAddTextWebhook()"
+                    class="rounded px-3 py-1.5 text-xs font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#1f6feb] dark:hover:bg-[#388bfd] whitespace-nowrap self-end">
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <!-- Text webhooks table -->
+              <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-[#21262d] flex items-center justify-between">
+                  <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#8b949e]">Text Webhooks</h2>
+                  <button @click="loadWebhookConfig()"
+                    class="text-xs text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff] transition-colors">Refresh</button>
+                </div>
+                <div x-show="wh.textWebhooks.length === 0"
+                  class="flex items-center justify-center py-10 text-xs text-gray-400 dark:text-[#484f58]">
+                  No text webhooks configured yet.
+                </div>
+                <table x-show="wh.textWebhooks.length > 0" class="w-full text-xs">
+                  <thead class="border-b border-gray-100 dark:border-[#21262d]">
+                    <tr class="text-left text-gray-400 dark:text-[#8b949e]">
+                      <th class="px-3 py-2 font-medium">Type</th>
+                      <th class="px-3 py-2 font-medium">Pattern</th>
+                      <th class="px-3 py-2 font-medium">Sender</th>
+                      <th class="px-3 py-2 font-medium">Case</th>
+                      <th class="px-3 py-2 font-medium">URL</th>
+                      <th class="px-3 py-2 font-medium w-14">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50 dark:divide-[#21262d]">
+                    <template x-for="tw in wh.textWebhooks" :key="tw.id">
+                      <tr class="hover:bg-gray-50 dark:hover:bg-[#21262d]">
+                        <td class="px-3 py-2">
+                          <span class="font-mono text-[10px] px-1.5 py-0.5 rounded"
+                            :class="{
+                              'bg-purple-100 text-purple-700 dark:bg-[#2d1b69] dark:text-[#a78bfa]': tw.match_type === 'prefix',
+                              'bg-orange-100 text-orange-700 dark:bg-[#3d2000] dark:text-[#fb923c]': tw.match_type === 'contains',
+                              'bg-green-100 text-green-700 dark:bg-[#1b3a2e] dark:text-[#3fb950]': tw.match_type === 'exact',
+                            }"
+                            x-text="tw.match_type"></span>
+                        </td>
+                        <td class="px-3 py-2 font-mono text-gray-800 dark:text-[#c9d1d9]" x-text="tw.pattern"></td>
+                        <td class="px-3 py-2 text-gray-500 dark:text-[#8b949e]" x-text="tw.from"></td>
+                        <td class="px-3 py-2 text-gray-500 dark:text-[#8b949e]" x-text="tw.case_sensitive ? 'yes' : 'no'"></td>
+                        <td class="px-3 py-2 text-gray-600 dark:text-[#8b949e] break-all max-w-xs truncate" x-text="tw.url"></td>
+                        <td class="px-3 py-2">
+                          <button @click="whRemoveTextWebhook(tw.id)"
+                            class="text-red-500 hover:text-red-700 dark:text-[#f85149] dark:hover:text-red-400 transition-colors">
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Info box -->
+              <div class="rounded-lg border border-blue-100 dark:border-[#1c3a5e] bg-blue-50 dark:bg-[#0d1a2e] px-4 py-3 text-xs text-blue-700 dark:text-[#58a6ff] leading-relaxed">
+                <strong>Sender filter:</strong>
+                <em>Others only</em> fires when a contact sends a message; <em>Me only</em> fires when you send; <em>All</em> fires for both.
+                Text matching is case-insensitive by default.
+                Pattern examples: <code class="font-mono bg-blue-100 dark:bg-[#1c3a5e] px-1 rounded">/ping</code> (prefix),
+                <code class="font-mono bg-blue-100 dark:bg-[#1c3a5e] px-1 rounded">order</code> (contains),
+                <code class="font-mono bg-blue-100 dark:bg-[#1c3a5e] px-1 rounded">hello world</code> (exact).
+              </div>
+
+            </div> <!-- end tab: text -->
+
+          </div>
         </div>
       </div>
 

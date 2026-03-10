@@ -161,7 +161,7 @@ func main() {
 		}
 		fmt.Print(wh.PrintConfig())
 		whatsapp.Init(app.pb, wh, app.log, app.historyPath, app.dbDialect, app.dbAddress, app.requestFullSync, app.logLevel, app.deviceSpoof)
-		api.Init(app.pb)
+		api.Init(app.pb, wh)
 
 		// Let core bootstrap run (DB init, migrations, cache reload, etc.).
 		if err := e.Next(); err != nil {

@@ -21,6 +21,7 @@ function zaplab() {
     groupsSection(),
     mediaSection(),
     simulationSection(),
+    webhookSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -68,6 +69,7 @@ function zaplab() {
         this.initGroups();
         this.initMedia();
         this.initSimulation();
+        this.initWebhook();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;
