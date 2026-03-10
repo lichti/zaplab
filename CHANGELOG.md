@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Webhook UI** (`pb_public/js/sections/webhook.js`) — new frontend section for full webhook management: configure default and error webhook URLs, add/remove per-event-type webhooks (with wildcard support), add/remove text-pattern webhooks, and send test payloads; tabbed layout (Event Type | Text Pattern)
+- **Event-type webhook routing** — `EventWebhooks` config field: route specific event types (e.g. `Message.ImageMessage`) or wildcard prefixes (e.g. `Message.*`) to individual URLs; fires in addition to the default webhook
+- **Text-pattern webhook routing** — `TextWebhooks` config field: route incoming/outgoing text messages to URLs based on content match (`prefix`, `contains`, `exact`), with optional sender filter (`all` / `me` / `others`) and case-sensitivity flag; matching runs on `Conversation` and `ExtendedTextMessage` payloads
+- **Webhook REST API** — 12 new endpoints under `/zaplab/api/webhook`: `GET /webhook`, `PUT|DELETE /webhook/default`, `PUT|DELETE /webhook/error`, `GET|POST|DELETE /webhook/events`, `GET|POST|DELETE /webhook/text`, `POST /webhook/test`
+
+---
+
+## [v1.0.0-beta.4] — 2026-03-10
+
+### Added
 - **Dashboard** frontend section — overview of the running instance: connection status card (live dot indicator + JID), account card (avatar, push name, phone, platform), two stat grids (All time / Last 24h) with Total Events, Received, Sent, Edited, Deleted and Errors counters, Recent Events list (last 10 with type badge and preview), Quick Actions buttons for all sections; auto-refreshes every 60 s with visible countdown; all 13 PocketBase queries run in parallel via `Promise.allSettled` with `requestKey: null` to avoid SDK auto-cancellation
 - **Event Browser** frontend section — search and filter stored events from PocketBase by type, date range, message ID, sender, recipient/chat, and free text; click any event to inspect the full JSON (syntax-highlighted); media preview (image, video, audio, file download) when a `file` is attached; **Replay** panel to re-send the event's `Message` payload to any JID via `/zaplab/api/sendraw`
 - **Message History** frontend section — lists all edited and deleted messages captured in the events store; filter by kind (All / Edited only / Deleted only), sender, chat and date range; clicking an entry shows the action event payload (kind badge, new content for edits, target ID for deletes, full syntax-highlighted JSON) and automatically looks up and displays the **original message** by `msgID` (content preview, media, full JSON); original message ID extracted from `Message.protocolMessage.key.ID` per whatsmeow's serialization
@@ -23,10 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **View-once media** — `view_once: bool` field added to `POST /sendimage` and `POST /sendvideo`; wraps the inner message in `ViewOnceMessage/FutureProofMessage` when true; UI: checkbox shown for image and video types
 - All API routes now prefixed: `/zaplab/api/<route>` for API endpoints, `/zaplab/tools/{path...}` for static files
 - Frontend JS updated to match new route prefixes
-- **Webhook UI** (`pb_public/js/sections/webhook.js`) — new frontend section for full webhook management: configure default and error webhook URLs, add/remove per-event-type webhooks (with wildcard support), add/remove text-pattern webhooks, and send test payloads; tabbed layout (Event Type | Text Pattern)
-- **Event-type webhook routing** — `EventWebhooks` config field: route specific event types (e.g. `Message.ImageMessage`) or wildcard prefixes (e.g. `Message.*`) to individual URLs; fires in addition to the default webhook
-- **Text-pattern webhook routing** — `TextWebhooks` config field: route incoming/outgoing text messages to URLs based on content match (`prefix`, `contains`, `exact`), with optional sender filter (`all` / `me` / `others`) and case-sensitivity flag; matching runs on `Conversation` and `ExtendedTextMessage` payloads
-- **Webhook REST API** — 12 new endpoints under `/zaplab/api/webhook`: `GET /webhook`, `PUT|DELETE /webhook/default`, `PUT|DELETE /webhook/error`, `GET|POST|DELETE /webhook/events`, `GET|POST|DELETE /webhook/text`, `POST /webhook/test`
 
 ### Fixed
 - `highlight()` utility: guard against `null`/`undefined` input that caused Alpine expression crash (`Cannot destructure property '_isNew' of null`)
@@ -194,7 +200,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.3...HEAD
+[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.4...HEAD
+[v1.0.0-beta.4]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.3...v1.0.0-beta.4
 [v1.0.0-beta.3]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [v1.0.0-beta.2]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [v1.0.0-beta.1]: https://github.com/lichti/zaplab/releases/tag/v1.0.0-beta.1
