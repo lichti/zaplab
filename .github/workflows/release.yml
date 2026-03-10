@@ -2,6 +2,9 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
+      - dev
     tags:
       - 'v*'
 
@@ -23,31 +26,52 @@ jobs:
           go-version: '1.25'
           cache: true
 
+      - name: Set Release Info
+        id: info
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "suffix=" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF}" == refs/heads/dev ]]; then
+            echo "version=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            echo "suffix=-dev" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "version=latest" >> $GITHUB_OUTPUT
+            echo "suffix=" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build Binaries
         run: |
           mkdir -p bin
-          VERSION=${GITHUB_REF_NAME}
+          VERSION=${{ steps.info.outputs.version }}
+          SUFFIX=${{ steps.info.outputs.suffix }}
           # Linux amd64
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-linux-amd64 .
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-linux-amd64$SUFFIX .
           # Linux arm64
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-linux-arm64 .
+          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-linux-arm64$SUFFIX .
           # Darwin amd64 (macOS)
-          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-darwin-amd64 .
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-darwin-amd64$SUFFIX .
           # Darwin arm64 (macOS Apple Silicon)
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-darwin-arm64 .
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-darwin-arm64$SUFFIX .
           # Windows amd64
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-windows-amd64.exe .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-windows-amd64$SUFFIX.exe .
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/dev'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.info.outputs.version }}
           files: |
-            bin/zaplab-linux-amd64
-            bin/zaplab-linux-arm64
-            bin/zaplab-darwin-amd64
-            bin/zaplab-darwin-arm64
-            bin/zaplab-windows-amd64.exe
+            bin/zaplab-linux-amd64${{ steps.info.outputs.suffix }}
+            bin/zaplab-linux-arm64${{ steps.info.outputs.suffix }}
+            bin/zaplab-darwin-amd64${{ steps.info.outputs.suffix }}
+            bin/zaplab-darwin-arm64${{ steps.info.outputs.suffix }}
+            bin/zaplab-windows-amd64${{ steps.info.outputs.suffix }}.exe
           generate_release_notes: true
+          prerelease: ${{ steps.info.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -90,6 +114,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6

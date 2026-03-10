@@ -6,11 +6,15 @@ DOCKER_COMPOSE := docker compose
 # Resolved from the nearest git tag (e.g. v1.0.0-beta.1).
 # Falls back to "dev" when no tags exist or outside a git repo.
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+SUFFIX  ?=
+
+# Final version string
+FULL_VERSION := $(VERSION)$(SUFFIX)
 
 # ─── Binary names ─────────────────────────────────────────────────────────────
 BIN_DIR := bin
-BINARY  := $(BIN_DIR)/zaplab_$(shell $(GO) env GOOS)_$(shell $(GO) env GOARCH)
-SYMLINK := $(BIN_DIR)/zaplab
+BINARY  := $(BIN_DIR)/zaplab_$(shell $(GO) env GOOS)_$(shell $(GO) env GOARCH)$(SUFFIX)
+SYMLINK := $(BIN_DIR)/zaplab$(SUFFIX)
 
 # ─── Data directory ────────────────────────────────────────────────────────────
 # Override via env: ZAPLAB_DATA_DIR=/custom/path make run
@@ -37,7 +41,7 @@ deps-download:
 ## build: fmt + vet + compile → bin/zaplab_<OS>_<ARCH>
 build: vet deps-download
 	mkdir -p $(BIN_DIR)
-	$(GO) build -ldflags "-X main.Version=$(VERSION)" -o $(BINARY) .
+	$(GO) build -ldflags "-X main.Version=$(FULL_VERSION)" -o $(BINARY) .
 
 ## link: create a symlink without the platform suffix
 link:
