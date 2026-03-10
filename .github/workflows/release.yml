@@ -3,7 +3,6 @@ name: Release
 on:
   push:
     branches:
-      - main
       - dev
     tags:
       - 'v*'
@@ -113,9 +112,9 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern=latest
             type=sha
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
