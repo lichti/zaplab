@@ -1742,6 +1742,24 @@
                     </div>
                   </div>
 
+                  <!-- ── Edit Diff section ── -->
+                  <template x-if="mhKind(mh.selected) === 'edit' && mh.origEvent && mhDiffHtml(mh.selected)">
+                    <div class="px-4 py-4 border-t border-gray-100 dark:border-[#21262d]">
+                      <div class="flex items-center gap-2 mb-3">
+                        <div class="text-xs font-semibold uppercase tracking-wider
+                                    text-gray-400 dark:text-[#8b949e]">Edit Diff</div>
+                        <div class="flex items-center gap-2 text-xs ml-1">
+                          <span class="diff-del px-1.5 py-0.5 rounded">removed</span>
+                          <span class="diff-ins px-1.5 py-0.5 rounded">added</span>
+                        </div>
+                      </div>
+                      <div class="rounded-md border px-3 py-3 text-sm leading-relaxed break-words
+                                  bg-white border-gray-200 dark:bg-[#0d1117] dark:border-[#30363d]"
+                           x-html="mhDiffHtml(mh.selected)">
+                      </div>
+                    </div>
+                  </template>
+
                   <!-- ── Original Message section ── -->
                   <div class="px-4 py-4">
                     <div class="flex items-center gap-2 mb-3">

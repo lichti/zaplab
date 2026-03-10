@@ -27,6 +27,12 @@ html:not(.dark) .cm { color: #8c959f; }
 @keyframes fadebadge { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 .badge-new { animation: fadebadge 3s forwards; }
 
+/* Edit diff highlight */
+.diff-del { background-color: rgba(248,81,73,.18); color: #f85149; text-decoration: line-through; border-radius: 2px; padding: 0 1px; }
+.diff-ins { background-color: rgba(63,185,80,.18);  color: #3fb950; border-radius: 2px; padding: 0 1px; }
+html:not(.dark) .diff-del { background-color: rgba(207,34,46,.12);  color: #cf222e; }
+html:not(.dark) .diff-ins { background-color: rgba(26,127,55,.12);  color: #1a7f37; }
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 .dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }

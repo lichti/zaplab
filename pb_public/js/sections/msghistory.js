@@ -220,6 +220,71 @@ function msgHistorySection() {
       return new Date(iso).toLocaleString('en-GB', { hour12: false });
     },
 
+    // ── word-level diff ──
+
+    // Tokenize text into words and whitespace runs for word-level diffing.
+    _mhTokenize(text) {
+      return String(text).match(/\S+|\s+/g) || [];
+    },
+
+    // LCS-based diff between two token arrays.
+    // Returns an array of { type: 'eq'|'del'|'ins', val } operations.
+    _mhLCS(a, b) {
+      const m = a.length, n = b.length;
+      // Flat DP table (row-major) for memory efficiency
+      const dp  = new Int32Array((m + 1) * (n + 1));
+      const row = n + 1;
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          dp[i * row + j] = a[i - 1] === b[j - 1]
+            ? dp[(i - 1) * row + (j - 1)] + 1
+            : Math.max(dp[(i - 1) * row + j], dp[i * row + (j - 1)]);
+        }
+      }
+      // Backtrack
+      const ops = [];
+      let i = m, j = n;
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+          ops.unshift({ type: 'eq',  val: a[i - 1] }); i--; j--;
+        } else if (j > 0 && (i === 0 || dp[i * row + (j - 1)] >= dp[(i - 1) * row + j])) {
+          ops.unshift({ type: 'ins', val: b[j - 1] }); j--;
+        } else {
+          ops.unshift({ type: 'del', val: a[i - 1] }); i--;
+        }
+      }
+      return ops;
+    },
+
+    // Returns syntax-highlighted HTML showing word-level diff between the
+    // original message text and the edited (new) content.
+    // Returns null when either side is unavailable.
+    mhDiffHtml(item) {
+      const newText  = this.mhNewContent(item);
+      const origText = this.mh.origEvent ? this.ebPreviewText(this.mh.origEvent) : null;
+      if (!origText || !newText) return null;
+
+      const esc = s => String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      if (origText === newText) return esc(origText);
+
+      const tokOld = this._mhTokenize(origText);
+      const tokNew = this._mhTokenize(newText);
+
+      // Fall back to block diff for very long texts (avoid O(n²) freeze)
+      if (tokOld.length > 400 || tokNew.length > 400) {
+        return `<span class="diff-del">${esc(origText)}</span>\n<span class="diff-ins">${esc(newText)}</span>`;
+      }
+
+      return this._mhLCS(tokOld, tokNew).map(op => {
+        const e = esc(op.val);
+        if (op.type === 'del') return `<span class="diff-del">${e}</span>`;
+        if (op.type === 'ins') return `<span class="diff-ins">${e}</span>`;
+        return e;
+      }).join('');
+    },
+
     // ── copy helpers ──
     async mhCopyJSON() {
       if (!this.mh.selected) return;
