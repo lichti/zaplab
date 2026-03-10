@@ -70,15 +70,15 @@ function groupsSection() {
     groupsEndpoint() {
       const jid = encodeURIComponent(this.groups.jid || '<jid>');
       switch (this.groups.type) {
-        case 'list':         return '/groups';
+        case 'list':         return '/zaplab/api/groups';
         case 'info':         return `/groups/${jid}`;
-        case 'create':       return '/groups';
+        case 'create':       return '/zaplab/api/groups';
         case 'participants': return `/groups/${jid}/participants`;
         case 'settings':     return `/groups/${jid}`;
         case 'leave':        return `/groups/${jid}/leave`;
         case 'invitelink':   return `/groups/${jid}/invitelink${this.groups.resetInviteLink ? '?reset=true' : ''}`;
-        case 'join':         return '/groups/join';
-        default: return '/groups';
+        case 'join':         return '/zaplab/api/groups/join';
+        default: return '/zaplab/api/groups';
       }
     },
 
@@ -197,7 +197,7 @@ function groupsSection() {
     async loadGroupsList() {
       this.groupsListLoading = true;
       try {
-        const res  = await fetch('/groups', { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await fetch('/zaplab/api/groups', { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) this.groupsList = data.groups || [];
       } catch {}
@@ -232,7 +232,7 @@ function groupsSection() {
       this.groupsMembersAdded   = {};
       try {
         const jid  = encodeURIComponent(this.groups.jid);
-        const res  = await fetch(`/groups/${jid}/participants`, { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await fetch(`/zaplab/api/groups/${jid}/participants`, { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) this.groupsMembersList = data.participants || [];
       } catch {}
@@ -257,7 +257,7 @@ function groupsSection() {
       if (!this.groups.jid) return;
       try {
         const jid  = encodeURIComponent(this.groups.jid);
-        const res  = await fetch(`/groups/${jid}`, { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await fetch(`/zaplab/api/groups/${jid}`, { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) {
           this.groups.newName     = data.Name  || '';
@@ -285,7 +285,7 @@ function groupsSection() {
       this.groupsInviteQRLoading = true;
       this.groupsInviteQR        = null;
       try {
-        const res  = await fetch('/wa/qrtext', {
+        const res  = await fetch('/zaplab/api/wa/qrtext', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify({ text: link }),

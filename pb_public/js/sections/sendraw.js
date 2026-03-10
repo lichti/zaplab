@@ -103,7 +103,7 @@ function sendRawSection() {
       this.raw.loading = true;
       try {
         const msg = JSON.parse(this.raw.json);
-        const res = await fetch('/sendraw', {
+        const res = await fetch('/zaplab/api/sendraw', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify({ to: this.raw.to, message: msg }),

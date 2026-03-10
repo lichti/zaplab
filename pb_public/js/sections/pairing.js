@@ -20,7 +20,7 @@ function pairingSection() {
     // ── methods ──
     async fetchWAStatus() {
       try {
-        const res  = await fetch('/wa/status');
+        const res  = await fetch('/zaplab/api/wa/status');
         const data = await res.json();
         const prev = this.wa.status;
         this.wa.status = data.status || 'unknown';
@@ -49,7 +49,7 @@ function pairingSection() {
 
     async fetchWAQR() {
       try {
-        const res = await fetch(`/wa/qrcode?t=${Date.now()}`);
+        const res = await fetch(`/zaplab/api/wa/qrcode?t=${Date.now()}`);
         if (!res.ok) { this.wa.qrImage = ''; return; }
         const data = await res.json();
         this.wa.qrImage = data.image || '';
@@ -60,7 +60,7 @@ function pairingSection() {
       this.wa.toast   = null;
       this.wa.loading = true;
       try {
-        const res  = await fetch('/wa/logout', {
+        const res  = await fetch('/zaplab/api/wa/logout', {
           method:  'POST',
           headers: { 'X-API-Token': this.apiToken },
         });

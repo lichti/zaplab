@@ -59,12 +59,12 @@ function spoofSection() {
 
     spoofEndpoint() {
       return {
-        'reply':          '/spoof/reply',
-        'reply-private':  '/spoof/reply-private',
-        'reply-img':      '/spoof/reply-img',
-        'reply-location': '/spoof/reply-location',
-        'timed':          '/spoof/timed',
-        'demo':           '/spoof/demo',
+        'reply':          '/zaplab/api/spoof/reply',
+        'reply-private':  '/zaplab/api/spoof/reply-private',
+        'reply-img':      '/zaplab/api/spoof/reply-img',
+        'reply-location': '/zaplab/api/spoof/reply-location',
+        'timed':          '/zaplab/api/spoof/timed',
+        'demo':           '/zaplab/api/spoof/demo',
       }[this.spoof.type] || '';
     },
 

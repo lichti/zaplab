@@ -30,7 +30,7 @@ function accountSection() {
       this.account.error   = '';
       this.accountAvatarBroken = false;
       try {
-        const res  = await fetch('/wa/account');
+        const res  = await fetch('/zaplab/api/wa/account');
         const data = await res.json();
         if (!res.ok) {
           this.account.error = data.message || 'Failed to load account info';

@@ -145,7 +145,7 @@ function simulationSection() {
       try {
         // Step 1 — send first live location to establish the share in WhatsApp
         //           and capture the message ID needed for subsequent updates.
-        const initRes = await fetch('/sendelivelocation', {
+        const initRes = await fetch('/zaplab/api/sendelivelocation', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body: JSON.stringify({
@@ -171,7 +171,7 @@ function simulationSection() {
         // Step 2 — start the backend simulation loop, passing the original message ID
         //           so each update reuses it and WhatsApp moves the pin instead of
         //           creating a new message.
-        const simRes  = await fetch('/simulate/route', {
+        const simRes  = await fetch('/zaplab/api/simulate/route', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body: JSON.stringify({
@@ -207,7 +207,7 @@ function simulationSection() {
     async simStop() {
       if (!this.simActive) return;
       try {
-        await fetch(`/simulate/route/${this.simActive.id}`, {
+        await fetch(`/zaplab/api/simulate/route/${this.simActive.id}`, {
           method:  'DELETE',
           headers: { 'X-API-Token': this.apiToken },
         });
@@ -223,7 +223,7 @@ function simulationSection() {
       this.simStopPolling();
       this.simPollingInterval = setInterval(async () => {
         try {
-          const res  = await fetch('/simulate/route', { headers: { 'X-API-Token': this.apiToken } });
+          const res  = await fetch('/zaplab/api/simulate/route', { headers: { 'X-API-Token': this.apiToken } });
           const data = await res.json();
           const found = (data.simulations || []).find(s => s.id === this.simActive?.id);
           if (!found) {

@@ -33,7 +33,7 @@ function ctrlSection() {
 
     // ── methods ──
     ctrlEndpoint() {
-      return { react: '/sendreaction', edit: '/editmessage', delete: '/revokemessage', typing: '/settyping', disappearing: '/setdisappearing' }[this.ctrl.type] || '';
+      return { react: '/zaplab/api/sendreaction', edit: '/zaplab/api/editmessage', delete: '/zaplab/api/revokemessage', typing: '/zaplab/api/settyping', disappearing: '/zaplab/api/setdisappearing' }[this.ctrl.type] || '';
     },
 
     ctrlLabel() {

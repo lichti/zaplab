@@ -56,8 +56,8 @@ function contactsMgmtSection() {
 
     mgmtEndpoint() {
       switch (this.mgmt.type) {
-        case 'list':  return '/contacts';
-        case 'check': return '/contacts/check';
+        case 'list':  return '/zaplab/api/contacts';
+        case 'check': return '/zaplab/api/contacts/check';
         case 'info':  return `/contacts/${encodeURIComponent(this.mgmt.infoJid || '<jid>')}`;
         default:      return '';
       }
@@ -137,7 +137,7 @@ function contactsMgmtSection() {
     async loadMgmtStore() {
       this.mgmtStoreLoading = true;
       try {
-        const res  = await fetch('/contacts', { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await fetch('/zaplab/api/contacts', { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) this.mgmtStoreList = data.contacts || [];
       } catch {}

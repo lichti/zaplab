@@ -42,10 +42,10 @@ function contactsSection() {
 
     contactsEndpoint() {
       switch (this.contacts.type) {
-        case 'contact':  return '/sendcontact';
-        case 'contacts': return '/sendcontacts';
-        case 'poll':     return '/createpoll';
-        case 'votepoll': return '/votepoll';
+        case 'contact':  return '/zaplab/api/sendcontact';
+        case 'contacts': return '/zaplab/api/sendcontacts';
+        case 'poll':     return '/zaplab/api/createpoll';
+        case 'votepoll': return '/zaplab/api/votepoll';
         default:         return '';
       }
     },
