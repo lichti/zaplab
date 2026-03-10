@@ -22,6 +22,7 @@
 
   <!-- Section modules (sync — define global functions before deferred Alpine runs) -->
   <script src="js/utils.js"></script>
+  <script src="js/sections/dashboard.js"></script>
   <script src="js/sections/pairing.js"></script>
   <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
@@ -190,6 +191,22 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap"
                 x-text="account.push_name || 'Account'">
           </span>
+        </button>
+
+        <!-- Dashboard -->
+        <button
+          @click="setSection('dashboard'); dashFetch()"
+          :title="sidebarExpanded ? '' : 'Dashboard'"
+          aria-label="Dashboard"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'dashboard'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Dashboard</span>
         </button>
 
         <!-- Live Events -->
@@ -652,6 +669,273 @@
               : 'bg-red-50 text-red-800 dark:bg-[#3a1c1c] dark:text-[#f85149]'"
             x-text="wa.toast ? wa.toast.message : ''"
           ></div>
+
+        </div>
+      </div>
+
+      <!-- ── Section: Dashboard ────────────────────────────────────────── -->
+      <div x-show="activeSection === 'dashboard'" class="h-full overflow-y-auto">
+        <div class="max-w-6xl mx-auto w-full p-6 flex flex-col gap-6">
+
+          <!-- ── Header ── -->
+          <div class="flex items-center justify-between">
+            <h1 class="text-lg font-semibold text-gray-900 dark:text-[#e6edf3]">Dashboard</h1>
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-gray-400 dark:text-[#484f58]"
+                    x-show="dash.lastFetch"
+                    x-text="'Updated ' + dashLastFetch() + ' · refresh in ' + _dashCountdown + 's'">
+              </span>
+              <button
+                @click="dashRefresh()"
+                :disabled="dash.loading"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-gray-100 text-gray-700 hover:bg-gray-200
+                       dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg class="h-3.5 w-3.5" :class="dash.loading ? 'animate-spin' : ''"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                </svg>
+                <span x-text="dash.loading ? 'Loading…' : 'Refresh'"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Fetch error notice -->
+          <div
+            x-show="dash.fetchError"
+            class="px-3 py-2 rounded-md text-xs border
+                   bg-red-50 border-red-200 text-red-700
+                   dark:bg-red-950/30 dark:border-red-800 dark:text-red-400"
+            x-text="'Fetch error: ' + dash.fetchError"
+          ></div>
+
+          <!-- ── Connection + Account row ── -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- Connection card -->
+            <div class="rounded-lg border p-4 transition-colors" :class="dashConnCardClass()">
+              <div class="text-xs font-semibold uppercase tracking-wider mb-3
+                          text-gray-400 dark:text-[#8b949e]">WhatsApp Connection</div>
+              <div class="flex items-center gap-3">
+                <span class="h-2.5 w-2.5 rounded-full flex-shrink-0" :class="dashConnDotClass()"></span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-[#e6edf3]"
+                      x-text="dashConnLabel()"></span>
+              </div>
+              <div x-show="wa.jid" class="mt-2 text-xs font-mono text-gray-500 dark:text-[#8b949e]"
+                   x-text="wa.jid"></div>
+              <button
+                x-show="wa.status !== 'connected'"
+                @click="setSection('pairing')"
+                class="mt-3 text-xs text-blue-600 dark:text-[#58a6ff] hover:underline"
+              >Go to Connection →</button>
+            </div>
+
+            <!-- Account card -->
+            <div class="rounded-lg border p-4 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+              <div class="text-xs font-semibold uppercase tracking-wider mb-3
+                          text-gray-400 dark:text-[#8b949e]">Account</div>
+              <template x-if="account.jid">
+                <div class="flex items-center gap-3">
+                  <div class="h-10 w-10 rounded-full flex-shrink-0 overflow-hidden
+                               bg-gray-100 dark:bg-[#21262d] flex items-center justify-center">
+                    <template x-if="account.avatar_url && !accountAvatarBroken">
+                      <img :src="account.avatar_url" @error="accountAvatarBroken=true"
+                           class="h-10 w-10 object-cover rounded-full" />
+                    </template>
+                    <template x-if="!account.avatar_url || accountAvatarBroken">
+                      <span class="text-sm font-bold text-gray-400 dark:text-[#8b949e]"
+                            x-text="accountInitials()"></span>
+                    </template>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-[#e6edf3] truncate"
+                         x-text="account.push_name || account.business_name || '—'"></div>
+                    <div class="text-xs text-gray-500 dark:text-[#8b949e]"
+                         x-text="accountPhoneFormatted()"></div>
+                    <div x-show="account.platform"
+                         class="text-xs text-gray-400 dark:text-[#484f58]"
+                         x-text="account.platform"></div>
+                  </div>
+                </div>
+              </template>
+              <template x-if="!account.jid">
+                <div class="text-xs text-gray-400 dark:text-[#484f58]">Not connected — no account info available.</div>
+              </template>
+            </div>
+
+          </div>
+
+          <!-- ── Stats grid ── -->
+          <div class="flex flex-col gap-3">
+
+            <!-- All-time label -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#8b949e]">All time</span>
+              <div class="flex-1 h-px bg-gray-100 dark:bg-[#21262d]"></div>
+            </div>
+
+            <!-- All-time stat cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+
+              <div class="rounded-lg border p-3 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Total Events</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-[#e6edf3]"
+                     x-text="dashFmt(dash.totalEvents)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Received</div>
+                <div class="text-2xl font-bold text-blue-600 dark:text-[#58a6ff]"
+                     x-text="dashFmt(dash.totalReceived)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Sent</div>
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400"
+                     x-text="dashFmt(dash.totalSent)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Edited</div>
+                <div class="text-2xl font-bold text-blue-500 dark:text-blue-400"
+                     x-text="dashFmt(dash.totalEdited)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Deleted</div>
+                <div class="text-2xl font-bold text-red-600 dark:text-red-400"
+                     x-text="dashFmt(dash.totalDeleted)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Errors</div>
+                <div class="text-2xl font-bold"
+                     :class="dash.totalErrors > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-400 dark:text-[#484f58]'"
+                     x-text="dashFmt(dash.totalErrors)"></div>
+              </div>
+
+            </div>
+
+            <!-- Last 24h label -->
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#8b949e]">Last 24 h</span>
+              <div class="flex-1 h-px bg-gray-100 dark:bg-[#21262d]"></div>
+            </div>
+
+            <!-- 24h stat cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+
+              <div class="rounded-lg border p-3 bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Total Events</div>
+                <div class="text-2xl font-bold text-gray-700 dark:text-[#c9d1d9]"
+                     x-text="dashFmt(dash.h24Events)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Received</div>
+                <div class="text-2xl font-bold text-blue-500 dark:text-blue-400"
+                     x-text="dashFmt(dash.h24Received)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Sent</div>
+                <div class="text-2xl font-bold text-green-500 dark:text-green-400"
+                     x-text="dashFmt(dash.h24Sent)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Edited</div>
+                <div class="text-2xl font-bold text-blue-400 dark:text-blue-300"
+                     x-text="dashFmt(dash.h24Edited)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Deleted</div>
+                <div class="text-2xl font-bold text-red-500 dark:text-red-400"
+                     x-text="dashFmt(dash.h24Deleted)"></div>
+              </div>
+
+              <div class="rounded-lg border p-3 bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d]">
+                <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">Errors</div>
+                <div class="text-2xl font-bold"
+                     :class="dash.h24Errors > 0 ? 'text-orange-400 dark:text-orange-300' : 'text-gray-400 dark:text-[#484f58]'"
+                     x-text="dashFmt(dash.h24Errors)"></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── Recent Events ── -->
+          <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b
+                        border-gray-100 dark:border-[#21262d]">
+              <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#8b949e]">
+                Recent Events
+              </span>
+              <button
+                @click="setSection('eventbrowser')"
+                class="text-xs text-blue-600 dark:text-[#58a6ff] hover:underline"
+              >View all →</button>
+            </div>
+
+            <!-- Loading placeholder -->
+            <div x-show="dash.loading && dash.recentEvents.length === 0"
+                 class="px-4 py-6 text-center text-xs text-gray-400 dark:text-[#484f58]">
+              Loading…
+            </div>
+
+            <!-- Empty state -->
+            <div x-show="!dash.loading && dash.recentEvents.length === 0"
+                 class="px-4 py-6 text-center text-xs text-gray-400 dark:text-[#484f58]">
+              No events yet. Click <strong>Refresh</strong> after events arrive.
+            </div>
+
+            <!-- Event rows -->
+            <template x-for="item in dash.recentEvents" :key="item.id">
+              <div
+                @click="setSection('eventbrowser')"
+                class="flex items-center gap-3 px-4 py-2.5 border-b cursor-pointer
+                       border-gray-50 dark:border-[#21262d]
+                       hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors last:border-0"
+              >
+                <span class="text-xs text-gray-400 dark:text-[#484f58] flex-shrink-0 w-16 text-right"
+                      x-text="fmtTime(item.created)"></span>
+                <span class="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                      :class="typeClass(item.type)"
+                      x-text="item.type"></span>
+                <span class="text-xs text-gray-500 dark:text-[#8b949e] truncate flex-1"
+                      x-text="ebPreviewText(item)"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- ── Quick Actions ── -->
+          <div class="rounded-lg border bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#30363d] p-4">
+            <div class="text-xs font-semibold uppercase tracking-wider mb-3 text-gray-400 dark:text-[#8b949e]">
+              Quick Actions
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="[section, label, color] in [
+                ['send',         'Send Message',     'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:hover:bg-blue-500/30'],
+                ['eventbrowser', 'Event Browser',    'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:hover:bg-purple-500/30'],
+                ['msghistory',   'Message History',  'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-300 dark:hover:bg-red-500/30'],
+                ['groups',       'Groups',           'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-300 dark:hover:bg-green-500/30'],
+                ['contacts',     'Contacts & Polls', 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:hover:bg-yellow-500/30'],
+                ['media',        'Media Download',   'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-500/20 dark:text-gray-300 dark:hover:bg-gray-500/30'],
+                ['ctrl',         'Message Control',  'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:hover:bg-orange-500/30'],
+                ['spoof',        'Spoof Messages',   'bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-500/20 dark:text-pink-300 dark:hover:bg-pink-500/30'],
+              ]" :key="section">
+                <button
+                  @click="setSection(section)"
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                  :class="color"
+                  x-text="label"
+                ></button>
+              </template>
+            </div>
+          </div>
 
         </div>
       </div>
@@ -3050,7 +3334,7 @@
               </table>
               <div x-show="mgmt.result && mgmt.result.count > 0"
                 class="px-4 py-2 text-xs text-gray-400 dark:text-[#484f58] border-t border-gray-100 dark:border-[#21262d]"
-                x-text="`${mgmt.result.count} contacts in local store`"></div>
+                x-text="mgmt.result ? `${mgmt.result.count} contacts in local store` : ''"></div>
             </div>
 
             <!-- Table: check results -->

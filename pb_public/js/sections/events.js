@@ -15,7 +15,7 @@ function eventsSection() {
     // ── methods ──
     async loadInitialEvents() {
       try {
-        const res = await pb.collection('events').getList(1, 100, { sort: '-created' });
+        const res = await pb.collection('events').getList(1, 100, { sort: '-created', requestKey: null });
         this.events = res.items.map(r => ({ ...r, _isNew: false }));
       } catch (err) {
         console.error('Failed to load events:', err);

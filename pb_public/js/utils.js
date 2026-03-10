@@ -32,6 +32,7 @@ function utilsSection() {
     },
 
     highlight(obj) {
+      if (obj === null || obj === undefined) return '<span class="jl">null</span>';
       const { _isNew, ...clean } = obj;
       const json = JSON.stringify(clean, null, 2)
         .replace(/&/g, '&amp;')
