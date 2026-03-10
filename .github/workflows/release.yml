@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build Binaries
+        run: |
+          mkdir -p bin
+          VERSION=${GITHUB_REF_NAME}
+          # Linux amd64
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-linux-amd64 .
+          # Linux arm64
+          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-linux-arm64 .
+          # Darwin amd64 (macOS)
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-darwin-amd64 .
+          # Darwin arm64 (macOS Apple Silicon)
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-darwin-arm64 .
+          # Windows amd64
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$VERSION" -o bin/zaplab-windows-amd64.exe .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/zaplab-linux-amd64
+            bin/zaplab-linux-arm64
+            bin/zaplab-darwin-amd64
+            bin/zaplab-darwin-arm64
+            bin/zaplab-windows-amd64.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: actions/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/zaplab
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
