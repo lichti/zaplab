@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v1.0.0-beta.6] — 2026-03-10
+
+### Added
+- **Static Landing Page** (`site/`) — modern, responsive project website built with Tailwind CSS; highlights features, tech stack, and includes a deployment guide for GitHub Pages
+- **GitHub Actions CI/CD** (`.github/workflows/release.yml`) — automated release pipeline triggered on version tags (`v*`); builds multi-platform Go binaries (Linux, macOS, Windows), creates GitHub Releases, and pushes multi-arch Docker images to Docker Hub and GHCR
+
 ### Fixed
 - **Reaction / non-media message dispatch** — reaction messages (and any non-media message type) were incorrectly entering the `ImageMessage` download path and logging `"Failed to download"`; root cause was the Go interface-nil gotcha: `GetImageMessage()` returns a typed nil `(*T)(nil)` which, when stored as `interface{}` in the `mediaHandlers` slice, produces a non-nil interface value that bypasses the `m.msg == nil` guard; fixed by replacing the generic slice with explicit `if/else-if` typed nil checks, matching the pattern already applied to `LiveLocationMessage`
 
@@ -207,7 +215,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.5...HEAD
+[Unreleased]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.6...HEAD
+[v1.0.0-beta.6]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.5...v1.0.0-beta.6
 [v1.0.0-beta.5]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.4...v1.0.0-beta.5
 [v1.0.0-beta.4]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.3...v1.0.0-beta.4
 [v1.0.0-beta.3]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.2...v1.0.0-beta.3
