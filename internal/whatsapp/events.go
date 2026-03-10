@@ -183,26 +183,32 @@ func handler(rawEvt interface{}) {
 			return
 		}
 
-		mediaHandlers := []struct {
-			msg     interface{}
-			mime    string
-			subType string
-		}{
-			{evt.Message.GetImageMessage(), evt.Message.GetImageMessage().GetMimetype(), getTypeOf(evt.Message.GetImageMessage())},
-			{evt.Message.GetAudioMessage(), evt.Message.GetAudioMessage().GetMimetype(), getTypeOf(evt.Message.GetAudioMessage())},
-			{evt.Message.GetVideoMessage(), evt.Message.GetVideoMessage().GetMimetype(), getTypeOf(evt.Message.GetVideoMessage())},
-			{evt.Message.GetDocumentMessage(), evt.Message.GetDocumentMessage().GetMimetype(), getTypeOf(evt.Message.GetDocumentMessage())},
-			{evt.Message.GetStickerMessage(), evt.Message.GetStickerMessage().GetMimetype(), getTypeOf(evt.Message.GetStickerMessage())},
-			{evt.Message.GetContactMessage(), "text/vcard", getTypeOf(evt.Message.GetContactMessage())},
-		}
-		for _, m := range mediaHandlers {
-			if m.msg == nil {
-				continue
-			}
-			if err := download(evtType+"."+m.subType, m.msg, m.mime, evt, rawEvt); err == nil {
+		// Use explicit typed nil checks to avoid the Go interface-nil gotcha:
+		// storing a typed nil (*T)(nil) in interface{} yields a non-nil interface.
+		if img := evt.Message.GetImageMessage(); img != nil {
+			if err := download(evtType+"."+getTypeOf(img), img, img.GetMimetype(), evt, rawEvt); err == nil {
 				return
 			}
-			break
+		} else if audio := evt.Message.GetAudioMessage(); audio != nil {
+			if err := download(evtType+"."+getTypeOf(audio), audio, audio.GetMimetype(), evt, rawEvt); err == nil {
+				return
+			}
+		} else if video := evt.Message.GetVideoMessage(); video != nil {
+			if err := download(evtType+"."+getTypeOf(video), video, video.GetMimetype(), evt, rawEvt); err == nil {
+				return
+			}
+		} else if doc := evt.Message.GetDocumentMessage(); doc != nil {
+			if err := download(evtType+"."+getTypeOf(doc), doc, doc.GetMimetype(), evt, rawEvt); err == nil {
+				return
+			}
+		} else if sticker := evt.Message.GetStickerMessage(); sticker != nil {
+			if err := download(evtType+"."+getTypeOf(sticker), sticker, sticker.GetMimetype(), evt, rawEvt); err == nil {
+				return
+			}
+		} else if contact := evt.Message.GetContactMessage(); contact != nil {
+			if err := download(evtType+"."+getTypeOf(contact), contact, "text/vcard", evt, rawEvt); err == nil {
+				return
+			}
 		}
 
 		if evt.Message.GetLocationMessage() != nil {
