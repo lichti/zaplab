@@ -25,6 +25,7 @@
   <script src="js/sections/pairing.js"></script>
   <script src="js/sections/account.js"></script>
   <script src="js/sections/events.js"></script>
+  <script src="js/sections/eventbrowser.js"></script>
   <script src="js/sections/send.js"></script>
   <script src="js/sections/sendraw.js"></script>
   <script src="js/sections/ctrl.js"></script>
@@ -204,6 +205,22 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Live Events</span>
+        </button>
+
+        <!-- Event Browser -->
+        <button
+          @click="setSection('eventbrowser')"
+          :title="sidebarExpanded ? '' : 'Event Browser'"
+          aria-label="Event Browser"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'eventbrowser'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Event Browser</span>
         </button>
 
         <!-- Send Message -->
@@ -731,6 +748,406 @@
               x-html="selectedEvent ? highlight(selectedEvent) : ''"
             ></pre>
           </div>
+        </div>
+      </div>
+
+      <!-- ── Section: Event Browser ───────────────────────────────────── -->
+      <div x-show="activeSection === 'eventbrowser'" class="flex flex-col h-full overflow-hidden">
+
+        <!-- ── Filters bar ── -->
+        <div class="flex-shrink-0 border-b px-4 py-3
+                    bg-gray-50 border-gray-200
+                    dark:bg-[#161b22] dark:border-[#30363d]">
+          <div class="flex flex-wrap gap-x-3 gap-y-2 items-end">
+
+            <!-- Type -->
+            <div class="flex flex-col gap-1 min-w-[10rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Type</label>
+              <input
+                type="text"
+                list="eb-types-datalist"
+                x-model="eb.filterType"
+                @keydown.enter="ebSearch()"
+                placeholder="all types"
+                class="w-full px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <datalist id="eb-types-datalist">
+                <template x-for="t in ebKnownTypes" :key="t"><option :value="t"></option></template>
+              </datalist>
+            </div>
+
+            <!-- Date From -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">From</label>
+              <input
+                type="date"
+                x-model="eb.filterDateFrom"
+                @keydown.enter="ebSearch()"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Date To -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">To</label>
+              <input
+                type="date"
+                x-model="eb.filterDateTo"
+                @keydown.enter="ebSearch()"
+                class="px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Msg ID -->
+            <div class="flex flex-col gap-1 min-w-[10rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Message ID</label>
+              <input
+                type="text"
+                x-model="eb.filterMsgID"
+                @keydown.enter="ebSearch()"
+                placeholder="exact match"
+                class="w-full px-2 py-1.5 rounded border text-xs font-mono
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Sender -->
+            <div class="flex flex-col gap-1 min-w-[10rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Sender</label>
+              <input
+                type="text"
+                x-model="eb.filterSender"
+                @keydown.enter="ebSearch()"
+                placeholder="JID or name"
+                class="w-full px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Recipient / Chat -->
+            <div class="flex flex-col gap-1 min-w-[10rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Recipient / Chat</label>
+              <input
+                type="text"
+                x-model="eb.filterRecipient"
+                @keydown.enter="ebSearch()"
+                placeholder="JID or number"
+                class="w-full px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Text search -->
+            <div class="flex flex-col gap-1 flex-1 min-w-[12rem]">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Text (contains)</label>
+              <input
+                type="text"
+                x-model="eb.filterText"
+                @keydown.enter="ebSearch()"
+                placeholder="any text in raw payload"
+                class="w-full px-2 py-1.5 rounded border text-xs
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-2 items-end flex-shrink-0">
+              <button
+                @click="ebSearch()"
+                :disabled="eb.loading"
+                class="px-4 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-blue-600 text-white hover:bg-blue-700
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span x-show="!eb.loading">Search</span>
+                <span x-show="eb.loading">Searching…</span>
+              </button>
+              <button
+                @click="ebReset()"
+                class="px-3 py-1.5 rounded text-xs font-medium transition-colors
+                       bg-gray-100 text-gray-700 hover:bg-gray-200
+                       dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
+              >Reset</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Two-pane layout ── -->
+        <div class="flex flex-1 overflow-hidden min-h-0">
+
+          <!-- Left: event list -->
+          <div class="flex flex-col w-80 flex-shrink-0 border-r overflow-hidden
+                      border-gray-200 dark:border-[#30363d]">
+
+            <!-- List header -->
+            <div class="flex items-center px-3 py-1 flex-shrink-0 border-b text-xs uppercase tracking-wider
+                        bg-gray-50 border-gray-200 text-gray-400
+                        dark:bg-[#161b22] dark:border-[#30363d] dark:text-[#8b949e]">
+              <span x-text="eb.total + ' total, ' + eb.items.length + ' loaded'"></span>
+            </div>
+
+            <!-- Items -->
+            <div class="overflow-y-auto flex-1">
+              <template x-for="item in eb.items" :key="item.id">
+                <div
+                  @click="ebSelect(item)"
+                  class="px-3 py-2 cursor-pointer border-b border-l-2 transition-colors"
+                  :class="eb.selected && eb.selected.id === item.id
+                    ? 'border-l-blue-500 bg-gray-100 dark:bg-[#21262d] border-b-transparent'
+                    : 'border-l-transparent border-b-gray-100 dark:border-b-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]'"
+                >
+                  <div class="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                    <span class="text-gray-400 dark:text-[#8b949e] text-xs flex-shrink-0"
+                          x-text="fmtTime(item.created)"></span>
+                    <span class="text-xs font-semibold px-1 py-0.5 rounded flex-shrink-0"
+                          :class="typeClass(item.type)"
+                          x-text="item.type || '?'"></span>
+                    <span
+                      x-show="ebSenderLabel(item)"
+                      class="text-xs text-gray-400 dark:text-[#8b949e] truncate"
+                      x-text="ebSenderLabel(item)"
+                    ></span>
+                  </div>
+                  <div
+                    class="text-xs text-gray-500 dark:text-[#8b949e] truncate"
+                    x-text="ebPreviewText(item)"
+                  ></div>
+                </div>
+              </template>
+
+              <!-- Empty state -->
+              <div
+                x-show="eb.items.length === 0 && !eb.loading"
+                class="px-4 py-10 text-center text-xs text-gray-400 dark:text-[#484f58]"
+              >
+                Use the filters above and press <strong>Search</strong>.
+              </div>
+
+              <!-- Loading indicator -->
+              <div
+                x-show="eb.loading && eb.items.length === 0"
+                class="px-4 py-6 text-center text-xs text-gray-400 dark:text-[#484f58]"
+              >
+                Loading…
+              </div>
+
+              <!-- Load more -->
+              <div x-show="ebHasMore()" class="p-3">
+                <button
+                  @click="ebLoadMore()"
+                  :disabled="eb.loading"
+                  class="w-full py-1.5 rounded text-xs font-medium transition-colors
+                         bg-gray-100 text-gray-600 hover:bg-gray-200
+                         dark:bg-[#21262d] dark:text-[#8b949e] dark:hover:bg-[#30363d]
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span x-show="!eb.loading">Load more (<span x-text="eb.total - eb.items.length"></span> remaining)</span>
+                  <span x-show="eb.loading">Loading…</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right: detail panel -->
+          <div class="flex flex-col flex-1 overflow-hidden min-w-0">
+
+            <!-- No selection placeholder -->
+            <div
+              x-show="!eb.selected"
+              class="flex-1 flex items-center justify-center text-xs text-gray-400 dark:text-[#484f58]"
+            >
+              &larr; click an event to inspect
+            </div>
+
+            <!-- Detail content -->
+            <template x-if="eb.selected">
+              <div class="flex flex-col h-full overflow-hidden">
+
+                <!-- Detail header -->
+                <div class="flex items-center gap-2 px-4 py-2 flex-shrink-0 border-b
+                            bg-gray-50 border-gray-200 text-xs
+                            dark:bg-[#161b22] dark:border-[#30363d]">
+                  <span
+                    class="font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                    :class="typeClass(eb.selected.type)"
+                    x-text="eb.selected.type"
+                  ></span>
+                  <span
+                    class="text-gray-400 dark:text-[#8b949e] flex-shrink-0"
+                    x-text="ebFmtDateTime(eb.selected.created)"
+                  ></span>
+                  <span
+                    x-show="eb.selected.msgID"
+                    class="font-mono text-gray-400 dark:text-[#8b949e] truncate"
+                    x-text="'ID: ' + eb.selected.msgID"
+                  ></span>
+                  <button
+                    @click="ebCopyJSON()"
+                    class="ml-auto flex items-center gap-1 transition-colors
+                           text-gray-400 hover:text-blue-500
+                           dark:text-[#8b949e] dark:hover:text-[#58a6ff]"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/>
+                    </svg>
+                    <span x-text="ebCopied ? 'Copied!' : 'Copy JSON'"></span>
+                  </button>
+                </div>
+
+                <!-- Scrollable body -->
+                <div class="flex-1 overflow-y-auto">
+
+                  <!-- JSON viewer -->
+                  <pre
+                    class="p-4 text-xs leading-relaxed whitespace-pre overflow-x-auto"
+                    x-html="highlight(eb.selected)"
+                  ></pre>
+
+                  <!-- ── Media section ── -->
+                  <template x-if="ebMediaType(eb.selected)">
+                    <div class="border-t px-4 py-4
+                                border-gray-200 dark:border-[#30363d]">
+                      <div class="text-xs font-semibold uppercase tracking-wider mb-3
+                                  text-gray-400 dark:text-[#8b949e]">Media</div>
+
+                      <!-- Image -->
+                      <template x-if="ebMediaType(eb.selected) === 'image'">
+                        <div class="flex flex-col gap-2">
+                          <img
+                            :src="ebThumbUrl(eb.selected)"
+                            @click="window.open(ebFileUrl(eb.selected), '_blank')"
+                            class="max-h-64 max-w-full rounded-md cursor-zoom-in object-contain
+                                   bg-gray-100 dark:bg-[#21262d]"
+                            :alt="eb.selected.file"
+                          />
+                        </div>
+                      </template>
+
+                      <!-- Video -->
+                      <template x-if="ebMediaType(eb.selected) === 'video'">
+                        <video
+                          controls
+                          class="max-h-64 w-full rounded-md bg-black"
+                          :src="ebFileUrl(eb.selected)"
+                        ></video>
+                      </template>
+
+                      <!-- Audio -->
+                      <template x-if="ebMediaType(eb.selected) === 'audio'">
+                        <audio
+                          controls
+                          class="w-full"
+                          :src="ebFileUrl(eb.selected)"
+                        ></audio>
+                      </template>
+
+                      <!-- Generic file -->
+                      <template x-if="ebMediaType(eb.selected) === 'file'">
+                        <div class="flex items-center gap-2 p-3 rounded-md border
+                                    border-gray-200 dark:border-[#30363d]
+                                    bg-gray-50 dark:bg-[#161b22]">
+                          <svg class="h-5 w-5 text-gray-400 dark:text-[#8b949e] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+                          </svg>
+                          <span class="text-xs font-mono text-gray-600 dark:text-[#c9d1d9] truncate" x-text="eb.selected.file"></span>
+                        </div>
+                      </template>
+
+                      <!-- Download button -->
+                      <a
+                        :href="ebFileUrl(eb.selected)"
+                        :download="eb.selected.file"
+                        class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors
+                               bg-gray-100 text-gray-700 hover:bg-gray-200
+                               dark:bg-[#21262d] dark:text-[#c9d1d9] dark:hover:bg-[#30363d]"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                        </svg>
+                        Download
+                      </a>
+                    </div>
+                  </template>
+
+                  <!-- ── Replay section ── -->
+                  <div class="border-t px-4 py-4
+                              border-gray-200 dark:border-[#30363d]">
+                    <div class="text-xs font-semibold uppercase tracking-wider mb-3
+                                text-gray-400 dark:text-[#8b949e]">Replay via Send Raw</div>
+
+                    <div class="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        x-model="eb.replayTo"
+                        @keydown.enter="ebReplay()"
+                        placeholder="5511999999999"
+                        class="flex-1 px-3 py-2 rounded-md border text-sm
+                               bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                               dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                               focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button
+                        @click="ebReplay()"
+                        :disabled="eb.replayLoading || !eb.replayTo.trim() || !_ebReplayMessage()"
+                        class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0
+                               bg-blue-600 text-white hover:bg-blue-700
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span x-show="!eb.replayLoading">Send Raw</span>
+                        <span x-show="eb.replayLoading">Sending…</span>
+                      </button>
+                    </div>
+
+                    <!-- Toast -->
+                    <div
+                      x-show="eb.replayToast"
+                      x-transition
+                      class="mb-3 px-3 py-2 rounded-md text-xs break-all"
+                      :class="eb.replayToast && eb.replayToast.ok
+                        ? 'bg-green-50 text-green-800 dark:bg-[#1b3a2e] dark:text-[#3fb950]'
+                        : 'bg-red-50 text-red-800 dark:bg-[#3a1c1c] dark:text-[#f85149]'"
+                      x-text="eb.replayToast ? eb.replayToast.message : ''"
+                    ></div>
+
+                    <!-- Payload preview -->
+                    <div class="text-xs text-gray-400 dark:text-[#8b949e] mb-1">
+                      Message payload (waE2E.Message):
+                    </div>
+                    <div class="rounded-md border overflow-hidden
+                                border-gray-200 dark:border-[#30363d]">
+                      <pre
+                        class="p-3 text-xs leading-relaxed whitespace-pre overflow-x-auto max-h-48
+                               bg-white dark:bg-[#0d1117]"
+                        x-html="ebReplayHighlight()"
+                      ></pre>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </template>
+
+          </div>
+
         </div>
       </div>
 

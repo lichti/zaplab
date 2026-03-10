@@ -8,6 +8,7 @@ function zaplab() {
     pairingSection(),
     accountSection(),
     eventsSection(),
+    eventBrowserSection(),
     sendSection(),
     sendRawSection(),
     ctrlSection(),
@@ -51,6 +52,7 @@ function zaplab() {
 
         this.initPairing();
         this.initAccount();
+        this.initEventBrowser();
         this.initSend();
         this.initSendRaw();
         this.initCtrl();
