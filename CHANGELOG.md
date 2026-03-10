@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `highlight()` utility: guard against `null`/`undefined` input that caused Alpine expression crash (`Cannot destructure property '_isNew' of null`)
 - `loadInitialEvents`: add `requestKey: null` to prevent PocketBase SDK auto-cancellation when Dashboard queries run in parallel during `init()`
 - `contactsmgmt` HTML: `mgmt.result.count` expression guarded with ternary — Alpine evaluates `x-text` even when `x-show` hides the element
+- **Media event persistence** — incoming messages with media attachments (image, audio, video, document, sticker, vCard) were logging `"Failed to save event"` and falling back to a file-less record; root cause was `saveEventFile` manually uploading via `pb.NewFilesystem()` then setting only the filename string on the record, which PocketBase v0.36 rejects for new records; fixed by passing the `*filesystem.File` object directly to `record.Set("file", file)` and letting `pb.Save` handle the upload atomically
 
 ---
 

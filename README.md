@@ -1103,7 +1103,7 @@ Stores all events received from WhatsApp.
 | `type` | text | Event type (`Message`, `Message.ImageMessage`, `ReceiptRead`, etc.) |
 | `raw` | json | Full event payload from whatsmeow |
 | `extra` | json | Extra data (e.g.: decrypted poll vote) |
-| `file` | file | Downloaded media (image, audio, video, document, vcard) |
+| `file` | file | Downloaded and stored media file for media-type events (image, audio, video, document, sticker, vCard); populated automatically when a media message is received |
 | `msgID` | text | WhatsApp message ID |
 | `created` | datetime | Creation timestamp (auto) |
 

@@ -31,22 +31,11 @@ func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName 
 	record.Set("extra", extra)
 	record.Set("msgID", msgID)
 
-	fs, err := pb.NewFilesystem()
-	if err != nil {
-		return fmt.Errorf("failed to open filesystem: %w", err)
-	}
-	defer fs.Close()
-
 	file, err := filesystem.NewFileFromBytes(fileBytes, fileName)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-
-	filePath := record.BaseFilesPath() + "/" + file.Name
-	if err := fs.UploadFile(file, filePath); err != nil {
-		return fmt.Errorf("failed to upload file: %w", err)
-	}
-	record.Set("file", file.Name)
+	record.Set("file", file)
 
 	if err := wh.SendToDefault(evtType, raw, nil); err != nil && wh.HasDefaultWebhook() {
 		logger.Warnf("Failed to send event to default webhook type=%s error=%v", evtType, err)

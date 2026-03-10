@@ -185,6 +185,21 @@ The **Export CSV** button is enabled only after a search returns at least one re
 
 ---
 
+## Media Event Persistence — Implementation Note
+
+Incoming messages with media attachments (image, audio, video, document, sticker, vCard) are saved via `saveEventFile()` in `internal/whatsapp/persist.go`. The attached file is stored in the PocketBase filesystem linked to the event record.
+
+**Correct pattern (PocketBase v0.36):**
+```go
+file, _ := filesystem.NewFileFromBytes(data, fileName)
+record.Set("file", file)   // pass *filesystem.File object
+pb.Save(record)             // PocketBase handles upload atomically
+```
+
+Setting only the filename string (`record.Set("file", file.Name)`) on a new record is rejected by PocketBase v0.36 validation. The old manual-upload pattern (`pb.NewFilesystem()` + `fs.UploadFile()`) must **not** be used alongside `pb.Save` for file fields.
+
+---
+
 ## Files Changed
 
 | File | Change |
