@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Changed
-- **Static Landing Page** — moved from `site/` to `docs/` for native GitHub Pages compatibility.
+- **Static Landing Page** — moved from `site/` to `docs/` for native GitHub Pages compatibility; enriched with detailed project information, removed "Get Started Free" button, and updated version to `v1.0.0-beta.6`.
 
 ---
 
