@@ -48,6 +48,9 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/sendcontacts", postSendContacts)
 	e.Router.POST("/createpoll", postCreatePoll)
 	e.Router.POST("/votepoll", postVotePoll)
+	e.Router.GET("/contacts", getContacts)
+	e.Router.POST("/contacts/check", postContactsCheck)
+	e.Router.GET("/contacts/{jid}", getContactInfo)
 	e.Router.GET("/groups", getGroups)
 	e.Router.GET("/groups/{jid}", getGroupInfo)
 	e.Router.GET("/groups/{jid}/participants", getGroupParticipants)
@@ -891,6 +894,46 @@ func postSendRaw(e *core.RequestEvent) error {
 		"whatsapp_message": msg,
 		"send_response":    resp,
 	})
+}
+
+// ── Contact management ────────────────────────────────────────────────────────
+
+func getContacts(e *core.RequestEvent) error {
+	contacts, err := whatsapp.GetAllContacts()
+	if err != nil {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"contacts": contacts, "count": len(contacts)})
+}
+
+func postContactsCheck(e *core.RequestEvent) error {
+	var req struct {
+		Phones []string `json:"phones"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if len(req.Phones) == 0 {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "phones array is required"})
+	}
+	results, err := whatsapp.CheckOnWhatsApp(req.Phones)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": fmt.Sprintf("Error checking phones: %v", err)})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"results": results, "count": len(results)})
+}
+
+func getContactInfo(e *core.RequestEvent) error {
+	jidStr := e.Request.PathValue("jid")
+	jid, ok := whatsapp.ParseJID(jidStr)
+	if !ok {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "Invalid JID"})
+	}
+	info, err := whatsapp.GetContactInfo(jid)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": fmt.Sprintf("Error fetching contact info: %v", err)})
+	}
+	return e.JSON(http.StatusOK, info)
 }
 
 // ── Route simulation ──────────────────────────────────────────────────────────
