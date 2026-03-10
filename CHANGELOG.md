@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Reaction / non-media message dispatch** — reaction messages (and any non-media message type) were incorrectly entering the `ImageMessage` download path and logging `"Failed to download"`; root cause was the Go interface-nil gotcha: `GetImageMessage()` returns a typed nil `(*T)(nil)` which, when stored as `interface{}` in the `mediaHandlers` slice, produces a non-nil interface value that bypasses the `m.msg == nil` guard; fixed by replacing the generic slice with explicit `if/else-if` typed nil checks, matching the pattern already applied to `LiveLocationMessage`
+
 ---
 
 ## [v1.0.0-beta.5] — 2026-03-10
