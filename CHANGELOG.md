@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Dev]
 
+### Added
+- **Message Recovery** — new feature to detect and notify about deleted (revoked) or edited messages; original content is retrieved from the local database and sent to the user's own JID.
+- **General Settings UI** — new Settings section in the dashboard to manage general application configurations (like Message Recovery flags).
+
 ### Changed
 - **Static Landing Page** — moved from `site/` to `docs/` for native GitHub Pages compatibility; enriched with detailed project information, removed "Get Started Free" button, and updated version to `v1.0.0-beta.6`.
 

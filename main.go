@@ -15,6 +15,7 @@ import (
 	_ "modernc.org/sqlite" // register "sqlite" driver for whatsmeow sqlstore
 
 	"github.com/lichti/zaplab/internal/api"
+	"github.com/lichti/zaplab/internal/config"
 	"github.com/lichti/zaplab/internal/webhook"
 	"github.com/lichti/zaplab/internal/whatsapp"
 	_ "github.com/lichti/zaplab/migrations"
@@ -90,6 +91,7 @@ func main() {
 		requestFullSync:   new(bool),
 		historyPath:       new(string),
 		webhookConfigFile: new(string),
+		generalConfigFile: new(string),
 		deviceSpoof:       new(string),
 	}
 
@@ -118,6 +120,8 @@ func main() {
 		"Directory for HistorySync JSON dumps (default: <data-dir>/history)")
 	app.pb.RootCmd.PersistentFlags().StringVar(app.webhookConfigFile, "webhook-config-file", "",
 		"Webhook configuration file path (default: <data-dir>/webhook.json)")
+	app.pb.RootCmd.PersistentFlags().StringVar(app.generalConfigFile, "config-file", "",
+		"General configuration file path (default: <data-dir>/config.json)")
 	app.pb.RootCmd.PersistentFlags().StringVar(app.deviceSpoof, "device-spoof", "companion",
 		"Device identity presented to WhatsApp servers: companion (default), android, ios. "+
 			"Experimental — re-pair after changing. See docs for details.")
@@ -144,6 +148,9 @@ func main() {
 		if *app.webhookConfigFile == "" {
 			*app.webhookConfigFile = filepath.Join(base, "webhook.json")
 		}
+		if *app.generalConfigFile == "" {
+			*app.generalConfigFile = filepath.Join(base, "config.json")
+		}
 
 		// Ensure directories exist before use.
 		for _, dir := range []string{
@@ -160,8 +167,14 @@ func main() {
 			return fmt.Errorf("error loading webhook config: %w", err)
 		}
 		fmt.Print(wh.PrintConfig())
-		whatsapp.Init(app.pb, wh, app.log, app.historyPath, app.dbDialect, app.dbAddress, app.requestFullSync, app.logLevel, app.deviceSpoof)
-		api.Init(app.pb, wh)
+
+		cfg, err := config.Load(*app.generalConfigFile, app.log)
+		if err != nil {
+			return fmt.Errorf("error loading general config: %w", err)
+		}
+
+		whatsapp.Init(app.pb, wh, cfg, app.log, app.historyPath, app.dbDialect, app.dbAddress, app.requestFullSync, app.logLevel, app.deviceSpoof)
+		api.Init(app.pb, wh, cfg)
 
 		// Let core bootstrap run (DB init, migrations, cache reload, etc.).
 		if err := e.Next(); err != nil {

@@ -31,10 +31,13 @@ pb_public/
       contactsmgmt.js     ← contactsMgmtSection(): Contacts Management (list/check/info)
       groups.js           ← groupsSection(): Groups state + methods
       media.js            ← mediaSection(): Media Download state + methods
-      simulation.js       ← simulationSection(): Route Simulation state + methods
-      pairing.js          ← pairingSection(): QR pairing + account state + methods
-      account.js          ← accountSection(): Account info state + methods
-    zaplab.js             ← zaplab() factory: merges all sections, shared
+      ├── simulation.js       ← simulationSection(): Route Simulation state + methods
+      ├── pairing.js          ← pairingSection(): QR pairing + account state + methods
+      ├── account.js          ← accountSection(): Account info state + methods
+      ├── webhook.js          ← webhookSection(): Webhook Management state + methods
+      └── settings.js         ← settingsSection(): General config state + methods
+      zaplab.js             ← zaplab() factory: merges all sections, shared
+
                             state, init(), navigation helpers
 ```
 

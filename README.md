@@ -97,6 +97,8 @@ pb.Start()
 ├── internal/
 │   ├── webhook/
 │   │   └── webhook.go              # Webhook configuration and dispatch
+│   ├── config/
+│   │   └── config.go               # General application configuration
 │   ├── whatsapp/
 │   │   ├── deps.go                 # Package vars + Init()
 │   │   ├── types.go                # Internal payloads
@@ -1224,7 +1226,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Media** | Download and decrypt WhatsApp media files (image, video, audio, document, sticker) |
 | **Route Simulation** ⚠️ *WIP* | Simulate device movement along a GPX route sending live location updates — **experimental, not fully functional** |
 | **Webhooks** | Configure default, error, event-type, and text-pattern webhooks; test webhook delivery; tabbed view with full CRUD for all webhook types |
-| **Settings** | Configure API token stored in localStorage |
+| **Settings** | General application configuration: toggle Message Recovery for edits and deletes; manage API token |
 
 ---
 

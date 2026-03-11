@@ -1,6 +1,7 @@
 package whatsapp
 
 import (
+	"github.com/lichti/zaplab/internal/config"
 	"github.com/lichti/zaplab/internal/webhook"
 	"github.com/pocketbase/pocketbase"
 	"go.mau.fi/whatsmeow"
@@ -11,6 +12,7 @@ var (
 	client          *whatsmeow.Client
 	pb              *pocketbase.PocketBase
 	wh              *webhook.Config
+	cfg             *config.Config
 	logger          waLog.Logger
 	getIDSecret     string
 	pairRejectChan  = make(chan bool, 1)
@@ -23,10 +25,11 @@ var (
 )
 
 // Init injects all dependencies into the whatsapp package before Bootstrap is called.
-func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, log waLog.Logger,
+func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *config.Config, log waLog.Logger,
 	hp *string, dialect *string, addr *string, fullSync *bool, level string, spoof *string) {
 	pb = pbApp
 	wh = webhookCfg
+	cfg = generalCfg
 	logger = log
 	historyPath = hp
 	dbDialect = dialect

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/lichti/zaplab/internal/config"
 	"github.com/lichti/zaplab/internal/simulation"
 	"github.com/lichti/zaplab/internal/webhook"
 	"github.com/lichti/zaplab/internal/whatsapp"
@@ -22,11 +23,13 @@ const mediaBodyLimit = 50 * 1024 * 1024 // 50 MB
 
 var pb *pocketbase.PocketBase
 var wh *webhook.Config
+var cfg *config.Config
 
-// Init injects the PocketBase instance and webhook config.
-func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config) {
+// Init injects the PocketBase instance, webhook config, and general config.
+func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *config.Config) {
 	pb = pbApp
 	wh = webhookCfg
+	cfg = generalCfg
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -92,6 +95,8 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/webhook/text", postWebhookText)
 	e.Router.DELETE("/zaplab/api/webhook/text", deleteWebhookText)
 	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest)
+	e.Router.GET("/zaplab/api/config", getConfig)
+	e.Router.PUT("/zaplab/api/config", putConfig)
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(os.DirFS("./pb_public"), false))
 
 	return nil
@@ -1421,4 +1426,29 @@ func postWebhookTest(e *core.RequestEvent) error {
 		return e.JSON(http.StatusBadGateway, map[string]any{"error": err.Error()})
 	}
 	return e.JSON(http.StatusOK, map[string]any{"message": "test payload delivered", "url": req.URL})
+}
+
+func getConfig(e *core.RequestEvent) error {
+	return e.JSON(http.StatusOK, cfg)
+}
+
+func putConfig(e *core.RequestEvent) error {
+	var req struct {
+		RecoverEdits   *bool `json:"recover_edits"`
+		RecoverDeletes *bool `json:"recover_deletes"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+	if req.RecoverEdits != nil {
+		if err := cfg.SetRecoverEdits(*req.RecoverEdits); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		}
+	}
+	if req.RecoverDeletes != nil {
+		if err := cfg.SetRecoverDeletes(*req.RecoverDeletes); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		}
+	}
+	return e.JSON(http.StatusOK, cfg)
 }

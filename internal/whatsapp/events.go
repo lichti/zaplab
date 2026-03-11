@@ -11,8 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pocketbase/dbx"
 	"go.mau.fi/util/random"
 	"go.mau.fi/whatsmeow/appstate"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -228,6 +230,20 @@ func handler(rawEvt interface{}) {
 		if err := saveEvent(evtType, rawEvt, nil); err != nil {
 			logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
 		}
+
+		// Message Recovery Logic
+		if !evt.Info.IsFromMe {
+			if pm := evt.Message.GetProtocolMessage(); pm != nil {
+				isRevoke := pm.GetType() == waE2E.ProtocolMessage_REVOKE
+				isEdit := pm.GetType() == waE2E.ProtocolMessage_MESSAGE_EDIT
+
+				if (isRevoke && cfg.IsRecoverDeletesEnabled()) || (isEdit && cfg.IsRecoverEditsEnabled()) {
+					if targetID := pm.GetKey().GetID(); targetID != "" {
+						go recoverAndNotify(evt, targetID, pm.GetType())
+					}
+				}
+			}
+		}
 		return
 
 	case *events.Receipt:
@@ -289,6 +305,62 @@ func handler(rawEvt interface{}) {
 	if err := saveEvent(evtType, rawEvt, nil); err != nil {
 		logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
 	}
+}
+
+// recoverAndNotify finds the original message in the DB and notifies the user.
+func recoverAndNotify(evt *events.Message, targetID string, protocolType waE2E.ProtocolMessage_Type) {
+	// Wait a bit for the original message to be persisted if it just arrived
+	time.Sleep(2 * time.Second)
+
+	var originalEvent struct {
+		Type string `db:"type"`
+		Raw  string `db:"raw"`
+	}
+
+	err := pb.DB().Select("type", "raw").
+		From("events").
+		Where(dbx.HashExp{"msgID": targetID}).
+		One(&originalEvent)
+
+	if err != nil {
+		logger.Warnf("Message recovery: original message %s not found in DB: %v", targetID, err)
+		return
+	}
+
+	location := "private chat"
+	if evt.Info.IsGroup {
+		location = fmt.Sprintf("group %s", evt.Info.Chat)
+	}
+
+	// Extract content from original message
+	var rawMsg events.Message
+	if err := json.Unmarshal([]byte(originalEvent.Raw), &rawMsg); err != nil {
+		logger.Warnf("Message recovery: failed to unmarshal original message: %v", err)
+		return
+	}
+
+	contentBefore := getMsg(&rawMsg)
+	if contentBefore == "" {
+		contentBefore = fmt.Sprintf("[%s]", originalEvent.Type)
+	}
+
+	var notification string
+	if protocolType == waE2E.ProtocolMessage_MESSAGE_EDIT {
+		contentAfter := ""
+		if pm := evt.Message.GetProtocolMessage(); pm != nil && pm.GetEditedMessage() != nil {
+			// Create a temporary Message object to use getMsg
+			tempMsg := events.Message{Message: pm.GetEditedMessage()}
+			contentAfter = getMsg(&tempMsg)
+		}
+		notification = fmt.Sprintf("🚨 *Message edited*\n\n*From:* %s\n*Where:* %s\n*Before:* %s\n*After:* %s",
+			evt.Info.PushName, location, contentBefore, contentAfter)
+	} else {
+		notification = fmt.Sprintf("🚨 *Message deleted*\n\n*From:* %s\n*Where:* %s\n*Original Content:* %s",
+			evt.Info.PushName, location, contentBefore)
+	}
+
+	selfJID, _ := ParseJID(client.Store.ID.User)
+	_, _, _ = SendConversationMessage(selfJID, notification, nil)
 }
 
 // reconnectWithBackoff retries client.Connect with exponential backoff (5s, 10s, 20s … up to 5min).
