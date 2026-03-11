@@ -1227,6 +1227,25 @@ Todos os formulários incluem aba de **preview curl** (syntax-highlighted, cópi
 
 ---
 
+## Primeira Inicialização & Autenticação
+
+O ZapLab utiliza um sistema de autenticação de duas camadas:
+
+1.  **Dashboard (Web UI)**: Utiliza usuários do PocketBase (`users`).
+2.  **API REST**: Utiliza um header estático `X-API-Token`.
+
+### Criando o Primeiro Usuário
+
+Para acessar o Dashboard pela primeira vez, você precisa criar manualmente um usuário no banco de dados:
+
+1.  Inicie o servidor e acesse a **Admin UI do PocketBase** em `http://localhost:8090/_/`.
+2.  Se for a primeira execução, siga as instruções para criar sua **conta de Administrador**.
+3.  Dentro do Painel Administrativo, navegue até a coleção **`users`** no menu lateral.
+4.  Clique em **"New Record"** e crie um usuário com e-mail e senha.
+5.  Utilize estas credenciais para fazer login no Dashboard do ZapLab.
+
+---
+
 ## Admin UI
 
 Após iniciar o servidor, a interface administrativa do PocketBase fica disponível em:

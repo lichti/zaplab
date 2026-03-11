@@ -1249,6 +1249,25 @@ All send forms include a **curl preview** tab (syntax-highlighted, one-click cop
 
 ---
 
+## First Run & Authentication
+
+ZapLab uses a dual-layer authentication system:
+
+1.  **Dashboard (Web UI)**: Uses PocketBase Users.
+2.  **REST API**: Uses a static `X-API-Token` header.
+
+### Creating the First User
+
+To access the Dashboard for the first time, you need to manually create a user in the database:
+
+1.  Start the server and access the **PocketBase Admin UI** at `http://localhost:8090/_/`.
+2.  If it's the first run, follow the prompts to create your **Admin account**.
+3.  Once inside the Admin Panel, navigate to the **`users`** collection in the sidebar.
+4.  Click **"New Record"** and create a user with an email and password.
+5.  Use these credentials to sign in at the ZapLab Dashboard.
+
+---
+
 ## Admin UI
 
 After starting the server, the PocketBase admin interface is available at:
