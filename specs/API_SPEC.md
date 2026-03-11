@@ -6,18 +6,16 @@ Source: `internal/api/api.go` + `internal/whatsapp/commands.go`
 
 ## Authentication
 
-> **Auth temporarily disabled.**
-> The `requireAPIToken()` middleware has been removed from all routes in `RegisterRoutes()`.
-> To re-enable, add `.Bind(requireAPIToken())` back to each route in `api.go`.
-
-When enabled, all endpoints marked with **🔒 Auth** require the header:
+All endpoints marked with **🔒 Auth** require the header:
 
 ```
 X-API-Token: <token>
 ```
 
 The token is read from the `API_TOKEN` environment variable at startup.
-If `API_TOKEN` is not set, **all authenticated requests are rejected**.
+Alternatively, requests with a valid PocketBase auth session (JWT) are also accepted.
+
+If `API_TOKEN` is not set, **X-API-Token authentication is disabled**, but PocketBase session auth still works.
 
 Authentication failure response:
 ```

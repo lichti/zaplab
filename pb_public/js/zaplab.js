@@ -5,6 +5,7 @@ function zaplab() {
   return Object.assign(
     {},
     utilsSection(),
+    authSection(),
     dashboardSection(),
     pairingSection(),
     accountSection(),
@@ -55,6 +56,7 @@ function zaplab() {
           localStorage.setItem('zaplab-active-section', val);
         });
 
+        this.initAuth();
         this.initDashboard();
         this.initPairing();
         this.initAccount();
@@ -82,3 +84,4 @@ function zaplab() {
     }
   );
 }
+

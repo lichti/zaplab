@@ -37,7 +37,7 @@ function mediaSection() {
         media_type: this.media.mediaType,
       };
       return [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X POST \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,

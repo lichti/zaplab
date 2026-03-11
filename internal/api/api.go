@@ -34,87 +34,98 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
 func RegisterRoutes(e *core.ServeEvent) error {
-	// TODO: re-enable auth by adding .Bind(requireAPIToken()) back to each route
+	auth := requireAuth()
+
+	// Public routes
 	e.Router.GET("/zaplab/api/health", getHealth)
-	e.Router.GET("/zaplab/api/ping", getPing)
-	e.Router.POST("/zaplab/api/cmd", postSendCmd)
-	e.Router.POST("/zaplab/api/sendmessage", postSendMessage)
-	e.Router.POST("/zaplab/api/sendimage", postSendImage).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/sendvideo", postSendVideo).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/sendaudio", postSendAudio).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/senddocument", postSendDocument).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/sendraw", postSendRaw)
-	e.Router.POST("/zaplab/api/sendlocation", postSendLocation)
-	e.Router.POST("/zaplab/api/sendelivelocation", postSendLiveLocation)
-	e.Router.POST("/zaplab/api/setdisappearing", postSetDisappearing)
-	e.Router.POST("/zaplab/api/sendreaction", postSendReaction)
-	e.Router.POST("/zaplab/api/editmessage", postEditMessage)
-	e.Router.POST("/zaplab/api/revokemessage", postRevokeMessage)
-	e.Router.POST("/zaplab/api/settyping", postSetTyping)
-	e.Router.POST("/zaplab/api/sendcontact", postSendContact)
-	e.Router.POST("/zaplab/api/sendcontacts", postSendContacts)
-	e.Router.POST("/zaplab/api/createpoll", postCreatePoll)
-	e.Router.POST("/zaplab/api/votepoll", postVotePoll)
-	e.Router.POST("/zaplab/api/media/download", postMediaDownload).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/spoof/reply", postSpoofReply)
-	e.Router.POST("/zaplab/api/spoof/reply-private", postSpoofReplyPrivate)
-	e.Router.POST("/zaplab/api/spoof/reply-img", postSpoofReplyImg).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/spoof/reply-location", postSpoofReplyLocation)
-	e.Router.POST("/zaplab/api/spoof/timed", postSpoofTimed)
-	e.Router.POST("/zaplab/api/spoof/demo", postSpoofDemo).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.GET("/zaplab/api/contacts", getContacts)
-	e.Router.POST("/zaplab/api/contacts/check", postContactsCheck)
-	e.Router.GET("/zaplab/api/contacts/{jid}", getContactInfo)
-	e.Router.GET("/zaplab/api/groups", getGroups)
-	e.Router.GET("/zaplab/api/groups/{jid}", getGroupInfo)
-	e.Router.GET("/zaplab/api/groups/{jid}/participants", getGroupParticipants)
-	e.Router.POST("/zaplab/api/groups", postCreateGroup)
-	e.Router.POST("/zaplab/api/groups/{jid}/participants", postGroupParticipants)
-	e.Router.PATCH("/zaplab/api/groups/{jid}", patchGroup)
-	e.Router.POST("/zaplab/api/groups/{jid}/photo", postGroupPhoto).Bind(apis.BodyLimit(mediaBodyLimit))
-	e.Router.POST("/zaplab/api/groups/{jid}/leave", postLeaveGroup)
-	e.Router.GET("/zaplab/api/groups/{jid}/invitelink", getGroupInviteLink)
-	e.Router.POST("/zaplab/api/groups/join", postJoinGroup)
 	e.Router.GET("/zaplab/api/wa/status", getWAStatus)
 	e.Router.GET("/zaplab/api/wa/qrcode", getWAQRCode)
-	e.Router.POST("/zaplab/api/wa/logout", postWALogout)
 	e.Router.GET("/zaplab/api/wa/account", getWAAccount)
-	e.Router.POST("/zaplab/api/wa/qrtext", postQRText)
-	e.Router.POST("/zaplab/api/simulate/route", postSimulateRoute)
-	e.Router.DELETE("/zaplab/api/simulate/route/{id}", deleteSimulateRoute)
-	e.Router.GET("/zaplab/api/simulate/route", getSimulateRoutes)
-	e.Router.GET("/zaplab/api/webhook", getWebhookConfig)
-	e.Router.PUT("/zaplab/api/webhook/default", putWebhookDefault)
-	e.Router.DELETE("/zaplab/api/webhook/default", deleteWebhookDefault)
-	e.Router.PUT("/zaplab/api/webhook/error", putWebhookError)
-	e.Router.DELETE("/zaplab/api/webhook/error", deleteWebhookError)
-	e.Router.GET("/zaplab/api/webhook/events", getWebhookEvents)
-	e.Router.POST("/zaplab/api/webhook/events", postWebhookEvent)
-	e.Router.DELETE("/zaplab/api/webhook/events", deleteWebhookEvent)
-	e.Router.GET("/zaplab/api/webhook/text", getWebhookText)
-	e.Router.POST("/zaplab/api/webhook/text", postWebhookText)
-	e.Router.DELETE("/zaplab/api/webhook/text", deleteWebhookText)
-	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest)
-	e.Router.GET("/zaplab/api/config", getConfig)
-	e.Router.PUT("/zaplab/api/config", putConfig)
+
+	// Protected routes
+	e.Router.GET("/zaplab/api/ping", getPing).Bind(auth)
+	e.Router.POST("/zaplab/api/cmd", postSendCmd).Bind(auth)
+	e.Router.POST("/zaplab/api/sendmessage", postSendMessage).Bind(auth)
+	e.Router.POST("/zaplab/api/sendimage", postSendImage).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/sendvideo", postSendVideo).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/sendaudio", postSendAudio).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/senddocument", postSendDocument).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/sendraw", postSendRaw).Bind(auth)
+	e.Router.POST("/zaplab/api/sendlocation", postSendLocation).Bind(auth)
+	e.Router.POST("/zaplab/api/sendelivelocation", postSendLiveLocation).Bind(auth)
+	e.Router.POST("/zaplab/api/setdisappearing", postSetDisappearing).Bind(auth)
+	e.Router.POST("/zaplab/api/sendreaction", postSendReaction).Bind(auth)
+	e.Router.POST("/zaplab/api/editmessage", postEditMessage).Bind(auth)
+	e.Router.POST("/zaplab/api/revokemessage", postRevokeMessage).Bind(auth)
+	e.Router.POST("/zaplab/api/settyping", postSetTyping).Bind(auth)
+	e.Router.POST("/zaplab/api/sendcontact", postSendContact).Bind(auth)
+	e.Router.POST("/zaplab/api/sendcontacts", postSendContacts).Bind(auth)
+	e.Router.POST("/zaplab/api/createpoll", postCreatePoll).Bind(auth)
+	e.Router.POST("/zaplab/api/votepoll", postVotePoll).Bind(auth)
+	e.Router.POST("/zaplab/api/media/download", postMediaDownload).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/spoof/reply", postSpoofReply).Bind(auth)
+	e.Router.POST("/zaplab/api/spoof/reply-private", postSpoofReplyPrivate).Bind(auth)
+	e.Router.POST("/zaplab/api/spoof/reply-img", postSpoofReplyImg).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/spoof/reply-location", postSpoofReplyLocation).Bind(auth)
+	e.Router.POST("/zaplab/api/spoof/timed", postSpoofTimed).Bind(auth)
+	e.Router.POST("/zaplab/api/spoof/demo", postSpoofDemo).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.GET("/zaplab/api/contacts", getContacts).Bind(auth)
+	e.Router.POST("/zaplab/api/contacts/check", postContactsCheck).Bind(auth)
+	e.Router.GET("/zaplab/api/contacts/{jid}", getContactInfo).Bind(auth)
+	e.Router.GET("/zaplab/api/groups", getGroups).Bind(auth)
+	e.Router.GET("/zaplab/api/groups/{jid}", getGroupInfo).Bind(auth)
+	e.Router.GET("/zaplab/api/groups/{jid}/participants", getGroupParticipants).Bind(auth)
+	e.Router.POST("/zaplab/api/groups", postCreateGroup).Bind(auth)
+	e.Router.POST("/zaplab/api/groups/{jid}/participants", postGroupParticipants).Bind(auth)
+	e.Router.PATCH("/zaplab/api/groups/{jid}", patchGroup).Bind(auth)
+	e.Router.POST("/zaplab/api/groups/{jid}/photo", postGroupPhoto).Bind(auth, apis.BodyLimit(mediaBodyLimit))
+	e.Router.POST("/zaplab/api/groups/{jid}/leave", postLeaveGroup).Bind(auth)
+	e.Router.GET("/zaplab/api/groups/{jid}/invitelink", getGroupInviteLink).Bind(auth)
+	e.Router.POST("/zaplab/api/groups/join", postJoinGroup).Bind(auth)
+	e.Router.POST("/zaplab/api/wa/logout", postWALogout).Bind(auth)
+	e.Router.POST("/zaplab/api/wa/qrtext", postQRText).Bind(auth)
+	e.Router.POST("/zaplab/api/simulate/route", postSimulateRoute).Bind(auth)
+	e.Router.DELETE("/zaplab/api/simulate/route/{id}", deleteSimulateRoute).Bind(auth)
+	e.Router.GET("/zaplab/api/simulate/route", getSimulateRoutes).Bind(auth)
+	e.Router.GET("/zaplab/api/webhook", getWebhookConfig).Bind(auth)
+	e.Router.PUT("/zaplab/api/webhook/default", putWebhookDefault).Bind(auth)
+	e.Router.DELETE("/zaplab/api/webhook/default", deleteWebhookDefault).Bind(auth)
+	e.Router.PUT("/zaplab/api/webhook/error", putWebhookError).Bind(auth)
+	e.Router.DELETE("/zaplab/api/webhook/error", deleteWebhookError).Bind(auth)
+	e.Router.GET("/zaplab/api/webhook/events", getWebhookEvents).Bind(auth)
+	e.Router.POST("/zaplab/api/webhook/events", postWebhookEvent).Bind(auth)
+	e.Router.DELETE("/zaplab/api/webhook/events", deleteWebhookEvent).Bind(auth)
+	e.Router.GET("/zaplab/api/webhook/text", getWebhookText).Bind(auth)
+	e.Router.POST("/zaplab/api/webhook/text", postWebhookText).Bind(auth)
+	e.Router.DELETE("/zaplab/api/webhook/text", deleteWebhookText).Bind(auth)
+	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest).Bind(auth)
+	e.Router.GET("/zaplab/api/config", getConfig).Bind(auth)
+	e.Router.PUT("/zaplab/api/config", putConfig).Bind(auth)
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(os.DirFS("./pb_public"), false))
 
 	return nil
 }
 
-// requireAPIToken validates the X-API-Token header against the API_TOKEN env var.
-// If API_TOKEN is not set, all requests are rejected.
-func requireAPIToken() *hook.Handler[*core.RequestEvent] {
-	token := os.Getenv("API_TOKEN")
-	if token == "" {
-		pb.Logger().Warn("API_TOKEN env var not set — all API requests will be rejected")
+// requireAuth validates that the request is made by a logged-in PocketBase user
+// OR contains a valid X-API-Token header.
+func requireAuth() *hook.Handler[*core.RequestEvent] {
+	apiToken := os.Getenv("API_TOKEN")
+	if apiToken == "" {
+		pb.Logger().Warn("API_TOKEN env var not set — X-API-Token auth will not be available")
 	}
 	return &hook.Handler[*core.RequestEvent]{
 		Func: func(e *core.RequestEvent) error {
-			if token == "" || e.Request.Header.Get("X-API-Token") != token {
-				return apis.NewUnauthorizedError("Invalid or missing API token", nil)
+			// 1. Check for PocketBase auth session (JWT in Authorization header)
+			if e.Auth != nil {
+				return e.Next()
 			}
-			return e.Next()
+
+			// 2. Check for X-API-Token header
+			if apiToken != "" && e.Request.Header.Get("X-API-Token") == apiToken {
+				return e.Next()
+			}
+
+			return apis.NewUnauthorizedError("Authentication required", nil)
 		},
 	}
 }

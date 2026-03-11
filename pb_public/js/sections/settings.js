@@ -4,7 +4,13 @@ function settingsSection() {
     config: {
       recover_edits:   false,
       recover_deletes: false,
+      apiToken:        localStorage.getItem('zaplab-api-token') || '',
       loading:         false,
+    },
+
+    saveApiToken() {
+      localStorage.setItem('zaplab-api-token', this.config.apiToken);
+      this.apiToken = this.config.apiToken; // Sync with global state
     },
 
     async initSettings() {

@@ -382,7 +382,7 @@ git push origin v1.0.0-beta.1
 | Variável | Obrigatório | Descrição |
 |---|---|---|
 | `ZAPLAB_DATA_DIR` | Não | Diretório base para todos os dados em runtime. Padrão: `$HOME/.zaplab`. Pode ser sobrescrito com `--data-dir`. |
-| `API_TOKEN` | Sim | Token para autenticar as chamadas da API REST. Sem ele, todas as requisições são rejeitadas com 401. |
+| `API_TOKEN` | Sim | Token para autenticar chamadas de API REST externas. Se não definido, a autenticação por token estático é desativada. |
 | `TUNNEL_TOKEN` | Não | Token do Cloudflare Tunnel (apenas se usar `cloudflared`). |
 
 ---

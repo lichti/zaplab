@@ -84,7 +84,7 @@ function contactsMgmtSection() {
       const url     = `${window.location.origin}${this.mgmtEndpoint()}`;
       const payload = this.mgmtCurlPayload();
       const lines = [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X ${method} \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,

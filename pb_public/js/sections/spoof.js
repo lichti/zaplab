@@ -106,7 +106,7 @@ function spoofSection() {
       const url     = `${window.location.origin}${this.spoofEndpoint()}`;
       const payload = JSON.stringify(this.spoofCurlPayload());
       return [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X POST \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,

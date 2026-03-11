@@ -80,7 +80,7 @@ function contactsSection() {
       const url     = `${window.location.origin}${this.contactsEndpoint()}`;
       const payload = this.contactsCurlPayload();
       const lines = [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X POST \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,

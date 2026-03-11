@@ -22,6 +22,7 @@
 
   <!-- Section modules (sync — define global functions before deferred Alpine runs) -->
   <script src="js/utils.js"></script>
+  <script src="js/sections/auth.js"></script>
   <script src="js/sections/dashboard.js"></script>
   <script src="js/sections/pairing.js"></script>
   <script src="js/sections/account.js"></script>
@@ -50,10 +51,93 @@
   @mousemove.window="onMouseMove($event)"
   @mouseup.window="stopResize()"
   x-cloak
-  class="h-screen flex flex-col overflow-hidden font-mono text-sm
+  class="h-screen flex flex-col overflow-hidden font-mono text-sm transition-colors
          bg-gray-50 text-gray-900
          dark:bg-[#0d1117] dark:text-[#c9d1d9]"
 >
+
+  <!-- ── Login Overlay ── -->
+  <div
+    x-show="!isLoggedIn"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-50 dark:bg-[#0d1117]"
+  >
+    <div class="w-full max-w-sm p-8 rounded-xl border bg-white border-gray-200 dark:bg-[#161b22] dark:border-[#30363d] shadow-xl">
+      <div class="flex flex-col items-center mb-8">
+        <div class="h-12 w-12 rounded-xl bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+          <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0112 3m0 0a10.003 10.003 0 016.139 15.441l.054.09m-3.44 2.04A10.003 10.003 0 0112 11z"/>
+          </svg>
+        </div>
+        <h1 class="text-xl font-bold tracking-tight">ZapLab Dashboard</h1>
+        <p class="text-sm text-gray-500 dark:text-[#8b949e] mt-1">Please sign in to continue</p>
+      </div>
+
+      <form @submit.prevent="login()" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-[#8b949e]">Email</label>
+          <input
+            x-model="loginEmail"
+            type="email"
+            required
+            placeholder="admin@example.com"
+            class="w-full px-3 py-2 rounded-lg border text-sm transition-all
+                   bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400
+                   dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                   focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-[#8b949e]">Password</label>
+          <input
+            x-model="loginPassword"
+            type="password"
+            required
+            placeholder="••••••••"
+            class="w-full px-3 py-2 rounded-lg border text-sm transition-all
+                   bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400
+                   dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                   focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Error message -->
+        <div
+          x-show="authError"
+          x-transition
+          class="px-3 py-2 rounded-lg text-xs bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-900/20"
+          x-text="authError"
+        ></div>
+
+        <button
+          type="submit"
+          :disabled="authLoading"
+          class="mt-2 w-full py-2.5 rounded-lg bg-blue-600 text-white font-semibold text-sm transition-all
+                 hover:bg-blue-700 active:transform active:scale-[0.98]
+                 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+        >
+          <span x-show="!authLoading">Sign In</span>
+          <span x-show="authLoading" class="flex items-center justify-center gap-2">
+            <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Signing in…
+          </span>
+        </button>
+      </form>
+
+      <div class="mt-8 pt-6 border-t border-gray-100 dark:border-[#21262d] text-center">
+        <p class="text-[10px] text-gray-400 dark:text-[#484f58] uppercase tracking-widest leading-relaxed">
+          ZAPLAB — THE ULTIMATE WHATSAPP TOOL<br>
+          <span class="mt-1 block font-mono">v0.33.0</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <template x-if="isLoggedIn">
+    <div class="h-screen flex flex-col overflow-hidden">
 
   <!-- ── Topbar ──────────────────────────────────────────────────────────── -->
   <header class="flex items-center gap-3 px-3 py-2 flex-shrink-0 border-b
@@ -94,6 +178,20 @@
       <span class="text-gray-500 dark:text-[#8b949e]"
             x-text="wa.status === 'connected' ? (wa.jid ? wa.jid.split('@')[0] : 'WhatsApp') : 'WhatsApp'">
       </span>
+    </button>
+
+    <span class="text-gray-200 dark:text-[#30363d] select-none">|</span>
+
+    <!-- Dashboard Logout -->
+    <button
+      @click="logout()"
+      title="Logout Dashboard"
+      class="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors flex-shrink-0"
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+      </svg>
+      <span>Logout</span>
     </button>
 
     <span class="text-gray-200 dark:text-[#30363d] select-none">|</span>
@@ -2117,7 +2215,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input
                 type="password"
@@ -2441,7 +2539,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input
                 type="password"
@@ -2613,7 +2711,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input
                 type="password"
@@ -2881,7 +2979,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
                 class="w-full px-3 py-2 rounded-md border text-sm opacity-50
@@ -3114,7 +3212,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
                 class="w-full px-3 py-2 rounded-md border text-sm opacity-50
@@ -3372,7 +3470,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
                 class="w-full px-3 py-2 rounded-md border text-sm opacity-50
@@ -3711,7 +3809,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
                 class="w-full px-3 py-2 rounded-md border text-sm opacity-50
@@ -4337,7 +4435,7 @@
               <label class="text-xs font-medium text-gray-500 dark:text-[#8b949e]">
                 API Token
                 <span class="font-normal text-gray-400 dark:text-[#8b949e] ml-1">(X-API-Token header)</span>
-                <span class="ml-2 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 dark:bg-[#2d2416] dark:text-[#ffa657]">auth disabled</span>
+                <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-[#1c3a5e] dark:text-[#58a6ff]">auth enabled</span>
               </label>
               <input type="password" x-model="apiToken" placeholder="your-api-token (not required)"
                 class="w-full px-3 py-2 rounded-md border text-sm opacity-50
@@ -5021,6 +5119,32 @@
           </div>
 
           <div class="rounded-xl border bg-white border-gray-200 dark:bg-[#161b22] dark:border-[#30363d] overflow-hidden divide-y divide-gray-100 dark:divide-[#21262d]">
+            <!-- API Token -->
+            <div class="p-4 flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-medium">REST API Token</div>
+                <div class="text-[10px] font-mono text-gray-400 dark:text-[#484f58] uppercase tracking-wider">X-API-Token</div>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-[#8b949e]">
+                This token is used for external API integrations (e.g. n8n) and for the curl examples in this dashboard.
+                Must match the <code class="bg-gray-100 dark:bg-[#21262d] px-1 rounded">API_TOKEN</code> environment variable on the server.
+              </p>
+              <div class="flex gap-2 mt-1">
+                <input
+                  x-model="config.apiToken"
+                  type="password"
+                  placeholder="Your API Token"
+                  class="flex-1 rounded border px-3 py-2 text-sm bg-gray-50 dark:bg-[#0d1117] border-gray-200 dark:border-[#30363d] focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  @click="saveApiToken()"
+                  class="px-4 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Save Token
+                </button>
+              </div>
+            </div>
+
             <!-- Recover Deletes -->
             <div class="p-4 flex items-start justify-between gap-4">
               <div class="flex-1">
@@ -5073,6 +5197,8 @@
   </div>
 
   <!-- ── Alpine component (loaded from js/zaplab.js in <head>) ───────────── -->
+
+  </template>
 
 </body>
 </html>

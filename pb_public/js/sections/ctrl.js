@@ -63,7 +63,7 @@ function ctrlSection() {
       const url     = `${window.location.origin}${this.ctrlEndpoint()}`;
       const payload = JSON.stringify(this.ctrlCurlPayload());
       return [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X POST \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,

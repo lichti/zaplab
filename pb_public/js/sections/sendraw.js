@@ -57,7 +57,7 @@ function sendRawSection() {
         payload = `{"to":"${this.raw.to || '<to>'}","message":<invalid json>}`;
       }
       return [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X POST \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,

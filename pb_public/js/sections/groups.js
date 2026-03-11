@@ -148,7 +148,7 @@ function groupsSection() {
       const url     = `${window.location.origin}${this.groupsEndpoint()}`;
       const payload = this.groupsCurlPayload();
       const lines = [
-        `# auth disabled — X-API-Token not required`,
+        `# Authentication enabled — X-API-Token or Dashboard Session required`,
         `curl -X ${method} \\`,
         `  ${url} \\`,
         `  -H "Content-Type: application/json" \\`,
