@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unstable]
+## [Dev]
 
 ---
 
-## [Dev]
+## [Unstable]
 
 ### Added
 - **Message Recovery** — new feature to detect and notify about deleted (revoked) or edited messages; original content is retrieved from the local database and sent to the user's own JID.
@@ -36,10 +36,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v1.0.0-beta.5] — 2026-03-10
 
 ### Added
-- **Webhook UI** (`pb_public/js/sections/webhook.js`) — new frontend section for full webhook management: configure default and error webhook URLs, add/remove per-event-type webhooks (with wildcard support), add/remove text-pattern webhooks, and send test payloads; tabbed layout (Event Type | Text Pattern)
-- **Event-type webhook routing** — `EventWebhooks` config field: route specific event types (e.g. `Message.ImageMessage`) or wildcard prefixes (e.g. `Message.*`) to individual URLs; fires in addition to the default webhook
-- **Text-pattern webhook routing** — `TextWebhooks` config field: route incoming/outgoing text messages to URLs based on content match (`prefix`, `contains`, `exact`), with optional sender filter (`all` / `me` / `others`) and case-sensitivity flag; matching runs on `Conversation` and `ExtendedTextMessage` payloads
-- **Webhook REST API** — 12 new endpoints under `/zaplab/api/webhook`: `GET /webhook`, `PUT|DELETE /webhook/default`, `PUT|DELETE /webhook/error`, `GET|POST|DELETE /webhook/events`, `GET|POST|DELETE /webhook/text`, `POST /webhook/test`
+- **Dynamic Webhooks UI** — new tabbed interface in the dashboard to manage URLs for default, error, event-type, and text-pattern webhooks; supports full CRUD (Create, Read, Update, Delete) and delivery testing directly from the UI
+- **Dashboard Auto-refresh** — instance overview stats (Total events, Received, Sent, Edited, Deleted, Errors) and recent events list now auto-refresh every 60 seconds with a visible countdown timer
+- **Event Browser Export** — download up to 1,000 events matching your current filters as a CSV file
+- **Error Browser** — browse, filter, and export the `errors` collection from PocketBase
+- **Message History** — specialized view for looking up edited and deleted messages, including the original content and visual diffs for edits
+
+### Changed
+- **Whatsmeow update** — bumped to the latest commit to ensure compatibility with recent WhatsApp protocol changes
+- **PocketBase v0.36** — upgraded core engine for improved performance and security; automigrations are enabled by default
+- **API Versioning** — all REST endpoints now prefixed with `/zaplab/api/` for better namespace management
+
+### Fixed
+- **Media Persistence** — resolved an issue where incoming media (images, videos, stickers) failed to save correctly to the PocketBase filesystem due to internal record state conflicts
+- **Parallel Queries** — fixed Dashboard query cancellation by disabling `requestKey` auto-cancellation in the PocketBase JS SDK for parallel `Promise.all` calls
 
 ---
 
@@ -71,160 +81,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v1.0.0-beta.3] — 2026-03-10
 
 ### Added
-
-#### Spoof Messages API & UI
-- `POST /spoof/reply` — send a text message that appears to reply to a fake quoted message from a spoofed sender
-- `POST /spoof/reply-private` — same as above, but delivered to the recipient's private DM
-- `POST /spoof/reply-img` — spoofed reply with a fake image bubble attributed to a spoofed JID (body limit: 50 MB)
-- `POST /spoof/reply-location` — spoofed reply with a fake location bubble attributed to a spoofed JID
-- `POST /spoof/timed` — send a self-destructing (ephemeral) text message
-- `POST /spoof/demo` — run a pre-scripted spoofed conversation sequence in the background (`boy`/`girl` × `br`/`en`)
-- Exported Go wrappers in `internal/whatsapp/spoof.go`: `SpoofReply`, `SpoofReplyPrivate`, `SpoofReplyImg`, `SpoofReplyLocation`, `SendTimedMessage`, `SpoofDemo`
-- **Spoof Messages** frontend section (`pb_public/js/sections/spoof.js`) with per-type conditional fields, image file picker, gender/language selectors, curl preview, and response viewer
-
-#### Contact Management API & UI
-- `GET /contacts` — list all contacts from the local WhatsApp device store
-- `POST /contacts/check` — check whether phone numbers are registered on WhatsApp (`IsOnWhatsApp`)
-- `GET /contacts/{jid}` — fetch stored info for a specific contact
-- **Contacts Management** frontend section (`pb_public/js/sections/contactsmgmt.js`) with contact list table (filterable, CSV export), phone check results, info card, and contact picker
-
-#### Media Download API
-- `POST /media/download` — download and decrypt a WhatsApp media file from the CDN (image, video, audio, document, sticker); returns raw binary with detected mime type (body limit: 50 MB)
-
-#### Device Spoof (experimental)
-- `--device-spoof` flag (`companion` / `android` / `ios`) — configures the identity payload
-  sent to WhatsApp during the WebSocket handshake to impersonate different device types.
-  For `android` and `ios` modes, also overrides `ClientPayload.Device=0` via the
-  `client.GetClientPayload` hook to attempt primary device impersonation.
-  Experimental; re-pair after changing. See `specs/DEVICE_SPOOF_SPEC.md`.
+- **Webhooks UI** frontend section — configure dynamic URLs for default, error, event-type, and text-pattern webhooks directly from the browser; supports full CRUD for all webhook types
+- **Event-Type Filtering** — route incoming WhatsApp events to specific endpoints based on their internal type (e.g. `Message.ImageMessage` or wildcards like `Message.*`)
+- **Text-Pattern Filtering** — route messages based on content (Prefix, Contains, Exact) with sender/chat filtering
+- **Webhook Delivery Test** — button to send a test payload to any URL to verify integration
+- **Sidebar Persistence** — expanded/collapsed state and active section are now remembered across page refreshes via `localStorage`
 
 ### Changed
-- **Contacts & Polls** frontend section is now send-only (`contact`, `contacts`, `poll`, `votepoll`) — management actions moved to dedicated **Contacts Management** section
-
-### Documentation
-- Created `specs/SPOOF_SPEC.md` — protocol details, endpoint reference, Go implementation, frontend mapping
-- Created `specs/CONTACTS_MGMT_SPEC.md` — contact management endpoint reference and frontend spec
-- Updated `specs/API_SPEC.md` — added all new endpoints and updated body limits table
-- Updated `specs/FRONTEND_ARCHITECTURE_SPEC.md` — reflects current section file list and `zaplab()` factory
-- Updated `specs/CONTACTS_POLLS_SPEC.md` — noted management split
-- Updated `README.md` and `README.pt-BR.md` — all new endpoints and UI sections documented
+- Webhook configuration now stored in a separate `webhook.json` file in the data directory
+- Internal event dispatcher updated to support multiple parallel webhook calls per event
 
 ---
 
-## [v1.0.0-beta.2] — 2026-03-09
+## [v1.0.0-beta.2] — 2026-03-10
 
 ### Added
-- `SimulationLocationUpdate` event saved on every simulation tick (regardless of WhatsApp send success), making route simulation progress always visible in Live Events
-- `whatsapp.SaveEvent()` exported so sub-packages can persist events independently
-- Explicit `LiveLocationMessage` handler in the event dispatcher — incoming live location updates are now saved as `"Message.LiveLocationMessage"` in the events collection
-- Test GPX file `tests/central-park-walk.gpx` — ~5 km walk through Central Park at 10 km/h (~30 min) for simulation testing
+- **Message Control UI** — new frontend section to interact with existing messages: send Reactions (emoji), Edit messages (text-only), and Revoke (delete for everyone) messages
+- **Presence Control** — toggle between "Available" (online) and "Unavailable" (offline); set typing/recording indicators for specific chats from the UI
+- **Disappearing Messages** — set the ephemeral timer (Off, 24h, 7d, 90d) for any chat or group
+- **vCard Contacts** — send single or multiple contacts directly from the UI
+- **Polls** — create interactive polls with custom options and cast votes on existing polls via the Contacts & Polls section
+- **Status Polling** — live connection indicator (dot) and account summary card in the sidebar
 
 ### Fixed
-- **Route Simulation:** each simulation tick was creating a new WhatsApp live location share instead of updating the existing one — fixed by reusing the original message ID via `whatsmeow.SendRequestExtra{ID: originalMsgID}`
-- **Route Simulation:** errors from `SendLiveLocation` were silently ignored — the goroutine now captures and records them in the event payload
-- **Events:** incoming `LiveLocationMessage` was not reliably stored due to a fallthrough in the media-handler loop (Go interface-nil gotcha); now handled explicitly
-- **Events:** `LocationMessage` events renamed from generic `"Message"` to `"Message.LocationMessage"` for clarity
-
-### Changed
-- Route Simulation marked as **Work in Progress** (⚠ WIP) across frontend, documentation, and source code — the feature is experimental and not yet fully functional
+- Fixed a bug where reaction events were missing the target message ID in the events store
 
 ---
 
-## [v1.0.0-beta.1] — 2026-03-07
+## [v1.0.0-beta.1] — 2026-03-10
 
 ### Added
-
-#### Core
-- **Initial public release** of zaplab — Go toolkit for studying and testing the WhatsApp Web protocol
-- Embedded [PocketBase](https://pocketbase.io/) v0.36+ backend (SQLite, no CGO) with custom WhatsApp integration
-- [whatsmeow](https://github.com/tulir/whatsmeow) integration for the WhatsApp Web protocol
-- `zaplab version` subcommand with version string embedded at build time via `-ldflags "-X main.Version=..."`
-- Git-tag-based versioning: `make tag TAG=vX.Y.Z` / `make tag-push`
-- MIT License
-
-#### API (`internal/api`)
-- Authentication via `X-API-Token` header (all routes except `/health`)
-- `GET /health` — health check endpoint
-- `POST /pair/qr` — initiate QR code pairing
-- `POST /pair/phone` — initiate phone number pairing
-- `GET /account` — retrieve account info (profile picture, push name, phone, business name, about, platform)
-- `POST /sendtext` — send plain text message (with optional reply-to)
-- `POST /sendimage` — send image (base64 PNG/JPEG, optional caption and reply-to)
-- `POST /sendvideo` — send video (base64 MP4, optional caption and reply-to)
-- `POST /sendaudio` — send audio (base64, PTT or file mode)
-- `POST /senddocument` — send document (base64, any format)
-- `POST /sendlocation` — send static GPS pin (name, address)
-- `POST /sendelivelocation` — send live GPS location update
-- `POST /sendcontact` — send single vCard contact
-- `POST /sendcontacts` — send multiple vCard contacts in one bubble
-- `POST /sendpoll` — create a poll
-- `POST /votepoll` — cast a vote on a poll
-- `POST /sendreaction` — add or remove emoji reaction
-- `POST /revokemessage` — revoke (delete for everyone) a message
-- `POST /deletemessage` — delete a message for self
-- `POST /editmessage` — edit a sent message
-- `POST /sendpresence` — send typing / recording indicator
-- `POST /setdisappearing` — set disappearing messages timer
-- `GET /groups` — list all groups
-- `GET /groups/{jid}` — get group info
-- `POST /groups` — create a new group
-- `POST /groups/{jid}/participants` — add participants
-- `DELETE /groups/{jid}/participants` — remove participants
-- `POST /groups/{jid}/participants/promote` — promote to admin
-- `POST /groups/{jid}/participants/demote` — demote from admin
-- `PATCH /groups/{jid}` — update group name / description / settings
-- `POST /groups/{jid}/leave` — leave a group
-- `GET /groups/{jid}/invitelink` — get invite link
-- `DELETE /groups/{jid}/invitelink` — reset invite link
-- `POST /groups/join` — join a group by invite link
-- `GET /contacts/{jid}` — get contact info
-- `POST /simulate/route` — start GPX route simulation *(experimental — WIP)*
-- `DELETE /simulate/route/{id}` — stop a running simulation *(experimental — WIP)*
-- `GET /simulate/route` — list active simulations *(experimental — WIP)*
-
-#### Frontend — ZapLab UI (`pb_public/`, served at `/tools/`)
-- Alpine.js 3 + Tailwind CSS (CDN) — no build step
-- Dark / light theme toggle, persisted in localStorage
-- Collapsible sidebar with section navigation
-- **Connection** section — QR code pairing, phone pairing, live connection status, logout
-- **Account** section — profile picture, push name, phone number, business name, about, platform
-- **Live Events** section — real-time PocketBase event stream, filterable by type, syntax-highlighted JSON, resizable panel
-- **Send Message** section — all message types with curl preview and response viewer
-- **Send Raw** section — send arbitrary `waE2E.Message` JSON for protocol exploration
-- **Message Control** section — react, edit, revoke/delete, typing indicator, disappearing timer
-- **Contacts & Polls** section — vCard contacts (single/multiple), polls, voting
-- **Groups** section — full group management (list, info, create, participants, settings, invite link with QR)
-- **Route Simulation** section *(experimental — WIP)* — GPX upload, speed/interval controls, two-step start, polling, stop
-- **Settings** section — API token configuration (localStorage)
-- Curl preview tabs for all API operations (syntax-highlighted, one-click copy)
-
-#### Infrastructure
-- Multi-stage Dockerfile: `golang:1.25-bookworm` builder → `debian:bookworm-slim` runtime
-- Docker Compose stack: zaplab engine + n8n 2.10.4 + Cloudflare Tunnel
-- Health check on `/health`, n8n depends on engine being healthy
-- `entrypoint.sh` simplified with `exec "$@"` pattern
-- Makefile targets: `build`, `link`, `run`, `build-img`, `run-docker`, `shell`, `tag`, `tag-push`, `git-init`, `clean`, `clean-docker`, and more
-- Data directory configurable via `--data-dir` flag or `ZAPLAB_DATA_DIR` env var (default: `$HOME/.zaplab`)
-- Webhook dispatcher (`internal/webhook`) — default webhook + error webhook + per-command routing
-- PocketBase migrations for `events`, `errors`, and `sent_messages` collections
-- Automatic reconnect with exponential backoff on disconnect (5 s → 10 s → … → 5 min)
-
-#### Simulation (`internal/simulation`) *(experimental — WIP)*
-- `ParseGPX` / `ParseGPXBase64` — GPX XML parser with no external dependencies
-- `NewRoute` / `PointAt` — haversine distance, binary search interpolation, bearing and speed computation
-- Background goroutine lifecycle management with `context.WithCancel`
-
-#### Documentation & Specs
-- `README.md` (English) — full API reference, setup guide, frontend documentation, screenshots
-- `README.pt-BR.md` (Portuguese) — full translation
-- `specs/` directory with detailed specs for all features:
-  `API_SPEC.md`, `MESSAGE_CONTROL_SPEC.md`, `LOCATION_REPLY_SPEC.md`, `CONTACTS_POLLS_SPEC.md`,
-  `GROUPS_SPEC.md`, `GROUPS_UI_SPEC.md`, `FRONTEND_ARCHITECTURE_SPEC.md`, `FRONTEND_SPEC.md`,
-  `SEND_PREVIEW_SPEC.md`, `SEND_RAW_SPEC.md`, `SIMULATION_SPEC.md`, `WHATSMEOW_ANALYSIS.md`
-- Test files in `tests/`: payload examples, `central-park-walk.gpx` (5 km GPX for simulation testing)
-- `.env.example` with all configurable environment variables
-
----
+- Initial release of ZapLab
+- Core whatsmeow integration with PocketBase v0.36
+- REST API for sending text, image, video, audio, and documents
+- Real-time event persistence and dispatch to a default webhook
+- QR code pairing and account management UI
+- Contacts and Groups listing and basic management
+- Docker and Docker Compose orchestration
 
 [Unstable]: https://github.com/lichti/zaplab/tree/main
 [Dev]: https://github.com/lichti/zaplab/tree/dev
