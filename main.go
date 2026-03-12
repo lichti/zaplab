@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"crypto/rand"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/spf13/cobra"
-	"crypto/rand"
-	"math/big"
 	waLog "go.mau.fi/whatsmeow/util/log"
+	"math/big"
 	_ "modernc.org/sqlite" // register "sqlite" driver for whatsmeow sqlstore
 
 	"github.com/lichti/zaplab/internal/api"
@@ -207,6 +207,7 @@ func main() {
 				rec.Set("email", "zaplab@zaplab.local")
 				rec.Set("password", pass)
 				rec.Set("verified", true)
+				rec.Set("force_password_change", true)
 				if err := app.pb.SaveNoValidate(rec); err == nil {
 					fmt.Printf("\n==================================================\n")
 					fmt.Printf("FIRST RUN: Created default user zaplab@zaplab.local\n")
@@ -265,6 +266,7 @@ func main() {
 			record.Set("email", email)
 			record.Set("password", password)
 			record.Set("verified", true)
+			record.Set("force_password_change", true)
 
 			if err := app.pb.SaveNoValidate(record); err != nil {
 				app.log.Errorf("Failed to save user: %v", err)
@@ -295,6 +297,7 @@ func main() {
 			}
 
 			user.Set("password", newPassword)
+			user.Set("force_password_change", true)
 			if err := app.pb.SaveNoValidate(user); err != nil {
 				app.log.Errorf("Failed to update password: %v", err)
 				os.Exit(1)

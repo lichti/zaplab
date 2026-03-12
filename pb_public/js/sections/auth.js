@@ -4,32 +4,134 @@ function authSection() {
     isLoggedIn:    pb.authStore.isValid,
     loginEmail:    '',
     loginPassword: '',
+    oldPassword:     '',
+    newPassword:     '',
+    confirmPassword: '',
+    mustChangePassword: false,
     authLoading:   false,
     authError:     null,
+
+    profile: {
+      email:    '',
+      name:     '',
+      avatar:   '',
+      loading:  false,
+      success:  false,
+    },
 
     initAuth() {
       // Listen for auth changes (e.g. from other tabs or manual logout)
       pb.authStore.onChange((token, model) => {
         this.isLoggedIn = pb.authStore.isValid;
         if (this.isLoggedIn) {
+          this.checkMustChange();
+          this.initProfile();
           this.authError = null;
           this.dashFetch(); // refresh dashboard when logging in
         }
       });
+      this.checkMustChange();
+      if (this.isLoggedIn) this.initProfile();
+    },
+
+    initProfile() {
+      if (pb.authStore.model) {
+        this.profile.email  = pb.authStore.model.email || '';
+        this.profile.name   = pb.authStore.model.name  || '';
+        this.profile.avatar = pb.authStore.model.avatar || '';
+      }
+    },
+
+    async saveProfile() {
+      this.profile.loading = true;
+      this.profile.success = false;
+      this.authError = null;
+      try {
+        await pb.collection('users').update(pb.authStore.model.id, {
+          name:   this.profile.name,
+          email:  this.profile.email,
+        });
+        this.profile.success = true;
+        setTimeout(() => this.profile.success = false, 3000);
+      } catch (err) {
+        console.error('Profile update failed:', err);
+        this.authError = err.message || 'Failed to update profile';
+      } finally {
+        this.profile.loading = false;
+      }
+    },
+
+    checkMustChange() {
+      if (pb.authStore.isValid && pb.authStore.model) {
+        this.mustChangePassword = pb.authStore.model.force_password_change;
+      } else {
+        this.mustChangePassword = false;
+      }
     },
 
     async login() {
       this.authLoading = true;
       this.authError   = null;
       try {
-        await pb.collection('users').authWithPassword(this.loginEmail, this.loginPassword);
+        const authData = await pb.collection('users').authWithPassword(this.loginEmail, this.loginPassword);
         this.loginPassword = '';
+        this.mustChangePassword = authData.record.force_password_change;
       } catch (err) {
         console.error('Login failed:', err);
         this.authError = err.message || 'Invalid credentials';
       } finally {
         this.authLoading = false;
       }
+    },
+
+    async changePassword() {
+      if (this.newPassword !== this.confirmPassword) {
+        this.authError = 'Passwords do not match';
+        return;
+      }
+      if (this.newPassword.length < 8) {
+        this.authError = 'Password must be at least 8 characters';
+        return;
+      }
+
+      this.authLoading = true;
+      this.authError   = null;
+      try {
+        await pb.collection('users').update(pb.authStore.model.id, {
+          oldPassword:           this.oldPassword,
+          password:              this.newPassword,
+          passwordConfirm:       this.confirmPassword,
+          force_password_change: false,
+        });
+        
+        // Re-authenticate to refresh the token and model
+        await pb.collection('users').authWithPassword(this.loginEmail || pb.authStore.model.email, this.newPassword);
+        
+        this.mustChangePassword = false;
+        this.oldPassword = '';
+        this.newPassword = '';
+        this.confirmPassword = '';
+      } catch (err) {
+        console.error('Password change failed:', err);
+        // Extract detailed error from PocketBase ClientResponseError if available
+        let detail = '';
+        if (err.originalError && err.originalError.data) {
+          detail = ': ' + JSON.stringify(err.originalError.data);
+        } else if (err.data && err.data.data) {
+          detail = ': ' + JSON.stringify(err.data.data);
+        }
+        this.authError = (err.message || 'Failed to change password') + detail;
+      } finally {
+        this.authLoading = false;
+      }
+    },
+
+    promptChangePassword() {
+      this.mustChangePassword = true;
+      this.oldPassword = '';
+      this.newPassword = '';
+      this.confirmPassword = '';
+      this.authError = null;
     },
 
     logout() {
