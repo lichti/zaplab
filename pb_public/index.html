@@ -590,8 +590,9 @@
         </a>
 
         <!-- Contacts Management -->
-        <button
-          @click="setSection('contactsmgmt')"
+        <a
+          href="#/contactsmgmt"
+          @click.prevent="setSection('contactsmgmt')"
           :title="sidebarExpanded ? '' : 'Contacts Management'"
           aria-label="Contacts Management"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -603,11 +604,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3M13.5 3.75a6.75 6.75 0 1 1 0 13.5 6.75 6.75 0 0 1 0-13.5Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Contacts Management</span>
-        </button>
+        </a>
 
         <!-- Groups -->
-        <button
-          @click="setSection('groups')"
+        <a
+          href="#/groups"
+          @click.prevent="setSection('groups')"
           :title="sidebarExpanded ? '' : 'Groups'"
           aria-label="Groups"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -619,11 +621,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Groups</span>
-        </button>
+        </a>
 
         <!-- Media Decrypt -->
-        <button
-          @click="setSection('media')"
+        <a
+          href="#/media"
+          @click.prevent="setSection('media')"
           :title="sidebarExpanded ? '' : 'Media Decrypt'"
           aria-label="Media Decrypt"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -635,11 +638,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Media Decrypt</span>
-        </button>
+        </a>
 
         <!-- Simulation -->
-        <button
-          @click="setSection('simulation')"
+        <a
+          href="#/simulation"
+          @click.prevent="setSection('simulation')"
           :title="sidebarExpanded ? '' : 'Route Simulation'"
           aria-label="Route Simulation"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -654,11 +658,12 @@
             <span x-show="simActive" class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
           </span>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Route Simulation <span class="text-yellow-500 dark:text-yellow-400 text-[10px]">⚠ WIP</span></span>
-        </button>
+        </a>
 
         <!-- Webhooks -->
-        <button
-          @click="setSection('webhook')"
+        <a
+          href="#/webhook"
+          @click.prevent="setSection('webhook')"
           :title="sidebarExpanded ? '' : 'Webhooks'"
           aria-label="Webhooks"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -671,11 +676,12 @@
               d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Webhooks</span>
-        </button>
+        </a>
 
         <!-- Settings -->
-        <button
-          @click="setSection('settings')"
+        <a
+          href="#/settings"
+          @click.prevent="setSection('settings')"
           :title="sidebarExpanded ? '' : 'Settings'"
           aria-label="Settings"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -688,14 +694,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Settings</span>
-        </button>
+        </a>
 
         <div class="flex-1"></div>
 
         <!-- User Profile (Bottom) -->
         <div class="border-t border-gray-100 dark:border-[#30363d] pt-2 mt-2">
-          <button
-            @click="setSection('profile')"
+          <a
+            href="#/profile"
+            @click.prevent="setSection('profile')"
             :title="sidebarExpanded ? '' : 'User Profile'"
             aria-label="User Profile"
             class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -710,7 +717,7 @@
               <span class="text-[10px] font-bold truncate" x-text="pb.authStore.model?.email"></span>
               <span class="text-[9px] opacity-60">Edit Profile</span>
             </div>
-          </button>
+          </a>
 
           <!-- Database Admin Link -->
           <a
