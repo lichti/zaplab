@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Token Management** — added a field in the Settings section to manage the local API token used for curl previews and API calls.
 - **Force Password Change** — users created on first run or via CLI random password are now forced to choose a new password upon first login.
 - **Password Reset CLI** — new `user reset-password` command to help regain access.
+- **User Profile Management** — new profile edit section in the sidebar to update display name, email, and manually trigger password changes.
 
 ### Changed
 - **Secure Collections** — restricted `events` and `errors` collections to authenticated users only via PocketBase rules.
+- **Security Hardening** — `wa/account` endpoint is now protected; Dashboard session is now verified with the server on every page load.
 
 ---
 

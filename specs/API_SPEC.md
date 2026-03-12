@@ -96,9 +96,9 @@ Logs out and clears the WhatsApp session on the server. Restart the server to re
 
 ---
 
-### `GET /wa/account`
+### `GET /wa/account` 🔒
 
-Returns the connected account details. Includes profile picture URL (WhatsApp CDN, may expire), push name, about text, and platform. **Public** (no auth).
+Returns the connected account details. Includes profile picture URL (WhatsApp CDN, may expire), push name, about text, and platform.
 
 **Response 200:**
 ```json
