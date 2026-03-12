@@ -1167,6 +1167,11 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 
 **Acesso:** `http://localhost:8090/tools/`
 
+**Funcionalidades:**
+- **Navegação via URI** — Suporte a deep linking (`/#/section`) e compatibilidade com botões Voltar/Avançar do navegador.
+- **Suporte a Múltiplas Abas** — Links da sidebar suportam "Abrir em nova aba" (Ctrl/Cmd+Click).
+- **Persistência de Sessão** — A autenticação persiste entre atualizações de página e abas.
+
 **Stack:** Alpine.js 3 · Tailwind CSS · modo dark/light · sem build step
 
 ---
@@ -1204,7 +1209,8 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Media** | Baixar e descriptografar arquivos de mídia do WhatsApp (imagem, vídeo, áudio, documento, sticker) |
 | **Route Simulation** ⚠️ *Em desenvolvimento* | Simula o movimento de um dispositivo ao longo de uma rota GPX enviando atualizações de localização ao vivo — **experimental, ainda não 100% funcional** |
 | **Webhooks** | Configurar webhooks padrão, de erro, por tipo de evento e por padrão de texto; testar entrega; visualização em abas com CRUD completo para todos os tipos de webhook |
-| **Settings** | Configurar token da API armazenado no localStorage |
+| **Settings** | Configurações gerais da aplicação: alternar Message Recovery para edições e deleções; gerenciar token de API |
+| **Perfil do Usuário** | Atualizar nome de exibição e e-mail do dashboard; disparar troca manual de senha |
 
 ---
 

@@ -1189,6 +1189,11 @@ A built-in web interface for interacting with all API features without writing a
 
 **Access:** `http://localhost:8090/tools/`
 
+**Features:**
+- **URI-based Navigation** — Deep linking support (`/#/section`) and browser Back/Forward compatibility.
+- **Multi-tab Support** — Sidebar links support "Open in new tab" (Ctrl/Cmd+Click).
+- **Session Persistence** — Authentication persists across refreshes and tabs.
+
 **Stack:** Alpine.js 3 · Tailwind CSS · dark/light mode · no build step required
 
 ---
@@ -1227,6 +1232,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Route Simulation** ⚠️ *WIP* | Simulate device movement along a GPX route sending live location updates — **experimental, not fully functional** |
 | **Webhooks** | Configure default, error, event-type, and text-pattern webhooks; test webhook delivery; tabbed view with full CRUD for all webhook types |
 | **Settings** | General application configuration: toggle Message Recovery for edits and deletes; manage API token |
+| **User Profile** | Update dashboard display name and email; manually trigger password changes |
 
 ---
 

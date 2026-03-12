@@ -204,6 +204,26 @@ declarative (Alpine directives reference method names, not implementations), so
 splitting them into separate HTML files would require a build step or dynamic
 fetch — not worth the complexity.
 
+## Navigation
+
+Dashboard navigation uses URI hashes (e.g., `/#/dashboard`) to manage state.
+
+- **Sync**: A `hashchange` listener in `js/zaplab.js` automatically updates `activeSection` when the URL changes.
+- **Deep Linking**: On page load, `init()` reads the hash to restore the last section or follows a deep link.
+- **Links**: Sidebar items are `<a>` tags with `href="#/section"`.
+- **SPA Feel**: Regular clicks are intercepted with `@click.prevent="setSection('name')"`, which updates the hash without a full page reload.
+- **Native Behavior**: Standard browser features like "Open in new tab" (Ctrl/Cmd+Click) and "Back/Forward" buttons work natively.
+
+---
+
+## What Does Change (Recent Updates)
+
+| Item | Status |
+|------|--------|
+| Navigation | **Changed** — now URI hash-based (`/#/section`) |
+| Sidebar Items | **Changed** — now `<a>` links instead of `<button>` |
+| Authentication | **Added** — session validation on startup; global 401/403 handling |
+
 ---
 
 ## What Does NOT Change
