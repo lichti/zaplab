@@ -1,7 +1,6 @@
 // Auth section — handles dashboard login/logout and session state.
 function authSection() {
   return {
-    isLoggedIn:    pb.authStore.isValid,
     loginEmail:    '',
     loginPassword: '',
     oldPassword:     '',
@@ -27,19 +26,32 @@ function authSection() {
           this.checkMustChange();
           this.initProfile();
           this.authError = null;
-          this.dashFetch(); // refresh dashboard when logging in
+          this.dashFetch?.(); // refresh dashboard when logging in
         }
       });
 
-      // Verify session with server on startup
+      // Give a tiny moment for the auth store to hydrate from localStorage
+      await new Promise(r => setTimeout(r, 100));
+
+      this.isLoggedIn = pb.authStore.isValid;
+
+      // Verify session with server on startup if we think we are logged in
       if (this.isLoggedIn) {
         try {
           await pb.collection('users').authRefresh();
           this.checkMustChange();
           this.initProfile();
         } catch (err) {
-          console.warn('Session expired or invalid, logging out:', err);
-          this.logout();
+          // ONLY logout if the error is 401 or 403 (unauthorized/forbidden)
+          // If it's a network error or 500, keep the local session.
+          if (err.status === 401 || err.status === 403) {
+            console.warn('Session invalidated by server, logging out.');
+            this.logout();
+          } else {
+            console.warn('Auth refresh failed (network/server error), keeping local session:', err);
+            this.checkMustChange();
+            this.initProfile();
+          }
         }
       }
     },

@@ -1,5 +1,7 @@
 // Main factory — merges all section factories + shared state + init.
 const pb = new PocketBase(window.location.origin);
+// PocketBase by default uses LocalAuthStore in the browser, but we'll be explicit
+// to ensure persistence across tabs and refreshes.
 
 function zaplab() {
   return Object.assign(
@@ -30,6 +32,7 @@ function zaplab() {
       sidebarExpanded: localStorage.getItem('zaplab-sidebar')        !== 'collapsed',
       activeSection:   window.location.hash.replace('#/', '')        || localStorage.getItem('zaplab-active-section') || 'events',
       apiToken:        localStorage.getItem('zaplab-api-token')      || '',
+      isLoggedIn:      pb.authStore.isValid,
 
       // ── shared navigation ──
       toggleTheme() {
@@ -47,7 +50,7 @@ function zaplab() {
         // Global error interceptor for 401/403
         // If the server rejects the token, we should log out.
         pb.authStore.onChange((token, model) => {
-          if (!token) this.isLoggedIn = false;
+          this.isLoggedIn = !!token;
         });
 
         this.$watch('theme', val => {
