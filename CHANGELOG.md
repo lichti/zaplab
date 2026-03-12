@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Force Password Change** — users created on first run or via CLI random password are now forced to choose a new password upon first login.
 - **Password Reset CLI** — new `user reset-password` command to help regain access.
 - **User Profile Management** — new profile edit section in the sidebar to update display name, email, and manually trigger password changes.
+- **URI-based Navigation** — dashboard navigation now reflects in the URL bar via hash (e.g., `/#/dashboard`), enabling deep linking and browser back/forward support.
 
 ### Changed
 - **Secure Collections** — restricted `events` and `errors` collections to authenticated users only via PocketBase rules.

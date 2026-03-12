@@ -419,7 +419,7 @@
 
         <!-- Dashboard -->
         <button
-          @click="setSection('dashboard'); dashFetch()"
+          @click="setSection('dashboard')"
           :title="sidebarExpanded ? '' : 'Dashboard'"
           aria-label="Dashboard"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -646,7 +646,7 @@
 
         <!-- Webhooks -->
         <button
-          @click="setSection('webhook'); loadWebhookConfig()"
+          @click="setSection('webhook')"
           :title="sidebarExpanded ? '' : 'Webhooks'"
           aria-label="Webhooks"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"

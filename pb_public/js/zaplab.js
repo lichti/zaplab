@@ -28,7 +28,7 @@ function zaplab() {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
       sidebarExpanded: localStorage.getItem('zaplab-sidebar')        !== 'collapsed',
-      activeSection:   localStorage.getItem('zaplab-active-section') || 'events',
+      activeSection:   window.location.hash.replace('#/', '')        || localStorage.getItem('zaplab-active-section') || 'events',
       apiToken:        localStorage.getItem('zaplab-api-token')      || '',
 
       // ── shared navigation ──
@@ -39,8 +39,7 @@ function zaplab() {
         this.sidebarExpanded = !this.sidebarExpanded;
       },
       setSection(s) {
-        this.activeSection = s;
-        if (window.innerWidth < 768) this.sidebarExpanded = false;
+        window.location.hash = `#/${s}`;
       },
 
       // ── init ──
@@ -60,7 +59,27 @@ function zaplab() {
         });
         this.$watch('activeSection', val => {
           localStorage.setItem('zaplab-active-section', val);
+          // Special cases for section initializations if needed
+          if (val === 'webhook') this.loadWebhookConfig?.();
+          if (val === 'dashboard') this.dashFetch?.();
         });
+
+        // Sync hash to activeSection
+        window.addEventListener('hashchange', () => {
+          const s = window.location.hash.replace('#/', '');
+          if (s && s !== this.activeSection) {
+            this.activeSection = s;
+            if (window.innerWidth < 768) this.sidebarExpanded = false;
+          }
+        });
+
+        // Ensure current hash is applied if present
+        if (window.location.hash) {
+          this.activeSection = window.location.hash.replace('#/', '');
+        } else {
+          // If no hash, set it from current activeSection
+          window.location.hash = `#/${this.activeSection}`;
+        }
 
         await this.initAuth();
         this.initDashboard();
