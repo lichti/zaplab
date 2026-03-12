@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password Reset CLI** — new `user reset-password` command to help regain access.
 - **User Profile Management** — new profile edit section in the sidebar to update display name, email, and manually trigger password changes.
 - **URI-based Navigation** — dashboard navigation now reflects in the URL bar via hash (e.g., `/#/dashboard`), enabling deep linking and browser back/forward support.
+- **Automatic Redirections** — accessing `/` or `/zaplab` now automatically redirects to `/zaplab/tools/`.
 
 ### Changed
 - **Secure Collections** — restricted `events` and `errors` collections to authenticated users only via PocketBase rules.

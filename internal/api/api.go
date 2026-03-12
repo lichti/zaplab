@@ -36,6 +36,14 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 func RegisterRoutes(e *core.ServeEvent) error {
 	auth := requireAuth()
 
+	// Redirects
+	e.Router.GET("/", func(e *core.RequestEvent) error {
+		return e.Redirect(http.StatusTemporaryRedirect, "/zaplab/tools/")
+	})
+	e.Router.GET("/zaplab", func(e *core.RequestEvent) error {
+		return e.Redirect(http.StatusTemporaryRedirect, "/zaplab/tools/")
+	})
+
 	// Public routes
 	e.Router.GET("/zaplab/api/health", getHealth)
 	e.Router.GET("/zaplab/api/wa/status", getWAStatus)
