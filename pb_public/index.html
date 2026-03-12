@@ -1341,14 +1341,16 @@
                 ['ctrl',         'Message Control',  'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:hover:bg-orange-500/30'],
                 ['spoof',        'Spoof Messages',   'bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-500/20 dark:text-pink-300 dark:hover:bg-pink-500/30'],
               ]" :key="section">
-                <button
-                  @click="setSection(section)"
+                <a
+                  :href="'#/' + section"
+                  @click.prevent="setSection(section)"
                   class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
                   :class="color"
                   x-text="label"
-                ></button>
+                ></a>
               </template>
             </div>
+
           </div>
 
         </div>

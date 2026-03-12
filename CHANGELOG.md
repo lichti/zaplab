@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **User Profile Management** — new profile edit section in the sidebar to update display name, email, and manually trigger password changes.
 - **URI-based Navigation** — dashboard navigation now reflects in the URL bar via hash (e.g., `/#/dashboard`), enabling deep linking and browser back/forward support.
 - **Automatic Redirections** — accessing `/` or `/zaplab` now automatically redirects to `/zaplab/tools/`.
+- **Dashboard Quick Actions** — converted action buttons to links supporting "Open in new tab" (Ctrl/Cmd+Click).
+- **Dashboard Robustness** — re-fetching data now properly falls back to previous values on partial query failures; prevented double-fetching during initialization.
 
 ### Changed
 - **Secure Collections** — restricted `events` and `errors` collections to authenticated users only via PocketBase rules.

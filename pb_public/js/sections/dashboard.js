@@ -94,9 +94,9 @@ function dashboardSection() {
           pb.collection('events').getList(1, 10, { sort: '-created', requestKey: null }), // 12 recent
         ]);
 
-        // Extract value from settled result, fallback to previous value on failure
-        const val = (i, fallback = 0) =>
-          results[i].status === 'fulfilled' ? results[i].value : fallback;
+        // Extract value from settled result, fallback to previous value or 0
+        const val = (i, prev) =>
+          results[i].status === 'fulfilled' ? results[i].value : prev;
 
         // Log any failures to console for debugging
         results.forEach((r, i) => {
@@ -104,18 +104,18 @@ function dashboardSection() {
         });
 
         // Assign each property individually — most reliable way to trigger Alpine reactivity
-        this.dash.totalEvents   = val(0);
-        this.dash.totalReceived = val(1);
-        this.dash.totalSent     = val(2);
-        this.dash.totalEdited   = val(3);
-        this.dash.totalDeleted  = val(4);
-        this.dash.totalErrors   = val(5);
-        this.dash.h24Events     = val(6);
-        this.dash.h24Received   = val(7);
-        this.dash.h24Sent       = val(8);
-        this.dash.h24Edited     = val(9);
-        this.dash.h24Deleted    = val(10);
-        this.dash.h24Errors     = val(11);
+        this.dash.totalEvents   = val(0, this.dash.totalEvents);
+        this.dash.totalReceived = val(1, this.dash.totalReceived);
+        this.dash.totalSent     = val(2, this.dash.totalSent);
+        this.dash.totalEdited   = val(3, this.dash.totalEdited);
+        this.dash.totalDeleted  = val(4, this.dash.totalDeleted);
+        this.dash.totalErrors   = val(5, this.dash.totalErrors);
+        this.dash.h24Events     = val(6, this.dash.h24Events);
+        this.dash.h24Received   = val(7, this.dash.h24Received);
+        this.dash.h24Sent       = val(8, this.dash.h24Sent);
+        this.dash.h24Edited     = val(9, this.dash.h24Edited);
+        this.dash.h24Deleted    = val(10, this.dash.h24Deleted);
+        this.dash.h24Errors     = val(11, this.dash.h24Errors);
 
         const recentResult = results[12];
         if (recentResult.status === 'fulfilled') {

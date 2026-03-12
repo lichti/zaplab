@@ -62,9 +62,6 @@ function zaplab() {
         });
         this.$watch('activeSection', val => {
           localStorage.setItem('zaplab-active-section', val);
-          // Special cases for section initializations if needed
-          if (val === 'webhook') this.loadWebhookConfig?.();
-          if (val === 'dashboard') this.dashFetch?.();
         });
 
         // Sync hash to activeSection
