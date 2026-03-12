@@ -1258,13 +1258,25 @@ ZapLab uses a dual-layer authentication system:
 
 ### Creating the First User
 
-To access the Dashboard for the first time, you need to manually create a user in the database:
+ZapLab automatically creates a default user on the first run if the database is empty:
+- **Email**: `zaplab@zaplab.local`
+- **Password**: Randomly generated and printed to the terminal on startup.
 
-1.  Start the server and access the **PocketBase Admin UI** at `http://localhost:8090/_/`.
-2.  If it's the first run, follow the prompts to create your **Admin account**.
-3.  Once inside the Admin Panel, navigate to the **`users`** collection in the sidebar.
-4.  Click **"New Record"** and create a user with an email and password.
-5.  Use these credentials to sign in at the ZapLab Dashboard.
+You can also manually create a user or reset a password using the CLI:
+
+```bash
+# Create a new user
+./bin/zaplab user create admin@example.com my-password
+
+# Reset a password
+./bin/zaplab user reset-password zaplab@zaplab.local new-password
+```
+
+Alternatively, you can use the **PocketBase Admin UI** at `http://localhost:8090/_/`:
+1.  If it's the first run, follow the prompts to create your **Admin account**.
+2.  Once inside the Admin Panel, navigate to the **`users`** collection in the sidebar.
+3.  Click **"New Record"** and create a user with an email and password.
+4.  Use these credentials to sign in at the ZapLab Dashboard.
 
 ---
 

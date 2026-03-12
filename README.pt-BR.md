@@ -1236,13 +1236,25 @@ O ZapLab utiliza um sistema de autenticação de duas camadas:
 
 ### Criando o Primeiro Usuário
 
-Para acessar o Dashboard pela primeira vez, você precisa criar manualmente um usuário no banco de dados:
+O ZapLab cria automaticamente um usuário padrão na primeira execução se o banco de dados estiver vazio:
+- **E-mail**: `zaplab@zaplab.local`
+- **Senha**: Gerada aleatoriamente e exibida no terminal na inicialização.
 
-1.  Inicie o servidor e acesse a **Admin UI do PocketBase** em `http://localhost:8090/_/`.
-2.  Se for a primeira execução, siga as instruções para criar sua **conta de Administrador**.
-3.  Dentro do Painel Administrativo, navegue até a coleção **`users`** no menu lateral.
-4.  Clique em **"New Record"** e crie um usuário com e-mail e senha.
-5.  Utilize estas credenciais para fazer login no Dashboard do ZapLab.
+Você também pode criar um usuário manualmente ou resetar uma senha usando o CLI:
+
+```bash
+# Criar um novo usuário
+./bin/zaplab user create admin@example.com minha-senha
+
+# Resetar uma senha
+./bin/zaplab user reset-password zaplab@zaplab.local nova-senha
+```
+
+Alternativamente, você pode usar a **Admin UI do PocketBase** em `http://localhost:8090/_/`:
+1.  Se for a primeira execução, siga as instruções para criar sua **conta de Administrador**.
+2.  Dentro do Painel Administrativo, navegue até a coleção **`users`** no menu lateral.
+3.  Clique em **"New Record"** e crie um usuário com e-mail e senha.
+4.  Utilize estas credenciais para fazer login no Dashboard do ZapLab.
 
 ---
 

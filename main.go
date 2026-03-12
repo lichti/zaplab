@@ -11,6 +11,8 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/spf13/cobra"
+	"crypto/rand"
+	"math/big"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	_ "modernc.org/sqlite" // register "sqlite" driver for whatsmeow sqlstore
 
@@ -76,6 +78,20 @@ func setupLogFile(baseDir string) {
 		io.Copy(io.MultiWriter(origStdout, logFile), r)
 		logFile.Close()
 	}()
+}
+
+// generateRandomPassword creates a secure random string for initial login.
+func generateRandomPassword(length int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+	res := make([]byte, length)
+	for i := range res {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			return "zaplab-p@ssw0rd!" // fallback
+		}
+		res[i] = chars[num.Int64()]
+	}
+	return string(res)
 }
 
 func main() {
@@ -181,6 +197,26 @@ func main() {
 			return err
 		}
 
+		// Auto-create the first user if the collection is empty.
+		users, err := app.pb.FindCollectionByNameOrId("users")
+		if err == nil {
+			records, err := app.pb.FindRecordsByFilter("users", "id != ''", "", 1, 0)
+			if err == nil && len(records) == 0 {
+				pass := generateRandomPassword(16)
+				rec := core.NewRecord(users)
+				rec.Set("email", "zaplab@zaplab.local")
+				rec.Set("password", pass)
+				rec.Set("verified", true)
+				if err := app.pb.SaveNoValidate(rec); err == nil {
+					fmt.Printf("\n==================================================\n")
+					fmt.Printf("FIRST RUN: Created default user zaplab@zaplab.local\n")
+					fmt.Printf("Initial Password: %s\n", pass)
+					fmt.Printf("Please change it after logging in.\n")
+					fmt.Printf("==================================================\n\n")
+				}
+			}
+		}
+
 		// Connect to WhatsApp after bootstrap completes.
 		return whatsapp.Bootstrap(e)
 	})
@@ -200,6 +236,77 @@ func main() {
 			fmt.Println(Version)
 		},
 	})
+
+	userCmd := &cobra.Command{
+		Use:   "user",
+		Short: "Manage dashboard users",
+	}
+
+	createCmd := &cobra.Command{
+		Use:   "create <email> <password>",
+		Short: "Create a new dashboard user",
+		Args:  cobra.ExactArgs(2),
+		Run: func(cmd *cobra.Command, args []string) {
+			email := args[0]
+			password := args[1]
+
+			if err := app.pb.Bootstrap(); err != nil {
+				app.log.Errorf("Failed to bootstrap app: %v", err)
+				os.Exit(1)
+			}
+
+			collection, err := app.pb.FindCollectionByNameOrId("users")
+			if err != nil {
+				app.log.Errorf("Failed to find users collection: %v", err)
+				os.Exit(1)
+			}
+
+			record := core.NewRecord(collection)
+			record.Set("email", email)
+			record.Set("password", password)
+			record.Set("verified", true)
+
+			if err := app.pb.SaveNoValidate(record); err != nil {
+				app.log.Errorf("Failed to save user: %v", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("User %s created successfully.\n", email)
+		},
+	}
+
+	resetPwdCmd := &cobra.Command{
+		Use:   "reset-password <email> <new-password>",
+		Short: "Reset a user's password",
+		Args:  cobra.ExactArgs(2),
+		Run: func(cmd *cobra.Command, args []string) {
+			email := args[0]
+			newPassword := args[1]
+
+			if err := app.pb.Bootstrap(); err != nil {
+				app.log.Errorf("Failed to bootstrap app: %v", err)
+				os.Exit(1)
+			}
+
+			user, err := app.pb.FindAuthRecordByEmail("users", email)
+			if err != nil {
+				app.log.Errorf("User not found: %v", err)
+				os.Exit(1)
+			}
+
+			user.Set("password", newPassword)
+			if err := app.pb.SaveNoValidate(user); err != nil {
+				app.log.Errorf("Failed to update password: %v", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Password for %s reset successfully.\n", email)
+		},
+	}
+
+	userCmd.AddCommand(createCmd)
+	userCmd.AddCommand(resetPwdCmd)
+	app.pb.RootCmd.AddCommand(userCmd)
 
 	migratecmd.MustRegister(app.pb, app.pb.RootCmd, migratecmd.Config{
 		Automigrate: true,
