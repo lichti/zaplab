@@ -59,7 +59,7 @@ function webhookSection() {
 
     async loadWebhookConfig() {
       try {
-        const res  = await fetch('/zaplab/api/webhook');
+        const res  = await this.zapFetch('/zaplab/api/webhook');
         const data = await res.json();
         if (!res.ok) { this.wh.toast = { ok: false, message: data.error || 'Failed to load config' }; return; }
         this.wh.defaultUrl    = data.default_url    || '';
@@ -74,7 +74,7 @@ function webhookSection() {
     async whSaveDefault() {
       this.wh.saving = true; this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/default', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/default', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: this.wh.defaultUrl }),
@@ -91,7 +91,7 @@ function webhookSection() {
     async whClearDefault() {
       this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/default', { method: 'DELETE' });
+        const res  = await this.zapFetch('/zaplab/api/webhook/default', { method: 'DELETE' });
         const data = await res.json();
         if (res.ok) this.wh.defaultUrl = '';
         this.wh.toast = { ok: res.ok, message: data.message || data.error || '' };
@@ -103,7 +103,7 @@ function webhookSection() {
     async whSaveError() {
       this.wh.saving = true; this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/error', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/error', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: this.wh.errorUrl }),
@@ -120,7 +120,7 @@ function webhookSection() {
     async whClearError() {
       this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/error', { method: 'DELETE' });
+        const res  = await this.zapFetch('/zaplab/api/webhook/error', { method: 'DELETE' });
         const data = await res.json();
         if (res.ok) this.wh.errorUrl = '';
         this.wh.toast = { ok: res.ok, message: data.message || data.error || '' };
@@ -136,7 +136,7 @@ function webhookSection() {
       }
       this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/events', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ event_type: this.wh.newEventType, url: this.wh.newEventUrl }),
@@ -156,7 +156,7 @@ function webhookSection() {
     async whRemoveEventWebhook(eventType) {
       this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/events', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/events', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ event_type: eventType }),
@@ -176,7 +176,7 @@ function webhookSection() {
       }
       this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/text', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/text', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -202,7 +202,7 @@ function webhookSection() {
     async whRemoveTextWebhook(id) {
       this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/text', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/text', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),
@@ -219,7 +219,7 @@ function webhookSection() {
       if (!this.wh.testUrl) { this.wh.toast = { ok: false, message: 'Test URL is required' }; return; }
       this.wh.testing = true; this.wh.testResult = null; this.wh.toast = null;
       try {
-        const res  = await fetch('/zaplab/api/webhook/test', {
+        const res  = await this.zapFetch('/zaplab/api/webhook/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: this.wh.testUrl }),

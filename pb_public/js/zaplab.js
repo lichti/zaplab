@@ -45,6 +45,12 @@ function zaplab() {
 
       // ── init ──
       async init() {
+        // Global error interceptor for 401/403
+        // If the server rejects the token, we should log out.
+        pb.authStore.onChange((token, model) => {
+          if (!token) this.isLoggedIn = false;
+        });
+
         this.$watch('theme', val => {
           document.documentElement.classList.toggle('dark', val === 'dark');
           localStorage.setItem('zaplab-theme', val);
@@ -56,7 +62,7 @@ function zaplab() {
           localStorage.setItem('zaplab-active-section', val);
         });
 
-        this.initAuth();
+        await this.initAuth();
         this.initDashboard();
         this.initPairing();
         this.initAccount();

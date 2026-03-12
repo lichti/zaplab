@@ -75,7 +75,7 @@ function mediaSection() {
         this.mediaResult = null;
       }
       try {
-        const res = await fetch('/zaplab/api/media/download', {
+        const res = await this.zapFetch('/zaplab/api/media/download', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify({

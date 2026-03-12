@@ -169,7 +169,7 @@ function spoofSection() {
         // use actual msg_id (empty = server generates)
         if ('msg_id' in payload) payload.msg_id = this.spoof.msgId || '';
 
-        const res  = await fetch(this.spoofEndpoint(), {
+        const res  = await this.zapFetch(this.spoofEndpoint(), {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify(payload),

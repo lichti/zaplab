@@ -20,7 +20,7 @@ function settingsSection() {
     async fetchConfig() {
       this.config.loading = true;
       try {
-        const res = await fetch('/zaplab/api/config', {
+        const res = await this.zapFetch('/zaplab/api/config', {
           headers: { 'X-API-Token': this.apiToken }
         });
         const data = await res.json();
@@ -38,7 +38,7 @@ function settingsSection() {
     async saveConfig(payload) {
       this.config.loading = true;
       try {
-        const res = await fetch('/zaplab/api/config', {
+        const res = await this.zapFetch('/zaplab/api/config', {
           method:  'PUT',
           headers: {
             'Content-Type': 'application/json',

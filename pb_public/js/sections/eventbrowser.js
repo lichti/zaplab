@@ -267,7 +267,7 @@ function eventBrowserSection() {
       this.eb.replayLoading = true;
       this.eb.replayToast   = null;
       try {
-        const res  = await fetch('/zaplab/api/sendraw', {
+        const res  = await this.zapFetch('/zaplab/api/sendraw', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify({ to: this.eb.replayTo.trim(), message: msg }),

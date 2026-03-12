@@ -212,7 +212,7 @@ function groupsSection() {
     async loadGroupsList() {
       this.groupsListLoading = true;
       try {
-        const res  = await fetch('/zaplab/api/groups', { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await this.zapFetch('/zaplab/api/groups', { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) this.groupsList = data.groups || [];
       } catch {}
@@ -247,7 +247,7 @@ function groupsSection() {
       this.groupsMembersAdded   = {};
       try {
         const jid  = encodeURIComponent(this.groups.jid);
-        const res  = await fetch(`/zaplab/api/groups/${jid}/participants`, { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await this.zapFetch(`/zaplab/api/groups/${jid}/participants`, { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) this.groupsMembersList = data.participants || [];
       } catch {}
@@ -272,7 +272,7 @@ function groupsSection() {
       if (!this.groups.jid) return;
       try {
         const jid  = encodeURIComponent(this.groups.jid);
-        const res  = await fetch(`/zaplab/api/groups/${jid}`, { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await this.zapFetch(`/zaplab/api/groups/${jid}`, { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) {
           this.groups.newName     = data.Name  || '';
@@ -300,7 +300,7 @@ function groupsSection() {
       this.groupsInviteQRLoading = true;
       this.groupsInviteQR        = null;
       try {
-        const res  = await fetch('/zaplab/api/wa/qrtext', {
+        const res  = await this.zapFetch('/zaplab/api/wa/qrtext', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify({ text: link }),
@@ -366,7 +366,7 @@ function groupsSection() {
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
         };
         if (payload !== null) opts.body = JSON.stringify(payload);
-        const res  = await fetch(this.groupsEndpoint(), opts);
+        const res  = await this.zapFetch(this.groupsEndpoint(), opts);
         const data = await res.json();
         const successLabel = {
           list:       `${(data.groups || []).length} groups loaded`,

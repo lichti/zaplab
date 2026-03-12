@@ -75,5 +75,30 @@ function utilsSection() {
         }
       );
     },
+
+    // zapFetch is a wrapper around fetch that adds the Authorization header
+    // and handles 401/403 by clearing the auth store.
+    async zapFetch(url, options = {}) {
+      const headers = options.headers || {};
+      
+      // Add PB Token if available
+      if (pb.authStore.token) {
+        headers['Authorization'] = pb.authStore.token;
+      }
+
+      // Add X-API-Token if available (optional for internal dashboard calls)
+      if (this.apiToken) {
+        headers['X-API-Token'] = this.apiToken;
+      }
+
+      const res = await fetch(url, { ...options, headers });
+
+      if (res.status === 401 || res.status === 403) {
+        console.error('API Authentication failure (401/403), clearing session.');
+        pb.authStore.clear();
+      }
+
+      return res;
+    },
   };
 }

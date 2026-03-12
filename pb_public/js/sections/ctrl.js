@@ -99,7 +99,7 @@ function ctrlSection() {
       this.ctrl.toast   = null;
       this.ctrl.loading = true;
       try {
-        const res = await fetch(this.ctrlEndpoint(), {
+        const res = await this.zapFetch(this.ctrlEndpoint(), {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
           body:    JSON.stringify(this.ctrlCurlPayload()),

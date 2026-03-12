@@ -300,7 +300,7 @@ function sendSection() {
       const [endpoint, body] = endpointMap[this.send.type];
 
       try {
-        const res  = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
+        const res  = await this.zapFetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
         const data = await res.json();
         this.send.toast = { ok: res.ok, message: data.message || JSON.stringify(data) };
         if (res.ok) {

@@ -141,7 +141,7 @@ function contactsSection() {
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
         };
         if (payload !== null) opts.body = JSON.stringify(payload);
-        const res  = await fetch(this.contactsEndpoint(), opts);
+        const res  = await this.zapFetch(this.contactsEndpoint(), opts);
         const data = await res.json();
         const toastMsg = data.message || (res.ok ? 'Done' : 'Error');
         this.contacts.toast = { ok: res.ok, message: toastMsg };

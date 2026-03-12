@@ -137,7 +137,7 @@ function contactsMgmtSection() {
     async loadMgmtStore() {
       this.mgmtStoreLoading = true;
       try {
-        const res  = await fetch('/zaplab/api/contacts', { headers: { 'X-API-Token': this.apiToken } });
+        const res  = await this.zapFetch('/zaplab/api/contacts', { headers: { 'X-API-Token': this.apiToken } });
         const data = await res.json();
         if (res.ok) this.mgmtStoreList = data.contacts || [];
       } catch {}
@@ -193,7 +193,7 @@ function contactsMgmtSection() {
           headers: { 'Content-Type': 'application/json', 'X-API-Token': this.apiToken },
         };
         if (payload !== null) opts.body = JSON.stringify(payload);
-        const res  = await fetch(this.mgmtEndpoint(), opts);
+        const res  = await this.zapFetch(this.mgmtEndpoint(), opts);
         const data = await res.json();
         const successLabel = {
           list:  `${(data.contacts || []).length} contacts loaded`,

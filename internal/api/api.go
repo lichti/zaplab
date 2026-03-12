@@ -40,9 +40,9 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/health", getHealth)
 	e.Router.GET("/zaplab/api/wa/status", getWAStatus)
 	e.Router.GET("/zaplab/api/wa/qrcode", getWAQRCode)
-	e.Router.GET("/zaplab/api/wa/account", getWAAccount)
 
 	// Protected routes
+	e.Router.GET("/zaplab/api/wa/account", getWAAccount).Bind(auth)
 	e.Router.GET("/zaplab/api/ping", getPing).Bind(auth)
 	e.Router.POST("/zaplab/api/cmd", postSendCmd).Bind(auth)
 	e.Router.POST("/zaplab/api/sendmessage", postSendMessage).Bind(auth)

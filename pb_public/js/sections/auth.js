@@ -19,7 +19,7 @@ function authSection() {
       success:  false,
     },
 
-    initAuth() {
+    async initAuth() {
       // Listen for auth changes (e.g. from other tabs or manual logout)
       pb.authStore.onChange((token, model) => {
         this.isLoggedIn = pb.authStore.isValid;
@@ -30,8 +30,18 @@ function authSection() {
           this.dashFetch(); // refresh dashboard when logging in
         }
       });
-      this.checkMustChange();
-      if (this.isLoggedIn) this.initProfile();
+
+      // Verify session with server on startup
+      if (this.isLoggedIn) {
+        try {
+          await pb.collection('users').authRefresh();
+          this.checkMustChange();
+          this.initProfile();
+        } catch (err) {
+          console.warn('Session expired or invalid, logging out:', err);
+          this.logout();
+        }
+      }
     },
 
     initProfile() {
