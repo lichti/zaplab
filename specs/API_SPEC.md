@@ -25,6 +25,15 @@ HTTP 401 Unauthorized
 
 ---
 
+## Redirections
+
+For convenience, the following root paths automatically redirect to the Web UI:
+
+- `GET /` → `307 Temporary Redirect` → `/zaplab/tools/`
+- `GET /zaplab` → `307 Temporary Redirect` → `/zaplab/tools/`
+
+---
+
 ## Endpoints
 
 ### `GET /health`

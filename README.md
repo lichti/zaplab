@@ -1187,7 +1187,7 @@ Created by migrations but not actively used by the bot:
 
 A built-in web interface for interacting with all API features without writing any code.
 
-**Access:** `http://localhost:8090/tools/`
+**Access:** `http://localhost:8090/` (automatically redirects to `/zaplab/tools/`)
 
 **Features:**
 - **URI-based Navigation** — Deep linking support (`/#/section`) and browser Back/Forward compatibility.

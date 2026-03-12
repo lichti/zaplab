@@ -1165,7 +1165,7 @@ Criadas pelas migrations mas não utilizadas ativamente pelo bot:
 
 Interface web integrada para interagir com todos os recursos da API sem escrever código.
 
-**Acesso:** `http://localhost:8090/tools/`
+**Acesso:** `http://localhost:8090/` (redireciona automaticamente para `/zaplab/tools/`)
 
 **Funcionalidades:**
 - **Navegação via URI** — Suporte a deep linking (`/#/section`) e compatibilidade com botões Voltar/Avançar do navegador.
