@@ -2,9 +2,13 @@
 
 ## Overview
 
-The frontend is a single-page Alpine.js 3 application served by PocketBase from `pb_public/`.
+The frontend is a single-page Alpine.js 3 application. The `pb_public/` directory is compiled
+into the binary at build time via `//go:embed` (see `static.go`) and served at `/zaplab/tools/`.
 JavaScript is split into focused section files — each section is a factory function that returns
 an object merged into the main `zaplab()` Alpine component.
+
+Set `ZAPLAB_DEV=1` at runtime to serve files from disk (`./pb_public/`) instead of the embedded
+copy, enabling hot-reload during frontend development without recompiling.
 
 ---
 

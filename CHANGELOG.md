@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Embedded Static Files** — `pb_public/` is now compiled into the binary via `//go:embed`; the runtime image no longer needs a separate `pb_public/` directory. Set `ZAPLAB_DEV=1` to serve files from disk instead (hot-reload during development).
 - **PocketBase Authentication** — Dashboard now requires a valid PocketBase user login.
 - **Unified Auth Middleware** — REST API endpoints re-enabled with support for both PocketBase session (JWT) and static `X-API-Token` header.
 - **Login Overlay** — new full-screen login UI for the dashboard.

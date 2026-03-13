@@ -165,6 +165,10 @@ bin/zaplab_<GOOS>_<GOARCH>
 #     bin/zaplab_darwin_amd64
 ```
 
+> O binário é auto-suficiente — todo o frontend `pb_public/` é embutido em tempo de compilação via `//go:embed`. Nenhum arquivo extra é necessário para executá-lo.
+>
+> Para desenvolvimento de frontend, defina `ZAPLAB_DEV=1` para servir os arquivos do disco e evitar recompilar a cada mudança na UI.
+
 ---
 
 ## Execução local
@@ -384,6 +388,7 @@ git push origin v1.0.0-beta.1
 | `ZAPLAB_DATA_DIR` | Não | Diretório base para todos os dados em runtime. Padrão: `$HOME/.zaplab`. Pode ser sobrescrito com `--data-dir`. |
 | `API_TOKEN` | Sim | Token para autenticar chamadas de API REST externas. Se não definido, a autenticação por token estático é desativada. |
 | `TUNNEL_TOKEN` | Não | Token do Cloudflare Tunnel (apenas se usar `cloudflared`). |
+| `ZAPLAB_DEV` | Não | Defina como `1` para servir o frontend a partir de `./pb_public/` no disco em vez da cópia embutida (habilita hot-reload durante o desenvolvimento do frontend). |
 
 ---
 
