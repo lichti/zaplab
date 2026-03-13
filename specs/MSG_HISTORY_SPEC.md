@@ -48,9 +48,9 @@ PocketBase `events` collection. It provides:
 
 | Filter | PocketBase filter | Notes |
 |---|---|---|
-| Kind = All | `type = 'Message' && (raw ~ '"IsEdit":true' \| raw ~ 'protocolMessage')` | Edit OR delete |
-| Kind = Edited | `type = 'Message' && raw ~ '"IsEdit":true'` | `IsEdit` flag set by whatsmeow |
-| Kind = Deleted | `type = 'Message' && raw ~ 'protocolMessage' && raw !~ '"IsEdit":true'` | Protocol message without edit flag |
+| Kind = All | `type = 'Message' && (raw ~ '"Edit":"1"' \| raw ~ '"Edit":"7"' \| raw ~ '"Edit":"8"')` | Edit OR delete |
+| Kind = Edited | `type = 'Message' && raw ~ '"Edit":"1"'` | `Info.Edit="1"` (MessageEdit) set by whatsmeow |
+| Kind = Deleted | `type = 'Message' && (raw ~ '"Edit":"7"' \| raw ~ '"Edit":"8"')` | `Info.Edit="7"` (SenderRevoke) or `"8"` (AdminRevoke) |
 | Sender | `raw ~ 'VALUE'` | Substring match — JID or PushName |
 | Chat / Group | `raw ~ 'VALUE'` | Substring match — group or individual chat JID |
 | Date From | `created >= 'YYYY-MM-DD 00:00:00'` | Native `<input type="date">` |
@@ -62,13 +62,20 @@ All active filters are combined with `&&`. Pressing `Enter` triggers the search.
 
 ## Kind Classification (client-side)
 
-After records are loaded, each item is classified in JavaScript:
+After records are loaded, each item is classified in JavaScript (`mhKind(item)`):
 
 | Condition | Kind |
 |---|---|
-| `raw.IsEdit === true` | `edit` |
-| `raw.Message.protocolMessage.type === 14` | `edit` (MESSAGE_EDIT) |
-| `raw.Message.protocolMessage` present, type ≠ 14 | `delete` (REVOKE = 0) |
+| `Info.Edit === "1"` | `edit` |
+| `IsEdit === true` (legacy — not reliably set) | `edit` |
+| `Message.protocolMessage.type === 14` | `edit` (MESSAGE_EDIT) |
+| `Info.Edit === "7"` or `"8"` | `delete` (SenderRevoke / AdminRevoke) |
+| `Message.protocolMessage` present, other type | `delete` (fallback) |
+
+> `IsEdit` is `false` for edits received from other clients because whatsmeow's `UnwrapRaw()`
+> only sets it when the outer message is wrapped in an `editedMessage` proto field. Client-side
+> edits (sent from your own device) arrive as a top-level `protocolMessage` with `type=14`,
+> bypassing that unwrap path. `Info.Edit="1"` is the authoritative indicator.
 
 ---
 

@@ -61,9 +61,15 @@ of the running instance:
 | Total Events | `events` — no filter |
 | Received | `events` — `type ~ 'Message' && type != 'SentMessage'` |
 | Sent | `events` — `type = 'SentMessage'` |
-| Edited | `events` — `type = 'Message' && raw ~ 'IsEdit'` |
-| Deleted | `events` — `type = 'Message' && raw ~ 'protocolMessage' && raw !~ 'IsEdit'` |
+| Edited | `events` — `type = 'Message' && raw ~ '"Edit":"1"'` |
+| Deleted | `events` — `type = 'Message' && (raw ~ '"Edit":"7"' \| raw ~ '"Edit":"8"')` |
 | Errors | `errors` — no filter |
+
+> **Note on edit/delete detection:** Filters match `Info.Edit` attribute values set by whatsmeow
+> from the binary protocol node: `"1"` = MessageEdit, `"7"` = SenderRevoke, `"8"` = AdminRevoke.
+> The `IsEdit` boolean on `events.Message` is **not** used — whatsmeow only sets it when the
+> outer message is wrapped in `editedMessage`, which does not apply to edits received from other
+> clients (these arrive as a top-level `protocolMessage` with `type=14`).
 
 ### Last-24h counters
 
