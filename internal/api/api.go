@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 
@@ -24,12 +25,14 @@ const mediaBodyLimit = 50 * 1024 * 1024 // 50 MB
 var pb *pocketbase.PocketBase
 var wh *webhook.Config
 var cfg *config.Config
+var staticFS fs.FS
 
-// Init injects the PocketBase instance, webhook config, and general config.
-func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *config.Config) {
+// Init injects the PocketBase instance, webhook config, general config, and static file system.
+func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *config.Config, staticFiles fs.FS) {
 	pb = pbApp
 	wh = webhookCfg
 	cfg = generalCfg
+	staticFS = staticFiles
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -109,7 +112,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest).Bind(auth)
 	e.Router.GET("/zaplab/api/config", getConfig).Bind(auth)
 	e.Router.PUT("/zaplab/api/config", putConfig).Bind(auth)
-	e.Router.GET("/zaplab/tools/{path...}", apis.Static(os.DirFS("./pb_public"), false))
+	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil
 }

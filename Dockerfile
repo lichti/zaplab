@@ -23,7 +23,6 @@ ENV DEFAULT_APP="/app/bin/zaplab"
 WORKDIR /app
 
 COPY --from=builder /app/bin/zaplab /app/bin/zaplab
-COPY pb_public /app/pb_public
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
