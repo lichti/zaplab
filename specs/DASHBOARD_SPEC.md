@@ -59,17 +59,20 @@ of the running instance:
 | Counter | PocketBase Query |
 |---|---|
 | Total Events | `events` — no filter |
-| Received | `events` — `type ~ 'Message' && type != 'SentMessage'` |
-| Sent | `events` — `type = 'SentMessage'` |
+| Received | `events` — `type ~ 'Message' && type != 'SentMessage' && raw !~ '"IsFromMe":true'` |
+| Sent | `events` — `(type = 'SentMessage' \| (type ~ 'Message' && type != 'SentMessage' && raw ~ '"IsFromMe":true'))` |
 | Edited | `events` — `type = 'Message' && raw ~ '"Edit":"1"'` |
 | Deleted | `events` — `type = 'Message' && (raw ~ '"Edit":"7"' \| raw ~ '"Edit":"8"')` |
 | Errors | `errors` — no filter |
 
-> **Note on edit/delete detection:** Filters match `Info.Edit` attribute values set by whatsmeow
-> from the binary protocol node: `"1"` = MessageEdit, `"7"` = SenderRevoke, `"8"` = AdminRevoke.
-> The `IsEdit` boolean on `events.Message` is **not** used — whatsmeow only sets it when the
-> outer message is wrapped in `editedMessage`, which does not apply to edits received from other
-> clients (these arrive as a top-level `protocolMessage` with `type=14`).
+> **Note on filter logic:**
+> - **Received/Sent split**: Messages sent from the user's own WhatsApp app arrive as
+>   `type="Message"` with `Info.IsFromMe=true` (not as `SentMessage`, which is reserved for
+>   messages sent via the ZapLab REST API). `fRecv` excludes them; `fSent` includes them.
+> - **Edit/Delete detection**: Filters match `Info.Edit` attribute values: `"1"` = MessageEdit,
+>   `"7"` = SenderRevoke, `"8"` = AdminRevoke. The `IsEdit` boolean is **not** used — whatsmeow
+>   only sets it when the outer message is wrapped in `editedMessage`, which does not apply to
+>   edits arriving as a top-level `protocolMessage` (type=14).
 
 ### Last-24h counters
 

@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard Deleted Counter** — replaced unreliable `protocolMessage` JSON search with `Info.Edit` attribute matching (`"7"` = SenderRevoke, `"8"` = AdminRevoke) to correctly detect delete/revoke events; deleted count now shows non-zero values.
 - **Dashboard Edited Counter** — replaced broken `IsEdit:true` search (whatsmeow does not set `IsEdit` for protocol-message-style edits received from other clients) with `Info.Edit:"1"` attribute matching, consistent with how delete detection works.
 - **Message History Section** — aligned delete/edit detection filters and `mhKind` classification with the same `Info.Edit` attribute approach for consistent results.
+- **Dashboard Sent/Received Counters** — messages sent from the user's own WhatsApp app arrive as `type="Message"` with `IsFromMe:true`, not as `SentMessage`; fixed `fSent` to include them and `fRecv` to exclude them.
 
 ### Changed
 - **Secure Collections** — restricted `events` and `errors` collections to authenticated users only via PocketBase rules.

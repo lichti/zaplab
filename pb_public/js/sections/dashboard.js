@@ -64,8 +64,8 @@ function dashboardSection() {
         const since24h = new Date(Date.now() - 86400000)
           .toISOString().slice(0, 19).replace('T', ' ');
 
-        const fRecv    = "type ~ 'Message' && type != 'SentMessage'";
-        const fSent    = "type = 'SentMessage'";
+        const fRecv    = "type ~ 'Message' && type != 'SentMessage' && raw !~ '\"IsFromMe\":true'";
+        const fSent    = "(type = 'SentMessage' || (type ~ 'Message' && type != 'SentMessage' && raw ~ '\"IsFromMe\":true'))";
         const fEdited  = "type = 'Message' && raw ~ '\"Edit\":\"1\"'";
         const fDeleted = "type = 'Message' && (raw ~ '\"Edit\":\"7\"' || raw ~ '\"Edit\":\"8\"')";
         const t24      = f => `(${f}) && created >= '${since24h}'`;
