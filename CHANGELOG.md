@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Dev]
 
+---
+
+## [v1.0.0-beta.7] — 2026-03-13
+
 ### Added
 - **Embedded Static Files** — `pb_public/` is now compiled into the binary via `//go:embed`; the runtime image no longer needs a separate `pb_public/` directory. Set `ZAPLAB_DEV=1` to serve files from disk instead (hot-reload during development).
 - **PocketBase Authentication** — Dashboard now requires a valid PocketBase user login.
@@ -26,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Dashboard Deleted Counter** — replaced unreliable `protocolMessage` JSON search with `Info.Edit` attribute matching (`"7"` = SenderRevoke, `"8"` = AdminRevoke) to correctly detect delete/revoke events; deleted count now shows non-zero values.
 - **Dashboard Edited Counter** — replaced broken `IsEdit:true` search (whatsmeow does not set `IsEdit` for protocol-message-style edits received from other clients) with `Info.Edit:"1"` attribute matching, consistent with how delete detection works.
-- **Message History Section** — aligned delete/edit detection filters and `mhKind` classification with the same `Info.Edit` attribute approach for consistent results.
 - **Dashboard Sent/Received Counters** — messages sent from the user's own WhatsApp app arrive as `type="Message"` with `IsFromMe:true`, not as `SentMessage`; fixed `fSent` to include them and `fRecv` to exclude them.
+- **Message History Section** — aligned delete/edit detection filters and `mhKind` classification with the same `Info.Edit` attribute approach for consistent results.
 
 ### Changed
 - **Secure Collections** — restricted `events` and `errors` collections to authenticated users only via PocketBase rules.
@@ -145,6 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unstable]: https://github.com/lichti/zaplab/tree/main
 [Dev]: https://github.com/lichti/zaplab/tree/dev
+[v1.0.0-beta.7]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.6...v1.0.0-beta.7
 [v1.0.0-beta.6]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.5...v1.0.0-beta.6
 [v1.0.0-beta.5]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.4...v1.0.0-beta.5
 [v1.0.0-beta.4]: https://github.com/lichti/zaplab/compare/v1.0.0-beta.3...v1.0.0-beta.4
