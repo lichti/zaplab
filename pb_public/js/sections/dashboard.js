@@ -66,8 +66,8 @@ function dashboardSection() {
 
         const fRecv    = "type ~ 'Message' && type != 'SentMessage'";
         const fSent    = "type = 'SentMessage'";
-        const fEdited  = "type = 'Message' && raw ~ '\"IsEdit\":true'";
-        const fDeleted = "type = 'Message' && raw ~ 'protocolMessage' && raw !~ '\"IsEdit\":true'";
+        const fEdited  = "type = 'Message' && raw ~ '\"Edit\":\"1\"'";
+        const fDeleted = "type = 'Message' && (raw ~ '\"Edit\":\"7\"' || raw ~ '\"Edit\":\"8\"')";
         const t24      = f => `(${f}) && created >= '${since24h}'`;
 
         // count helper — requestKey: null disables PocketBase SDK auto-cancellation

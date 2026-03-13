@@ -36,13 +36,12 @@ function msgHistorySection() {
       const parts = ["type = 'Message'"];
       const kind  = this.mh.filterKind;
       if (kind === 'edit') {
-        parts.push('raw ~ \'"IsEdit":true\'');
+        parts.push('raw ~ \'"Edit":"1"\'');
       } else if (kind === 'delete') {
-        parts.push('raw ~ \'protocolMessage\'');
-        parts.push('raw !~ \'"IsEdit":true\'');
+        parts.push('(raw ~ \'"Edit":"7"\' || raw ~ \'"Edit":"8"\')');
       } else {
-        // all: edited OR protocol message (revoke / delete)
-        parts.push('(raw ~ \'"IsEdit":true\' || raw ~ \'protocolMessage\')');
+        // all: edited OR deleted (revoke / admin revoke)
+        parts.push('(raw ~ \'"Edit":"1"\' || raw ~ \'"Edit":"7"\' || raw ~ \'"Edit":"8"\')');
       }
       if (this.mh.filterSender.trim())   parts.push(`raw ~ '${this._mhEsc(this.mh.filterSender.trim())}'`);
       if (this.mh.filterChat.trim())     parts.push(`raw ~ '${this._mhEsc(this.mh.filterChat.trim())}'`);
@@ -152,13 +151,14 @@ function msgHistorySection() {
     },
 
     // ── kind classification ──
-    // 'edit'   — IsEdit:true or protocolMessage.type === 14 (MESSAGE_EDIT)
-    // 'delete' — protocolMessage.type === 0 (REVOKE) or any other protocolMessage
+    // 'edit'   — IsEdit:true (Edit attr "1") or protocolMessage.type === 14 (MESSAGE_EDIT)
+    // 'delete' — Edit attr "7"/"8" (SenderRevoke/AdminRevoke) or protocolMessage.type === 0 (REVOKE)
     mhKind(item) {
       const r     = this._mhRaw(item);
       const proto = r?.Message?.protocolMessage;
-      if (r?.IsEdit || (proto && proto.type === 14)) return 'edit';
-      if (proto) return 'delete';
+      const edit  = r?.Info?.Edit;
+      if (edit === '1' || r?.IsEdit || (proto && proto.type === 14)) return 'edit';
+      if (edit === '7' || edit === '8' || proto) return 'delete';
       return 'unknown';
     },
 
