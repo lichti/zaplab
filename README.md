@@ -1226,6 +1226,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Event Browser** | Search and filter stored events by type, date range, message ID, sender, recipient, or free text; inspect full JSON; preview and download media; replay message via Send Raw; **Export CSV** (up to 1 000 rows matching the active filter) |
 | **Error Browser** | Browse the `errors` PocketBase collection; filter by type, date range, and free text; inspect full raw JSON; **Export CSV** |
 | **Message History** | List all edited and deleted messages; filter by kind (All / Edited / Deleted), sender, chat and date range; shows the action event payload and the original message content; word-level Edit Diff for edited messages; **Export CSV** |
+| **DB Explorer** | Browse, edit, and restore all 12 internal whatsmeow SQLite tables (device identity, Signal sessions, pre-keys, sender keys, app state, contacts, etc.); column-level protocol documentation; hex BLOB display; **inline cell editing** with automatic backup before every write; **backup & restore** (VACUUM INTO snapshots with one-click restore and full whatsmeow reinitialisation); **Reconnect / Full Reinit** buttons to observe protocol behaviour after DB modifications |
 | **Send Message** | Send all message types with curl preview and response viewer |
 | **Send Raw** | Send any `waE2E.Message` JSON directly — full protocol exploration |
 | **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |
