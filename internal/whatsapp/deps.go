@@ -41,3 +41,19 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 
 // GetClient returns the active whatsmeow client (nil if not yet bootstrapped).
 func GetClient() *whatsmeow.Client { return client }
+
+// GetDBAddress returns the whatsapp SQLite DSN (empty string if not yet set).
+func GetDBAddress() string {
+	if dbAddress == nil {
+		return ""
+	}
+	return *dbAddress
+}
+
+// GetDBDialect returns the configured DB dialect ("sqlite" or "postgres").
+func GetDBDialect() string {
+	if dbDialect == nil {
+		return ""
+	}
+	return *dbDialect
+}
