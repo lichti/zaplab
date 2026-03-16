@@ -5,11 +5,13 @@ import (
 	"github.com/lichti/zaplab/internal/webhook"
 	"github.com/pocketbase/pocketbase"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/store/sqlstore"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
 var (
 	client          *whatsmeow.Client
+	storeContainer  *sqlstore.Container
 	pb              *pocketbase.PocketBase
 	wh              *webhook.Config
 	cfg             *config.Config

@@ -3,21 +3,34 @@ package api
 import (
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// waDB is a long-lived read-only connection to the whatsmeow SQLite file.
-var waDB *sql.DB
+// ── package-level state ──────────────────────────────────────────────────────
 
-// allowedTables is the hard-coded allowlist of whatsmeow tables exposed by the DB Explorer.
-// Any table name not in this list returns 404.
+var (
+	waDB        *sql.DB    // read-only connection to whatsapp.db
+	waDBWrite   *sql.DB    // read-write connection to whatsapp.db
+	dbFilePath  string     // absolute path to the .db file (no params)
+	dbBackupDir string     // directory where backups are stored
+	dbMu        sync.Mutex // guards backup/restore operations
+)
+
+// allowedTables is the hard-coded allowlist. Any name not in this list → 404.
 var allowedTables = []string{
 	"whatsmeow_device",
 	"whatsmeow_identity_keys",
@@ -48,8 +61,10 @@ var tableDescriptions = map[string]string{
 	"whatsmeow_privacy_tokens":          "Privacy tokens used when checking if phone numbers are registered on WhatsApp (contact availability check).",
 }
 
-// initDBExplorer opens a read-only SQL connection to the whatsmeow SQLite file.
-// Only supported when dialect is "sqlite". Called once from api.Init.
+// ── init ─────────────────────────────────────────────────────────────────────
+
+// initDBExplorer opens read-only and read-write SQL connections to the whatsmeow
+// SQLite file. Only supported when dialect is "sqlite". Called once from api.Init.
 func initDBExplorer(dsn, dialect string) error {
 	if dialect != "sqlite" {
 		pb.Logger().Warn("DB Explorer: only supported for sqlite dialect — skipping")
@@ -59,30 +74,54 @@ func initDBExplorer(dsn, dialect string) error {
 		pb.Logger().Warn("DB Explorer: empty DSN — skipping")
 		return nil
 	}
-	roDSN := toReadOnlyDSN(dsn)
+
+	dbFilePath = extractFilePath(dsn)
+
+	// Read-only connection (for queries)
+	roDSN := filePathToDSN(dbFilePath, "ro")
 	db, err := sql.Open("sqlite", roDSN)
 	if err != nil {
 		return fmt.Errorf("db explorer: open read-only connection: %w", err)
 	}
 	db.SetMaxOpenConns(1)
 	waDB = db
-	pb.Logger().Info("DB Explorer: read-only connection established", "dsn", roDSN)
+
+	// Read-write connection (for edits and VACUUM INTO backups)
+	rwDSN := filePathToDSN(dbFilePath, "rwc")
+	dbw, err := sql.Open("sqlite", rwDSN)
+	if err != nil {
+		return fmt.Errorf("db explorer: open read-write connection: %w", err)
+	}
+	dbw.SetMaxOpenConns(1)
+	waDBWrite = dbw
+
+	// Backup directory inside PocketBase data dir
+	dbBackupDir = filepath.Join(pb.DataDir(), "db_backups")
+	if err := os.MkdirAll(dbBackupDir, 0o750); err != nil {
+		pb.Logger().Warn("DB Explorer: could not create backup dir", "error", err)
+	}
+
+	pb.Logger().Info("DB Explorer: connections established", "file", dbFilePath, "backups", dbBackupDir)
 	return nil
 }
 
-// toReadOnlyDSN strips existing query params from a SQLite file URI and adds mode=ro.
-func toReadOnlyDSN(dsn string) string {
-	if !strings.HasPrefix(dsn, "file:") {
-		return dsn
+// extractFilePath strips the file: prefix and query params from a SQLite DSN.
+// "file:/path/to/db?params" → "/path/to/db"
+func extractFilePath(dsn string) string {
+	p := strings.TrimPrefix(dsn, "file:")
+	if idx := strings.Index(p, "?"); idx >= 0 {
+		p = p[:idx]
 	}
-	idx := strings.Index(dsn, "?")
-	if idx >= 0 {
-		return dsn[:idx] + "?mode=ro"
-	}
-	return dsn + "?mode=ro"
+	return p
 }
 
-// isAllowedTable returns true if name is in the hard-coded allowlist.
+// filePathToDSN builds a file URI DSN with the given mode (ro, rw, rwc).
+func filePathToDSN(path, mode string) string {
+	return fmt.Sprintf("file:%s?mode=%s", path, mode)
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
 func isAllowedTable(name string) bool {
 	for _, t := range allowedTables {
 		if t == name {
@@ -92,119 +131,18 @@ func isAllowedTable(name string) bool {
 	return false
 }
 
-// getDBTables returns the list of allowed whatsmeow tables with their descriptions and row counts.
-func getDBTables(e *core.RequestEvent) error {
-	if waDB == nil {
-		return e.JSON(http.StatusServiceUnavailable, map[string]any{
-			"error": "DB Explorer not available (sqlite only or not yet initialised)",
-		})
-	}
-
-	type tableInfo struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Count       int64  `json:"count"`
-	}
-
-	tables := make([]tableInfo, 0, len(allowedTables))
-	for _, t := range allowedTables {
-		var count int64
-		row := waDB.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %q", t))
-		_ = row.Scan(&count) // silently ignore if table doesn't exist yet
-		tables = append(tables, tableInfo{
-			Name:        t,
-			Description: tableDescriptions[t],
-			Count:       count,
-		})
-	}
-	return e.JSON(http.StatusOK, map[string]any{"tables": tables})
+// dbeCheckDB returns a ServiceUnavailable error response if connections are not ready.
+func dbeCheckDB(e *core.RequestEvent) bool {
+	return waDB != nil && waDBWrite != nil
 }
 
-// getDBTable returns paginated rows for a single allowed table.
-// Query params: page (1-based), limit (1-200, default 50), filter (text search).
-func getDBTable(e *core.RequestEvent) error {
-	if waDB == nil {
-		return e.JSON(http.StatusServiceUnavailable, map[string]any{
-			"error": "DB Explorer not available (sqlite only or not yet initialised)",
-		})
-	}
-
-	table := e.Request.PathValue("table")
-	if !isAllowedTable(table) {
-		return apis.NewNotFoundError("Table not found", nil)
-	}
-
-	// Parse query params
-	page, _ := strconv.Atoi(e.Request.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-	limit, _ := strconv.Atoi(e.Request.URL.Query().Get("limit"))
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	filter := e.Request.URL.Query().Get("filter")
-
-	// Resolve column names via PRAGMA (trusted source — not user input)
-	cols, err := dbeTableColumns(table)
-	if err != nil {
-		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
-	}
-	if len(cols) == 0 {
-		return e.JSON(http.StatusOK, map[string]any{
-			"table": table, "columns": []string{}, "rows": []any{},
-			"page": 1, "limit": limit, "total": 0, "pages": 0,
-		})
-	}
-
-	whereClause, filterArgs := dbeFilterClause(cols, filter)
-
-	// Total count
-	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM %q %s", table, whereClause)
-	var total int64
-	if err := waDB.QueryRow(countSQL, filterArgs...).Scan(&total); err != nil {
-		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
-	}
-
-	// Fetch page
-	offset := (page - 1) * limit
-	selectSQL := fmt.Sprintf("SELECT * FROM %q %s LIMIT ? OFFSET ?", table, whereClause)
-	args := append(filterArgs, limit, offset)
-	rows, err := waDB.Query(selectSQL, args...)
-	if err != nil {
-		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
-	}
-	defer rows.Close()
-
-	data, err := dbeScanRows(rows, cols)
-	if err != nil {
-		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
-	}
-
-	pages := int(math.Ceil(float64(total) / float64(limit)))
-	if pages < 1 && total == 0 {
-		pages = 0
-	}
-
-	return e.JSON(http.StatusOK, map[string]any{
-		"table":   table,
-		"columns": cols,
-		"rows":    data,
-		"page":    page,
-		"limit":   limit,
-		"total":   total,
-		"pages":   pages,
-	})
-}
-
-// dbeTableColumns returns the ordered list of column names for table via PRAGMA table_info.
+// dbeTableColumns returns the ordered list of column names for table via PRAGMA.
 func dbeTableColumns(table string) ([]string, error) {
 	rows, err := waDB.Query(fmt.Sprintf("PRAGMA table_info(%q)", table))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	var cols []string
 	for rows.Next() {
 		var cid int
@@ -220,8 +158,30 @@ func dbeTableColumns(table string) ([]string, error) {
 	return cols, rows.Err()
 }
 
-// dbeFilterClause builds a safe WHERE clause from a free-text filter value.
-// The filter value is passed exclusively as a bound parameter — never concatenated.
+// dbeTableColumnTypes returns column name→SQLite type affinity map.
+func dbeTableColumnTypes(table string) (map[string]string, error) {
+	rows, err := waDB.Query(fmt.Sprintf("PRAGMA table_info(%q)", table))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	types := make(map[string]string)
+	for rows.Next() {
+		var cid int
+		var name, typ string
+		var notNull int
+		var dfltVal sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &typ, &notNull, &dfltVal, &pk); err != nil {
+			return nil, err
+		}
+		types[name] = strings.ToUpper(typ)
+	}
+	return types, rows.Err()
+}
+
+// dbeFilterClause builds a safe WHERE clause from a free-text filter.
+// The filter value is passed exclusively as a bound parameter.
 func dbeFilterClause(cols []string, filter string) (string, []any) {
 	if filter == "" {
 		return "", nil
@@ -236,20 +196,20 @@ func dbeFilterClause(cols []string, filter string) (string, []any) {
 	return "WHERE (" + strings.Join(parts, " OR ") + ")", args
 }
 
-// dbeScanRows scans all rows into a slice of value slices.
-// []byte values (binary blobs) are converted to lowercase hex strings.
-func dbeScanRows(rows *sql.Rows, cols []string) ([][]any, error) {
+// dbeScanRows scans all rows into [][]any. []byte blobs are hex-encoded.
+// When withRowID is true the first column scanned is the rowid.
+func dbeScanRows(rows *sql.Rows, numCols int) ([][]any, error) {
 	var result [][]any
 	for rows.Next() {
-		ptrs := make([]any, len(cols))
-		vals := make([]any, len(cols))
+		ptrs := make([]any, numCols)
+		vals := make([]any, numCols)
 		for i := range vals {
 			ptrs[i] = &vals[i]
 		}
 		if err := rows.Scan(ptrs...); err != nil {
 			return nil, err
 		}
-		row := make([]any, len(cols))
+		row := make([]any, numCols)
 		for i, v := range vals {
 			if b, ok := v.([]byte); ok {
 				row[i] = hex.EncodeToString(b)
@@ -260,4 +220,515 @@ func dbeScanRows(rows *sql.Rows, cols []string) ([][]any, error) {
 		result = append(result, row)
 	}
 	return result, rows.Err()
+}
+
+// ── read endpoints ────────────────────────────────────────────────────────────
+
+// getDBTables returns the allowed whatsmeow tables with descriptions and row counts.
+func getDBTables(e *core.RequestEvent) error {
+	if !dbeCheckDB(e) {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{
+			"error": "DB Explorer not available (sqlite only or not yet initialised)",
+		})
+	}
+	type tableInfo struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Count       int64  `json:"count"`
+	}
+	tables := make([]tableInfo, 0, len(allowedTables))
+	for _, t := range allowedTables {
+		var count int64
+		_ = waDB.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %q", t)).Scan(&count)
+		tables = append(tables, tableInfo{
+			Name:        t,
+			Description: tableDescriptions[t],
+			Count:       count,
+		})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"tables": tables})
+}
+
+// getDBTable returns paginated rows for a single allowed table.
+// Rows include "_rowid_" as the first column for edit/delete operations.
+// Query params: page (1-based), limit (1-200, default 50), filter (text search).
+func getDBTable(e *core.RequestEvent) error {
+	if !dbeCheckDB(e) {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{
+			"error": "DB Explorer not available",
+		})
+	}
+	table := e.Request.PathValue("table")
+	if !isAllowedTable(table) {
+		return apis.NewNotFoundError("Table not found", nil)
+	}
+
+	page, _ := strconv.Atoi(e.Request.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(e.Request.URL.Query().Get("limit"))
+	if limit < 1 || limit > 200 {
+		limit = 50
+	}
+	filter := e.Request.URL.Query().Get("filter")
+
+	cols, err := dbeTableColumns(table)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	colTypes, err := dbeTableColumnTypes(table)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	if len(cols) == 0 {
+		return e.JSON(http.StatusOK, map[string]any{
+			"table": table, "columns": []string{}, "types": []string{},
+			"rows": []any{}, "page": 1, "limit": limit, "total": 0, "pages": 0,
+		})
+	}
+
+	whereClause, filterArgs := dbeFilterClause(cols, filter)
+
+	var total int64
+	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM %q %s", table, whereClause)
+	if err := waDB.QueryRow(countSQL, filterArgs...).Scan(&total); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
+	offset := (page - 1) * limit
+	// Always select rowid as first column so the frontend can target specific rows for edits.
+	selectSQL := fmt.Sprintf(`SELECT rowid AS _rowid_, * FROM %q %s LIMIT ? OFFSET ?`, table, whereClause)
+	args := append(filterArgs, limit, offset)
+	rows, err := waDB.Query(selectSQL, args...)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	allCols := append([]string{"_rowid_"}, cols...)
+	data, err := dbeScanRows(rows, len(allCols))
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
+	// Build ordered type list matching allCols (rowid is INTEGER)
+	typeList := make([]string, len(allCols))
+	typeList[0] = "INTEGER"
+	for i, c := range cols {
+		typeList[i+1] = colTypes[c]
+	}
+
+	pages := int(math.Ceil(float64(total) / float64(limit)))
+	return e.JSON(http.StatusOK, map[string]any{
+		"table":   table,
+		"columns": allCols,
+		"types":   typeList,
+		"rows":    data,
+		"page":    page,
+		"limit":   limit,
+		"total":   total,
+		"pages":   pages,
+	})
+}
+
+// ── write endpoints ───────────────────────────────────────────────────────────
+
+// patchDBTableRow updates specific columns of a single row identified by rowid.
+// Creates an automatic backup before applying the change.
+// Body: {"values": {"col": "val"}, "reconnect": true|false}
+func patchDBTableRow(e *core.RequestEvent) error {
+	if !dbeCheckDB(e) {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{"error": "DB Explorer not available"})
+	}
+	table := e.Request.PathValue("table")
+	if !isAllowedTable(table) {
+		return apis.NewNotFoundError("Table not found", nil)
+	}
+	rowid, err := strconv.ParseInt(e.Request.PathValue("rowid"), 10, 64)
+	if err != nil {
+		return apis.NewBadRequestError("invalid rowid", nil)
+	}
+
+	var req struct {
+		Values    map[string]any `json:"values"`
+		Reconnect bool           `json:"reconnect"`
+	}
+	if err := json.NewDecoder(e.Request.Body).Decode(&req); err != nil {
+		return apis.NewBadRequestError("invalid JSON body", err)
+	}
+	if len(req.Values) == 0 {
+		return apis.NewBadRequestError("values map is empty", nil)
+	}
+
+	// Validate all column names against the table schema
+	tableCols, err := dbeTableColumns(table)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	colTypes, err := dbeTableColumnTypes(table)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	allowed := make(map[string]bool, len(tableCols))
+	for _, c := range tableCols {
+		allowed[c] = true
+	}
+	for col := range req.Values {
+		if !allowed[col] {
+			return apis.NewBadRequestError(fmt.Sprintf("unknown column: %s", col), nil)
+		}
+	}
+
+	// Create automatic backup before any write
+	dbMu.Lock()
+	backupName, backupErr := dbeCreateBackup()
+	dbMu.Unlock()
+	if backupErr != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{
+			"error": fmt.Sprintf("backup failed before write: %v", backupErr),
+		})
+	}
+
+	// Build SET clause (column names are validated, values are bound params)
+	setClauses := make([]string, 0, len(req.Values))
+	setArgs := make([]any, 0, len(req.Values))
+	for col, val := range req.Values {
+		setClauses = append(setClauses, fmt.Sprintf(`"%s" = ?`, col))
+		// For BLOB columns, accept hex string from the UI and decode to bytes
+		if strings.Contains(colTypes[col], "BLOB") {
+			if s, ok := val.(string); ok {
+				if decoded, hexErr := hex.DecodeString(s); hexErr == nil {
+					val = decoded
+				}
+				// else: store as string — let the user learn from the result
+			}
+		}
+		setArgs = append(setArgs, val)
+	}
+	setArgs = append(setArgs, rowid)
+	updateSQL := fmt.Sprintf(`UPDATE %q SET %s WHERE rowid = ?`, table, strings.Join(setClauses, ", "))
+
+	if _, err := waDBWrite.Exec(updateSQL, setArgs...); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
+	if req.Reconnect {
+		if err := whatsapp.ForceReconnect(); err != nil {
+			return e.JSON(http.StatusOK, map[string]any{
+				"message":         "row updated but reconnect failed",
+				"backup":          backupName,
+				"reconnect":       false,
+				"reconnect_error": err.Error(),
+			})
+		}
+	}
+
+	return e.JSON(http.StatusOK, map[string]any{
+		"message":   "row updated",
+		"backup":    backupName,
+		"reconnect": req.Reconnect,
+	})
+}
+
+// deleteDBTableRow deletes a single row identified by rowid.
+// Creates an automatic backup before deleting.
+// Body: {"reconnect": true|false}
+func deleteDBTableRow(e *core.RequestEvent) error {
+	if !dbeCheckDB(e) {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{"error": "DB Explorer not available"})
+	}
+	table := e.Request.PathValue("table")
+	if !isAllowedTable(table) {
+		return apis.NewNotFoundError("Table not found", nil)
+	}
+	rowid, err := strconv.ParseInt(e.Request.PathValue("rowid"), 10, 64)
+	if err != nil {
+		return apis.NewBadRequestError("invalid rowid", nil)
+	}
+
+	var req struct {
+		Reconnect bool `json:"reconnect"`
+	}
+	// Body is optional — default reconnect=false
+	_ = json.NewDecoder(e.Request.Body).Decode(&req)
+
+	dbMu.Lock()
+	backupName, backupErr := dbeCreateBackup()
+	dbMu.Unlock()
+	if backupErr != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{
+			"error": fmt.Sprintf("backup failed before delete: %v", backupErr),
+		})
+	}
+
+	deleteSQL := fmt.Sprintf(`DELETE FROM %q WHERE rowid = ?`, table)
+	res, err := waDBWrite.Exec(deleteSQL, rowid)
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return apis.NewNotFoundError("row not found", nil)
+	}
+
+	if req.Reconnect {
+		if err := whatsapp.ForceReconnect(); err != nil {
+			return e.JSON(http.StatusOK, map[string]any{
+				"message":         "row deleted but reconnect failed",
+				"backup":          backupName,
+				"reconnect":       false,
+				"reconnect_error": err.Error(),
+			})
+		}
+	}
+
+	return e.JSON(http.StatusOK, map[string]any{
+		"message":   "row deleted",
+		"backup":    backupName,
+		"reconnect": req.Reconnect,
+	})
+}
+
+// postDBReconnect triggers a WhatsApp reconnect (disconnect + connect).
+// Body: {"full": false} — if true, tears down and rebuilds the full whatsmeow stack.
+func postDBReconnect(e *core.RequestEvent) error {
+	var req struct {
+		Full bool `json:"full"`
+	}
+	_ = json.NewDecoder(e.Request.Body).Decode(&req)
+
+	var err error
+	if req.Full {
+		err = whatsapp.Reinitialize()
+	} else {
+		err = whatsapp.ForceReconnect()
+	}
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	mode := "reconnect"
+	if req.Full {
+		mode = "full reinitialize"
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": mode + " successful"})
+}
+
+// ── backup endpoints ──────────────────────────────────────────────────────────
+
+// postDBBackup creates an explicit on-demand backup of whatsapp.db.
+func postDBBackup(e *core.RequestEvent) error {
+	if !dbeCheckDB(e) {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{"error": "DB Explorer not available"})
+	}
+	dbMu.Lock()
+	name, err := dbeCreateBackup()
+	dbMu.Unlock()
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	info, _ := os.Stat(filepath.Join(dbBackupDir, name))
+	size := int64(0)
+	if info != nil {
+		size = info.Size()
+	}
+	return e.JSON(http.StatusOK, map[string]any{
+		"name":    name,
+		"size":    size,
+		"message": "backup created",
+	})
+}
+
+// getDBBackups lists all backup files in the backup directory.
+func getDBBackups(e *core.RequestEvent) error {
+	entries, err := os.ReadDir(dbBackupDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return e.JSON(http.StatusOK, map[string]any{"backups": []any{}})
+		}
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	type backupInfo struct {
+		Name    string `json:"name"`
+		Size    int64  `json:"size"`
+		Created string `json:"created"`
+	}
+	var backups []backupInfo
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".db") {
+			continue
+		}
+		info, _ := entry.Info()
+		size := int64(0)
+		ts := ""
+		if info != nil {
+			size = info.Size()
+			ts = info.ModTime().UTC().Format(time.RFC3339)
+		}
+		backups = append(backups, backupInfo{Name: entry.Name(), Size: size, Created: ts})
+	}
+	if backups == nil {
+		backups = []backupInfo{}
+	}
+	return e.JSON(http.StatusOK, map[string]any{"backups": backups})
+}
+
+// postDBRestore restores whatsapp.db from a backup file, then fully reinitializes
+// the whatsmeow stack so all in-memory state is rebuilt from the restored DB.
+// Body: {"name": "whatsapp_20260316_143022.db"}
+func postDBRestore(e *core.RequestEvent) error {
+	if !dbeCheckDB(e) {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{"error": "DB Explorer not available"})
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(e.Request.Body).Decode(&req); err != nil {
+		return apis.NewBadRequestError("invalid JSON body", err)
+	}
+
+	// Sanitize: no path traversal, only .db files in the backup directory
+	if strings.ContainsAny(req.Name, "/\\") || strings.Contains(req.Name, "..") {
+		return apis.NewBadRequestError("invalid backup name", nil)
+	}
+	if !strings.HasSuffix(req.Name, ".db") {
+		return apis.NewBadRequestError("invalid backup name", nil)
+	}
+	backupPath := filepath.Join(dbBackupDir, req.Name)
+	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+		return apis.NewNotFoundError("backup not found", nil)
+	}
+
+	dbMu.Lock()
+	defer dbMu.Unlock()
+
+	// Close our connections so the file can be replaced
+	if waDB != nil {
+		_ = waDB.Close()
+		waDB = nil
+	}
+	if waDBWrite != nil {
+		_ = waDBWrite.Close()
+		waDBWrite = nil
+	}
+
+	// Copy backup over the current DB file
+	if err := dbeReplaceFile(backupPath, dbFilePath); err != nil {
+		// Try to reopen connections even on failure
+		_ = initDBExplorer(filePathToDSN(dbFilePath, "rwc"), "sqlite")
+		return e.JSON(http.StatusInternalServerError, map[string]any{
+			"error": fmt.Sprintf("restore failed: %v", err),
+		})
+	}
+
+	// Reopen our connections
+	if err := dbeReopenConnections(); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{
+			"error": fmt.Sprintf("restore succeeded but failed to reopen connections: %v", err),
+		})
+	}
+
+	// Full reinitialize of the whatsmeow stack
+	if err := whatsapp.Reinitialize(); err != nil {
+		return e.JSON(http.StatusOK, map[string]any{
+			"message":            "restore succeeded but whatsapp reinitialize failed",
+			"reinitialize_error": err.Error(),
+		})
+	}
+
+	return e.JSON(http.StatusOK, map[string]any{
+		"message": "restore successful — whatsapp reinitialised from " + req.Name,
+	})
+}
+
+// deleteDBBackup deletes a backup file.
+func deleteDBBackup(e *core.RequestEvent) error {
+	name := e.Request.PathValue("name")
+	if strings.ContainsAny(name, "/\\") || strings.Contains(name, "..") {
+		return apis.NewBadRequestError("invalid backup name", nil)
+	}
+	if !strings.HasSuffix(name, ".db") {
+		return apis.NewBadRequestError("invalid backup name", nil)
+	}
+	path := filepath.Join(dbBackupDir, name)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return apis.NewNotFoundError("backup not found", nil)
+	}
+	if err := os.Remove(path); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "backup deleted"})
+}
+
+// ── internal helpers ──────────────────────────────────────────────────────────
+
+// dbeCreateBackup creates a clean copy of whatsapp.db using VACUUM INTO.
+// Returns the backup filename (not full path). Caller must hold dbMu.
+func dbeCreateBackup() (string, error) {
+	if waDBWrite == nil {
+		return "", fmt.Errorf("write connection not available")
+	}
+	if err := os.MkdirAll(dbBackupDir, 0o750); err != nil {
+		return "", fmt.Errorf("create backup dir: %w", err)
+	}
+	name := fmt.Sprintf("whatsapp_%s.db", time.Now().UTC().Format("20060102_150405"))
+	destPath := filepath.Join(dbBackupDir, name)
+	// VACUUM INTO produces a clean, WAL-checkpointed copy. Path is internal — not user input.
+	if _, err := waDBWrite.Exec(fmt.Sprintf(`VACUUM INTO %q`, destPath)); err != nil {
+		return "", fmt.Errorf("VACUUM INTO: %w", err)
+	}
+	return name, nil
+}
+
+// dbeReplaceFile copies src over dst and removes any WAL/SHM sidecar files.
+func dbeReplaceFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+	if err := out.Sync(); err != nil {
+		return err
+	}
+
+	// Remove WAL and SHM sidecars so SQLite starts fresh
+	_ = os.Remove(dst + "-wal")
+	_ = os.Remove(dst + "-shm")
+	return nil
+}
+
+// dbeReopenConnections reopens both the read-only and read-write connections after a restore.
+func dbeReopenConnections() error {
+	roDSN := filePathToDSN(dbFilePath, "ro")
+	db, err := sql.Open("sqlite", roDSN)
+	if err != nil {
+		return fmt.Errorf("reopen read-only: %w", err)
+	}
+	db.SetMaxOpenConns(1)
+	waDB = db
+
+	rwDSN := filePathToDSN(dbFilePath, "rwc")
+	dbw, err := sql.Open("sqlite", rwDSN)
+	if err != nil {
+		return fmt.Errorf("reopen read-write: %w", err)
+	}
+	dbw.SetMaxOpenConns(1)
+	waDBWrite = dbw
+	return nil
+}
+
+// toReadOnlyDSN is kept for backward compatibility with any external callers.
+func toReadOnlyDSN(dsn string) string {
+	return filePathToDSN(extractFilePath(dsn), "ro")
 }
