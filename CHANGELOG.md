@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Dev]
 
+### Added
+- **DB Explorer** — new section in the dashboard to browse, edit, and restore all 12 internal whatsmeow SQLite tables (`whatsmeow_device`, `whatsmeow_identity_keys`, `whatsmeow_pre_keys`, `whatsmeow_sessions`, `whatsmeow_sender_keys`, `whatsmeow_app_state_sync_keys`, `whatsmeow_app_state_version`, `whatsmeow_app_state_mutation_macs`, `whatsmeow_contacts`, `whatsmeow_chat_settings`, `whatsmeow_message_secrets`, `whatsmeow_privacy_tokens`).
+  - **Read**: paginated table view with free-text filter; column-level protocol documentation (hover tooltips) explaining each field in Signal, Noise, and WhatsApp protocol context; binary BLOB values displayed as lowercase hex strings.
+  - **Write**: edit any cell inline (hex blobs decoded back to bytes automatically); delete rows with confirmation. **Automatic backup (`VACUUM INTO`) is created before every write**.
+  - **Backup & Restore**: manual backup creation; backup list with restore and delete; restoring replaces `whatsapp.db`, removes WAL/SHM sidecars, and fully reinitialises the whatsmeow stack without a server restart.
+  - **Reconnect controls**: "Reconnect" (disconnect + connect) and "Full Reinit" (teardown + rebuild store + reconnect) buttons to observe protocol behaviour changes after editing.
+- **`whatsapp.ForceReconnect()`** — disconnects and immediately reconnects the active client (WebSocket-level).
+- **`whatsapp.Reinitialize()`** — closes the whatsmeow client and `sqlstore.Container`, rebuilds from the configured DSN, and reconnects; used after DB file restore.
+
+### Changed
+- `storeContainer` promoted to a package-level variable in the `whatsapp` package to enable clean teardown during `Reinitialize()`.
+
 ---
 
 ## [v1.0.0-beta.7] — 2026-03-13
