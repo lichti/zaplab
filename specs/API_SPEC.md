@@ -1460,3 +1460,150 @@ When the bot fires a webhook (WhatsApp events → external destination), the sen
 ```
 
 The webhook expects an `HTTP 200` response. Timeout: **10 seconds**.
+
+---
+
+## DB Explorer
+
+Read-only and read-write access to the internal whatsmeow SQLite tables (`whatsapp.db`).
+All endpoints require **🔒 Auth**. Backup files are stored in `pb_data/db_backups/`.
+
+### Table list
+
+```
+GET /zaplab/api/db/tables
+```
+
+Response:
+```json
+{
+  "tables": [
+    { "name": "whatsmeow_device", "description": "...", "count": 1 },
+    { "name": "whatsmeow_pre_keys", "description": "...", "count": 100 }
+  ]
+}
+```
+
+### Table rows (paginated)
+
+```
+GET /zaplab/api/db/tables/{table}?page=1&limit=50&filter=
+```
+
+| Param | Default | Max | Description |
+|-------|---------|-----|-------------|
+| `page` | 1 | — | 1-based page number |
+| `limit` | 50 | 200 | Rows per page |
+| `filter` | — | — | Free-text search applied across all columns (`CAST AS TEXT LIKE ?`) |
+
+The first column is always `_rowid_` (SQLite internal row identifier used for write operations).
+Binary BLOB columns are returned as lowercase hex strings.
+
+Response:
+```json
+{
+  "table":   "whatsmeow_device",
+  "columns": ["_rowid_", "jid", "noise_key", "..."],
+  "types":   ["INTEGER", "TEXT", "BLOB", "..."],
+  "rows":    [[1, "5511...@s.whatsapp.net", "0abc...", "..."]],
+  "page": 1, "limit": 50, "total": 1, "pages": 1
+}
+```
+
+### Update row
+
+```
+PATCH /zaplab/api/db/tables/{table}/{rowid}
+```
+
+Body:
+```json
+{
+  "values": { "push_name": "test", "noise_key": "0a1b2c..." },
+  "reconnect": true
+}
+```
+
+- `values`: map of column name → new value. All column names are validated against `PRAGMA table_info`.
+- For BLOB columns, provide a hex string; it will be decoded to bytes before storage.
+- `reconnect`: if `true`, triggers a WhatsApp disconnect+connect after the update.
+- **An automatic backup is created before every write.**
+
+Response:
+```json
+{ "message": "row updated", "backup": "whatsapp_20260316_143022.db", "reconnect": true }
+```
+
+### Delete row
+
+```
+DELETE /zaplab/api/db/tables/{table}/{rowid}
+```
+
+Body (optional):
+```json
+{ "reconnect": false }
+```
+
+**An automatic backup is created before deleting.**
+
+### Reconnect
+
+```
+POST /zaplab/api/db/reconnect
+```
+
+Body:
+```json
+{ "full": false }
+```
+
+| `full` | Behaviour |
+|--------|-----------|
+| `false` | Disconnect + connect (WebSocket level; fast) |
+| `true` | Full reinitialise: close client + `sqlstore.Container`, reopen from DSN, reconnect |
+
+### Create backup
+
+```
+POST /zaplab/api/db/backup
+```
+
+Creates a clean snapshot using SQLite `VACUUM INTO`. Returns the backup filename and size.
+
+### List backups
+
+```
+GET /zaplab/api/db/backups
+```
+
+Response:
+```json
+{
+  "backups": [
+    { "name": "whatsapp_20260316_143022.db", "size": 204800, "created": "2026-03-16T14:30:22Z" }
+  ]
+}
+```
+
+### Restore backup
+
+```
+POST /zaplab/api/db/restore
+```
+
+Body:
+```json
+{ "name": "whatsapp_20260316_143022.db" }
+```
+
+1. Closes both DB connections.
+2. Copies the backup file over `whatsapp.db`; removes WAL/SHM sidecars.
+3. Reopens connections.
+4. Calls `whatsapp.Reinitialize()` (full stack rebuild + reconnect).
+
+### Delete backup
+
+```
+DELETE /zaplab/api/db/backups/{name}
+```
