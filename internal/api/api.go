@@ -33,6 +33,9 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 	wh = webhookCfg
 	cfg = generalCfg
 	staticFS = staticFiles
+	if err := initDBExplorer(whatsapp.GetDBAddress(), whatsapp.GetDBDialect()); err != nil {
+		pb.Logger().Warn("DB Explorer init failed", "error", err)
+	}
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -112,6 +115,8 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest).Bind(auth)
 	e.Router.GET("/zaplab/api/config", getConfig).Bind(auth)
 	e.Router.PUT("/zaplab/api/config", putConfig).Bind(auth)
+	e.Router.GET("/zaplab/api/db/tables", getDBTables).Bind(auth)
+	e.Router.GET("/zaplab/api/db/tables/{table}", getDBTable).Bind(auth)
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil
