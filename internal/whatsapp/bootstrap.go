@@ -120,7 +120,8 @@ func Bootstrap(e *core.BootstrapEvent) error {
 	}
 
 	dbLog := waLog.Stdout("Database", logLevel, true)
-	storeContainer, err := sqlstore.New(context.Background(), *dbDialect, *dbAddress, dbLog)
+	var err error
+	storeContainer, err = sqlstore.New(context.Background(), *dbDialect, *dbAddress, dbLog)
 	if err != nil {
 		logger.Errorf("Failed to connect to database: %v", err)
 		return fmt.Errorf("failed to connect to database: %v", err)
