@@ -759,8 +759,16 @@ func postDBQuery(e *core.RequestEvent) error {
 		return e.JSON(http.StatusServiceUnavailable, map[string]any{"error": "whatsapp database not connected"})
 	}
 
+	// Append LIMIT 1000 only when the query doesn't already contain one.
+	// Check after stripping trailing semicolons to avoid "LIMIT … LIMIT …" syntax errors.
+	stmtNoSemi := strings.TrimRight(strings.TrimSpace(stmt), ";")
+	upper2 := strings.ToUpper(stmtNoSemi)
+	if !strings.Contains(upper2, " LIMIT ") && !strings.HasSuffix(upper2, " LIMIT") {
+		stmtNoSemi += " LIMIT 1000"
+	}
+
 	start := time.Now()
-	rows, err := waDB.QueryContext(e.Request.Context(), stmt+" LIMIT 1000")
+	rows, err := waDB.QueryContext(e.Request.Context(), stmtNoSemi)
 	if err != nil {
 		return e.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
 	}
