@@ -58,7 +58,7 @@ function contactsMgmtSection() {
       switch (this.mgmt.type) {
         case 'list':  return '/zaplab/api/contacts';
         case 'check': return '/zaplab/api/contacts/check';
-        case 'info':  return `/contacts/${encodeURIComponent(this.mgmt.infoJid || '<jid>')}`;
+        case 'info':  return `/zaplab/api/contacts/${encodeURIComponent(this.mgmt.infoJid || '<jid>')}`;
         default:      return '';
       }
     },
