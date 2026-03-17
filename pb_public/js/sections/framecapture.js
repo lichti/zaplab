@@ -121,6 +121,27 @@ function frameCaptureSection() {
       return items;
     },
 
+    // ── PCAP export ──
+    async fcExportPCAP() {
+      const params = new URLSearchParams({ limit: 1000 });
+      if (this.fcModuleFilter) params.set('module', this.fcModuleFilter);
+      if (this.fcLevelFilter)  params.set('level',  this.fcLevelFilter);
+      if (this.fcSearch.trim()) params.set('search', this.fcSearch.trim());
+      try {
+        const res = await fetch(`/zaplab/api/frames/pcap?${params}`, { headers: this.apiHeaders() });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `zaplab_frames_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.pcap`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (_) {}
+    },
+
     // ── helpers ──
     fcMsg(e) { return e.msg || e.Message || ''; },
     fcModule(e) { return e.module || e.Module || ''; },
