@@ -148,40 +148,39 @@ func getConversation(e *core.RequestEvent) error {
 }
 
 // detectMsgType returns (msgType, text, caption) from a parsed Message map.
+// Proto-generated Go structs use camelCase json tags (e.g. "conversation", "imageMessage").
 func detectMsgType(msg map[string]any) (msgType, text, caption string) {
-	if v, ok := msg["Conversation"].(string); ok && v != "" {
+	if v, ok := msg["conversation"].(string); ok && v != "" {
 		return "text", v, ""
 	}
-	if ext, ok := msg["ExtendedTextMessage"].(map[string]any); ok {
-		t, _ := ext["Text"].(string)
+	if ext, ok := msg["extendedTextMessage"].(map[string]any); ok {
+		t, _ := ext["text"].(string)
 		return "text", t, ""
 	}
-	if img, ok := msg["ImageMessage"].(map[string]any); ok {
-		cap, _ := img["Caption"].(string)
+	if img, ok := msg["imageMessage"].(map[string]any); ok {
+		cap, _ := img["caption"].(string)
 		return "image", "", cap
 	}
-	if vid, ok := msg["VideoMessage"].(map[string]any); ok {
-		cap, _ := vid["Caption"].(string)
+	if vid, ok := msg["videoMessage"].(map[string]any); ok {
+		cap, _ := vid["caption"].(string)
 		return "video", "", cap
 	}
-	if _, ok := msg["AudioMessage"]; ok {
+	if _, ok := msg["audioMessage"]; ok {
 		return "audio", "", ""
 	}
-	if _, ok := msg["DocumentMessage"]; ok {
-		doc, _ := msg["DocumentMessage"].(map[string]any)
-		cap, _ := doc["Caption"].(string)
+	if doc, ok := msg["documentMessage"].(map[string]any); ok {
+		cap, _ := doc["caption"].(string)
 		return "document", "", cap
 	}
-	if _, ok := msg["StickerMessage"]; ok {
+	if _, ok := msg["stickerMessage"]; ok {
 		return "sticker", "", ""
 	}
-	if loc, ok := msg["LocationMessage"].(map[string]any); ok {
-		name, _ := loc["Name"].(string)
+	if loc, ok := msg["locationMessage"].(map[string]any); ok {
+		name, _ := loc["name"].(string)
 		return "location", name, ""
 	}
-	if _, ok := msg["ReactionMessage"]; ok {
-		react, _ := msg["ReactionMessage"].(map[string]any)
-		emoji, _ := react["Text"].(string)
+	if react, ok := msg["reactionMessage"].(map[string]any); ok {
+		emoji, _ := react["text"].(string)
 		return "reaction", emoji, ""
 	}
 	return "unknown", "", ""

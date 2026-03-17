@@ -88,7 +88,7 @@ function gallerySection() {
 
     glFormatDate(created) {
       if (!created) return '';
-      return new Date(created.replace(' ', 'T') + 'Z').toLocaleString();
+      return new Date(created.replace(' ', 'T')).toLocaleString();
     },
     glShortJID(jid) {
       if (!jid) return '?';

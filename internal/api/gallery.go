@@ -32,18 +32,19 @@ func getMediaGallery(e *core.RequestEvent) error {
 	params := map[string]any{"limit": limit, "offset": offset}
 	var extraWhere []string
 
-	// Media type filter maps to the presence of specific message sub-objects
+	// Media type filter maps to the presence of specific message sub-objects.
+	// Proto-generated Go structs use camelCase json tags.
 	switch typeFilter {
 	case "image":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.ImageMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.imageMessage') IS NOT NULL")
 	case "video":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.VideoMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.videoMessage') IS NOT NULL")
 	case "audio":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.AudioMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.audioMessage') IS NOT NULL")
 	case "document":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.DocumentMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.documentMessage') IS NOT NULL")
 	case "sticker":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.StickerMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.stickerMessage') IS NOT NULL")
 	}
 
 	if chatFilter != "" {
@@ -62,18 +63,18 @@ func getMediaGallery(e *core.RequestEvent) error {
 		       COALESCE(json_extract(raw, '$.Info.Sender'), '')   AS sender,
 		       COALESCE(json_extract(raw, '$.Info.IsFromMe'), 0)  AS is_from_me,
 		       CASE
-		         WHEN json_extract(raw, '$.Message.ImageMessage')    IS NOT NULL THEN 'image'
-		         WHEN json_extract(raw, '$.Message.VideoMessage')    IS NOT NULL THEN 'video'
-		         WHEN json_extract(raw, '$.Message.AudioMessage')    IS NOT NULL THEN 'audio'
-		         WHEN json_extract(raw, '$.Message.DocumentMessage') IS NOT NULL THEN 'document'
-		         WHEN json_extract(raw, '$.Message.StickerMessage')  IS NOT NULL THEN 'sticker'
+		         WHEN json_extract(raw, '$.Message.imageMessage')    IS NOT NULL THEN 'image'
+		         WHEN json_extract(raw, '$.Message.videoMessage')    IS NOT NULL THEN 'video'
+		         WHEN json_extract(raw, '$.Message.audioMessage')    IS NOT NULL THEN 'audio'
+		         WHEN json_extract(raw, '$.Message.documentMessage') IS NOT NULL THEN 'document'
+		         WHEN json_extract(raw, '$.Message.stickerMessage')  IS NOT NULL THEN 'sticker'
 		         ELSE 'unknown'
 		       END AS media_type,
 		       COALESCE(
-		         json_extract(raw, '$.Message.ImageMessage.Caption'),
-		         json_extract(raw, '$.Message.VideoMessage.Caption'),
-		         json_extract(raw, '$.Message.DocumentMessage.Caption'),
-		         json_extract(raw, '$.Message.DocumentMessage.FileName'),
+		         json_extract(raw, '$.Message.imageMessage.caption'),
+		         json_extract(raw, '$.Message.videoMessage.caption'),
+		         json_extract(raw, '$.Message.documentMessage.caption'),
+		         json_extract(raw, '$.Message.documentMessage.fileName'),
 		         ''
 		       ) AS caption,
 		       file,
