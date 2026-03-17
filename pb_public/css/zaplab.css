@@ -33,6 +33,10 @@ html:not(.dark) .cm { color: #8c959f; }
 html:not(.dark) .diff-del { background-color: rgba(207,34,46,.12);  color: #cf222e; }
 html:not(.dark) .diff-ins { background-color: rgba(26,127,55,.12);  color: #1a7f37; }
 
+/* Heatmap cells — use CSS vars set by Alpine :style binding */
+.heat-cell { background: var(--heat-light, transparent); }
+.dark .heat-cell { background: var(--heat-dark, transparent); }
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 .dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }

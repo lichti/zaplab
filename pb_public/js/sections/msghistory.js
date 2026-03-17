@@ -21,8 +21,15 @@ function msgHistorySection() {
       origNotFound:   false,
       exporting:      false,
     },
-    mhCopied:     false,
-    mhOrigCopied: false,
+    mhCopied:       false,
+    mhOrigCopied:   false,
+
+    // ── diff options ──
+    mhDiffMode:     'inline',  // 'inline' | 'sidebyside'
+    mhCharLevel:    false,     // false = word-level; true = character-level tokenisation
+    mhShowChain:    false,     // show full edit chain panel
+    mhChain:        [],        // [{id, type, msgID, raw, created}]
+    mhChainLoading: false,
 
     // ── init ──
     initMsgHistory() {},
@@ -104,6 +111,8 @@ function msgHistorySection() {
       this.mh.origNotFound = false;
       this.mhCopied        = false;
       this.mhOrigCopied    = false;
+      this.mhChain         = [];
+      this.mhShowChain     = false;
 
       const origId = this._mhOriginalId(item);
       if (!origId) {
@@ -125,6 +134,33 @@ function msgHistorySection() {
         this.mh.origNotFound = true;
       } finally {
         this.mh.origLoading = false;
+      }
+    },
+
+    // Load the full edit chain for the currently selected item
+    async mhLoadChain() {
+      const item = this.mh.selected;
+      if (!item) return;
+      const origId = this._mhOriginalId(item);
+      if (!origId) return;
+      this.mhChainLoading = true;
+      try {
+        const res = await fetch(`/zaplab/api/stats/editchain?msgid=${encodeURIComponent(origId)}`,
+          { headers: this.apiHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          this.mhChain = data.chain || [];
+        }
+      } catch {}
+      this.mhChainLoading = false;
+      this.mhShowChain    = true;
+    },
+
+    mhToggleChain() {
+      if (this.mhShowChain) {
+        this.mhShowChain = false;
+      } else {
+        this.mhLoadChain();
       }
     },
 
@@ -222,10 +258,12 @@ function msgHistorySection() {
       return new Date(iso).toLocaleString('en-GB', { hour12: false });
     },
 
-    // ── word-level diff ──
+    // ── diff engine ──
 
-    // Tokenize text into words and whitespace runs for word-level diffing.
+    // Tokenize text for diffing.
+    // mhCharLevel=false → word+whitespace tokens; true → individual characters.
     _mhTokenize(text) {
+      if (this.mhCharLevel) return Array.from(String(text));
       return String(text).match(/\S+|\s+/g) || [];
     },
 
@@ -233,7 +271,6 @@ function msgHistorySection() {
     // Returns an array of { type: 'eq'|'del'|'ins', val } operations.
     _mhLCS(a, b) {
       const m = a.length, n = b.length;
-      // Flat DP table (row-major) for memory efficiency
       const dp  = new Int32Array((m + 1) * (n + 1));
       const row = n + 1;
       for (let i = 1; i <= m; i++) {
@@ -243,7 +280,6 @@ function msgHistorySection() {
             : Math.max(dp[(i - 1) * row + j], dp[i * row + (j - 1)]);
         }
       }
-      // Backtrack
       const ops = [];
       let i = m, j = n;
       while (i > 0 || j > 0) {
@@ -258,24 +294,49 @@ function msgHistorySection() {
       return ops;
     },
 
-    // Returns syntax-highlighted HTML showing word-level diff between the
-    // original message text and the edited (new) content.
-    // Returns null when either side is unavailable.
-    mhDiffHtml(item) {
+    // Get the two text sides (original, new) for the selected item.
+    _mhDiffTexts(item) {
       const newText  = this.mhNewContent(item);
       const origText = this.mh.origEvent ? this.ebPreviewText(this.mh.origEvent) : null;
+      return { origText, newText };
+    },
+
+    // Compute diff stats: {added, removed, similarity (0-100)}.
+    mhDiffStats(item) {
+      const { origText, newText } = this._mhDiffTexts(item);
+      if (!origText || !newText) return null;
+      if (origText === newText) return { added: 0, removed: 0, similarity: 100 };
+
+      const tokOld = this._mhTokenize(origText).filter(t => t.trim());
+      const tokNew = this._mhTokenize(newText).filter(t => t.trim());
+      const limit  = this.mhCharLevel ? 600 : 400;
+      if (tokOld.length > limit || tokNew.length > limit) {
+        return { added: tokNew.length, removed: tokOld.length, similarity: 0 };
+      }
+
+      const ops  = this._mhLCS(tokOld, tokNew);
+      const eq   = ops.filter(o => o.type === 'eq').length;
+      const del  = ops.filter(o => o.type === 'del').length;
+      const ins  = ops.filter(o => o.type === 'ins').length;
+      const sim  = Math.round((2 * eq) / (tokOld.length + tokNew.length) * 100);
+      return { added: ins, removed: del, similarity: sim };
+    },
+
+    // Inline diff HTML — both additions and deletions in a single stream.
+    mhDiffHtml(item) {
+      const { origText, newText } = this._mhDiffTexts(item);
       if (!origText || !newText) return null;
 
       const esc = s => String(s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-      if (origText === newText) return esc(origText);
+      if (origText === newText) return '<span class="text-gray-400 dark:text-gray-500 text-xs italic">Identical — no changes detected</span>';
 
+      const limit = this.mhCharLevel ? 600 : 400;
       const tokOld = this._mhTokenize(origText);
       const tokNew = this._mhTokenize(newText);
 
-      // Fall back to block diff for very long texts (avoid O(n²) freeze)
-      if (tokOld.length > 400 || tokNew.length > 400) {
+      if (tokOld.length > limit || tokNew.length > limit) {
         return `<span class="diff-del">${esc(origText)}</span>\n<span class="diff-ins">${esc(newText)}</span>`;
       }
 
@@ -285,6 +346,93 @@ function msgHistorySection() {
         if (op.type === 'ins') return `<span class="diff-ins">${e}</span>`;
         return e;
       }).join('');
+    },
+
+    // Side-by-side: returns HTML for the LEFT (original) panel.
+    mhDiffSideA(item) {
+      const { origText, newText } = this._mhDiffTexts(item);
+      if (!origText) return '<em class="text-gray-400">Original not found</em>';
+
+      const esc = s => String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      if (!newText || origText === newText) return esc(origText);
+
+      const limit  = this.mhCharLevel ? 600 : 400;
+      const tokOld = this._mhTokenize(origText);
+      const tokNew = this._mhTokenize(newText);
+      if (tokOld.length > limit || tokNew.length > limit) {
+        return `<span class="diff-del">${esc(origText)}</span>`;
+      }
+
+      return this._mhLCS(tokOld, tokNew)
+        .filter(op => op.type !== 'ins')
+        .map(op => {
+          const e = esc(op.val);
+          return op.type === 'del' ? `<span class="diff-del">${e}</span>` : e;
+        }).join('');
+    },
+
+    // Side-by-side: returns HTML for the RIGHT (new) panel.
+    mhDiffSideB(item) {
+      const { origText, newText } = this._mhDiffTexts(item);
+      if (!newText) return '<em class="text-gray-400">New content not found</em>';
+
+      const esc = s => String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      if (!origText || origText === newText) return esc(newText);
+
+      const limit  = this.mhCharLevel ? 600 : 400;
+      const tokOld = this._mhTokenize(origText);
+      const tokNew = this._mhTokenize(newText);
+      if (tokOld.length > limit || tokNew.length > limit) {
+        return `<span class="diff-ins">${esc(newText)}</span>`;
+      }
+
+      return this._mhLCS(tokOld, tokNew)
+        .filter(op => op.type !== 'del')
+        .map(op => {
+          const e = esc(op.val);
+          return op.type === 'ins' ? `<span class="diff-ins">${e}</span>` : e;
+        }).join('');
+    },
+
+    // Edit chain helpers
+    mhChainKind(entry) {
+      try {
+        const r     = typeof entry.raw === 'string' ? JSON.parse(entry.raw) : (entry.raw || {});
+        const proto = r?.Message?.protocolMessage;
+        const edit  = r?.Info?.Edit;
+        if (edit === '1' || (proto && proto.type === 14)) return 'edit';
+        if (edit === '7' || edit === '8' || proto) return 'delete';
+        return 'original';
+      } catch { return 'original'; }
+    },
+
+    mhChainKindClass(kind) {
+      if (kind === 'original') return 'bg-gray-100 text-gray-600 dark:bg-gray-700/40 dark:text-gray-400';
+      if (kind === 'edit')     return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300';
+      return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400';
+    },
+
+    mhChainContent(entry) {
+      try {
+        const r    = typeof entry.raw === 'string' ? JSON.parse(entry.raw) : (entry.raw || {});
+        const proto = r?.Message?.protocolMessage;
+        const edited = proto?.editedMessage || r?.Message?.editedMessage;
+        if (edited) {
+          const msg = edited.message || edited;
+          return msg.conversation || msg.extendedTextMessage?.text || '[media edit]';
+        }
+        const msg = r?.Message;
+        if (!msg) return '';
+        return msg.conversation || msg.extendedTextMessage?.text
+          || (msg.imageMessage    ? '[image]'    : '')
+          || (msg.videoMessage    ? '[video]'    : '')
+          || (msg.audioMessage    ? '[audio]'    : '')
+          || (msg.documentMessage ? '[document]' : '');
+      } catch { return ''; }
     },
 
     // ── CSV export ──
