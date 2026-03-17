@@ -9,6 +9,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/lichti/zaplab/internal/whatsapp"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -329,12 +330,24 @@ func runScript(code string, timeout time.Duration) (output string, runErr error,
 			panic(vm.ToValue("db.query(sql) requires 1 argument"))
 		}
 		sql := call.Arguments[0].String()
-		type anyRow map[string]any
-		var rows []anyRow
+		var rows []dbx.NullStringMap
 		if err := pb.DB().NewQuery(sql).All(&rows); err != nil {
 			panic(vm.ToValue(fmt.Sprintf("db.query error: %v", err)))
 		}
-		val, _ := json.Marshal(rows)
+		// Convert NullStringMap → []map[string]any for JSON serialization.
+		result := make([]map[string]any, len(rows))
+		for i, row := range rows {
+			m := make(map[string]any, len(row))
+			for k, v := range row {
+				if v.Valid {
+					m[k] = v.String
+				} else {
+					m[k] = nil
+				}
+			}
+			result[i] = m
+		}
+		val, _ := json.Marshal(result)
 		var out any
 		_ = json.Unmarshal(val, &out)
 		return vm.ToValue(out)
