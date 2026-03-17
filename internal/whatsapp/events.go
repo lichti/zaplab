@@ -47,6 +47,7 @@ func handler(rawEvt interface{}) {
 	case *events.Connected, *events.PushNameSetting:
 		setConnStatus(StatusConnected)
 		setLastQR("")
+		go recordConnEvent("connected", "")
 		if len(client.Store.PushName) == 0 {
 			if err := saveEvent(evtType, rawEvt, nil); err != nil {
 				logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
@@ -67,6 +68,7 @@ func handler(rawEvt interface{}) {
 	case *events.Disconnected:
 		setConnStatus(StatusDisconnected)
 		logger.Warnf("WhatsApp disconnected, reconnecting with backoff... reason=%v", evt)
+		go recordConnEvent("disconnected", fmt.Sprintf("%v", evt))
 		go reconnectWithBackoff("disconnect")
 		return
 
@@ -288,6 +290,13 @@ func handler(rawEvt interface{}) {
 		presType := "ChatPresence." + string(evt.State)
 		if err := saveEvent(presType, rawEvt, nil); err != nil {
 			logger.Errorf("Error persisting chat presence event type=%s error=%v", presType, err)
+		}
+		return
+
+	case *events.GroupInfo:
+		go recordGroupMembership(evt)
+		if err := saveEvent(evtType, rawEvt, nil); err != nil {
+			logger.Errorf("Error persisting group info event type=%s error=%v", evtType, err)
 		}
 		return
 

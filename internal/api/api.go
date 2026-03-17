@@ -47,6 +47,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	InitCronScheduler()
 
 	auth := requireAuth()
+	audit := auditMiddleware()
 
 	// Redirects
 	e.Router.GET("/", func(e *core.RequestEvent) error {
@@ -65,7 +66,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/wa/account", getWAAccount).Bind(auth)
 	e.Router.GET("/zaplab/api/ping", getPing).Bind(auth)
 	e.Router.POST("/zaplab/api/cmd", postSendCmd).Bind(auth)
-	e.Router.POST("/zaplab/api/sendmessage", postSendMessage).Bind(auth)
+	e.Router.POST("/zaplab/api/sendmessage", postSendMessage).Bind(auth, audit)
 	e.Router.POST("/zaplab/api/sendimage", postSendImage).Bind(auth, apis.BodyLimit(mediaBodyLimit))
 	e.Router.POST("/zaplab/api/sendvideo", postSendVideo).Bind(auth, apis.BodyLimit(mediaBodyLimit))
 	e.Router.POST("/zaplab/api/sendaudio", postSendAudio).Bind(auth, apis.BodyLimit(mediaBodyLimit))
@@ -170,8 +171,8 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/scripts", postScript).Bind(auth)
 	e.Router.PATCH("/zaplab/api/scripts/{id}", patchScript).Bind(auth)
 	e.Router.DELETE("/zaplab/api/scripts/{id}", deleteScript).Bind(auth)
-	e.Router.POST("/zaplab/api/scripts/{id}/run", postScriptRun).Bind(auth)
-	e.Router.POST("/zaplab/api/scripts/run", postScriptRunAdhoc).Bind(auth)
+	e.Router.POST("/zaplab/api/scripts/{id}/run", postScriptRun).Bind(auth, audit)
+	e.Router.POST("/zaplab/api/scripts/run", postScriptRunAdhoc).Bind(auth, audit)
 
 	// Script triggers (event hooks)
 	e.Router.GET("/zaplab/api/script-triggers", getTriggers).Bind(auth)
@@ -210,6 +211,29 @@ func RegisterRoutes(e *core.ServeEvent) error {
 
 	// Cron schedules
 	e.Router.GET("/zaplab/api/scripts/cron", getCronSchedules).Bind(auth)
+
+	// Script import/export
+	e.Router.GET("/zaplab/api/scripts/export", getScriptsExport).Bind(auth)
+	e.Router.POST("/zaplab/api/scripts/import", postScriptsImport).Bind(auth, audit)
+
+	// wa.db health: pre-keys & message secrets
+	e.Router.GET("/zaplab/api/wa/prekeys", getWAPrekeys).Bind(auth)
+	e.Router.GET("/zaplab/api/wa/secrets", getWASecrets).Bind(auth)
+
+	// Frame analyzers: IQ nodes & binary frames
+	e.Router.GET("/zaplab/api/frames/iq", getFramesIQ).Bind(auth)
+	e.Router.GET("/zaplab/api/frames/binary", getFramesBinary).Bind(auth)
+
+	// Connection stability dashboard
+	e.Router.GET("/zaplab/api/conn/events", getConnEvents).Bind(auth)
+	e.Router.GET("/zaplab/api/conn/stats", getConnStats).Bind(auth)
+
+	// Group membership tracker
+	e.Router.GET("/zaplab/api/groups/membership", getGroupMembershipAll).Bind(auth)
+	e.Router.GET("/zaplab/api/groups/{jid}/history", getGroupMembershipHistory).Bind(auth)
+
+	// Audit log
+	e.Router.GET("/zaplab/api/audit", getAuditLog).Bind(auth)
 
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
