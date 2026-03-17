@@ -10,6 +10,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Connection Stability Dashboard** — new section for monitoring WhatsApp connection health over time.
+  - **Backend**: new PocketBase collection `conn_events` (`event_type`, `reason`, `jid`); migration `1747300000_create_conn_events.go`. Events are recorded asynchronously from the `Connected` and `Disconnected` whatsmeow event handlers in `internal/whatsapp/conntrack.go`.
+  - Two new endpoints: `GET /zaplab/api/conn/events` (paginated event log with date filter) and `GET /zaplab/api/conn/stats` (counts + uptime percentage over last 24 h / 7 d / 30 d windows).
+  - **Frontend**: timeline card list with connected/disconnected badges, uptime percentage chips, and period selectors.
+- **Script Import / Export** — backup and restore the full script library with a single click.
+  - `GET /zaplab/api/scripts/export` — returns all scripts as a JSON array bundle.
+  - `POST /zaplab/api/scripts/import` — upserts scripts by name; preserves `enabled` and `timeout_secs` on update.
+  - **Frontend**: **Export** and **Import** buttons added to the Scripting section header toolbar.
+- **WA Health Monitor** — new section exposing the health of internal whatsmeow state.
+  - **Pre-key Health** tab: reads `whatsmeow_pre_keys` via `GET /zaplab/api/wa/prekeys`; shows total, uploaded count, and a visual progress bar that turns red when the uploaded supply is critically low.
+  - **Message Secrets** tab: reads `whatsmeow_message_secrets` via `GET /zaplab/api/wa/secrets`; paginated table of all stored per-message encryption secrets.
+  - Uses the `dbeTableColumns` / `dbeScanRows` helpers from `dbexplorer.go`; custom `rowsToMaps` helper zips column names with `[][]any` rows before JSON serialisation.
+- **IQ Node Analyzer** (`frames-iq` section, IQ tab) — filters the persistent `frames` table for entries whose `msg` contains `<iq` and displays them with level and IQ-type (get / set / result / error) filter dropdowns.
+- **Binary Node Inspector** (`frames-iq` section, Binary tab) — filters the `frames` table for `module IN ('Noise','Socket')`, exposing the binary protocol layer; filter by level and module; expandable detail per entry.
+  - **Backend** for both analyzers: `GET /zaplab/api/frames/iq` and `GET /zaplab/api/frames/binary` in `internal/api/framesiq.go`. Filters use `dbx.NewExp` / `dbx.HashExp` against the `frames` collection. No `direction` or `raw` column — filters on `level` and searches `msg LIKE '%<iq%'`.
+- **Group Membership Tracker** — records every `events.GroupInfo` event (join, leave, promote, demote) to a new `group_membership` collection.
+  - **Backend**: migration `1747310000_create_group_membership.go`; `recordGroupMembership(*events.GroupInfo)` in `internal/whatsapp/conntrack.go` writes one row per affected member.
+  - Two endpoints: `GET /zaplab/api/groups/{jid}/history` (history for a specific group) and `GET /zaplab/api/groups/membership` (all events, paginated).
+  - **Frontend**: table view with action badge (join=green, leave=red, promote=blue, demote=yellow), JID filters, and a group-history drill-down mode.
+- **Message Secret Inspector** — see *WA Health Monitor* above (tab within the same section).
+- **Audit Log** — records every mutating API operation for audit and research purposes.
+  - **Backend**: `auditMiddleware()` in `internal/api/auditlog.go` buffers the request body (up to 64 KB), restores it with `io.NopCloser`, and saves a record asynchronously to the new `audit_log` collection (migration `1747320000_create_audit_log.go`). Applied to `POST /sendmessage`, `POST /scripts/{id}/run`, `POST /scripts/run`, and `POST /scripts/import`.
+  - `GET /zaplab/api/audit` — paginated, filterable audit log browser.
+  - **Frontend**: table with method badge, path, remote IP, timestamp, and expandable request body.
+
+### Fixed
+- **Frame Analyzers — `no such column: direction`** — the `frames` PocketBase collection has no `direction` or `raw` columns; fixed `framesiq.go` to filter only on `level` and `msg LIKE '%<iq%'`; fixed frontend dropdowns and display columns to use `fiq.iqLevel` / `fiq.binLevel` instead of removed direction fields.
+- **DB Sandbox — `LIMIT` syntax error** — `postDBQuery` was unconditionally appending ` LIMIT 1000` even when the user query already contained a `LIMIT` clause, producing `SELECT ... LIMIT 50 LIMIT 1000`; fixed by checking `strings.Contains(upper, " LIMIT ")` before appending.
+- **DB Sandbox — `no such column: version`** — the Sessions quick-access example referenced a non-existent `version` column in `whatsmeow_sessions`; removed it from the example query.
+
 - **Conversation View** — new two-pane section for browsing chat history as a chat bubble interface.
   - **Backend**: `GET /zaplab/api/conversation/chats?limit=N` returns a deduplicated list of chats ordered by most-recent message; `GET /zaplab/api/conversation?chat=...&limit=N&before=RFC3339` returns paginated messages with `has_more` / `next_before` cursor for infinite scroll upward.
   - Messages queried via `json_extract(raw, '$.Info.Chat')` from the `events` table; media type detected from proto fields (text, image, video, audio, document, sticker, location, reaction).

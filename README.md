@@ -6,8 +6,43 @@ A Go toolkit for studying and testing the WhatsApp Web protocol, with a built-in
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Clone and build
+git clone https://github.com/lichti/zaplab.git
+cd zaplab
+cp .env.example .env          # set API_TOKEN (required)
+make build                    # requires Go 1.25+
+
+# 2. Run (local binary)
+make run                      # starts on http://localhost:8090
+
+# OR run with Docker
+make run-docker               # full stack (engine + n8n + cloudflared)
+```
+
+```bash
+# 3. Pair WhatsApp — scan the QR code printed in the logs
+make logs                     # look for the QR code in the terminal output
+# On your phone: Settings → Linked Devices → Link a Device
+
+# 4. Open the dashboard
+open http://localhost:8090    # redirects to /zaplab/tools/
+# Default login: zaplab@zaplab.local / <password printed on first start>
+
+# 5. Verify the connection
+curl http://localhost:8090/health
+# {"pocketbase":"ok","whatsapp":true}
+```
+
+> The session is persisted in `data/db/whatsapp.db`. On subsequent starts the bot reconnects automatically — no QR code needed.
+
+---
+
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
@@ -980,6 +1015,26 @@ Executes a bot command via API (equivalent to typing `/cmd <cmd> <args>` in What
 
 ---
 
+### ZapLab Analytics & Research Endpoints
+
+These endpoints power the research dashboard sections. All require `X-API-Token`.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/zaplab/api/wa/prekeys` | Pre-key supply health (total, uploaded, low-water flag) |
+| `GET` | `/zaplab/api/wa/secrets` | Browse `whatsmeow_message_secrets` entries |
+| `GET` | `/zaplab/api/frames/iq` | IQ stanza frames — filter by `level` and `iqtype` |
+| `GET` | `/zaplab/api/frames/binary` | Noise/Socket binary frames — filter by `level` and `module` |
+| `GET` | `/zaplab/api/groups/{jid}/history` | Membership history for a specific group |
+| `GET` | `/zaplab/api/groups/membership` | All group membership events (paginated) |
+| `GET` | `/zaplab/api/conn/events` | Connection/disconnection event log |
+| `GET` | `/zaplab/api/conn/stats` | Uptime stats (counts, pct by window) |
+| `GET` | `/zaplab/api/audit` | Audit log of mutating API calls |
+| `GET` | `/zaplab/api/scripts/export` | Export all scripts as a JSON bundle |
+| `POST` | `/zaplab/api/scripts/import` | Import/upsert scripts from a JSON bundle |
+
+---
+
 ## Webhook System
 
 Events are dispatched to configured URLs. Configuration is persisted in `webhook.json` (inside the data directory) and can be changed at runtime via the REST API or the **Webhooks** UI section — no restart needed.
@@ -1180,6 +1235,43 @@ Stores history sync metadata (content goes to `data/history/*.json`).
 | `msgID` | text | Message ID |
 | `raw` | json | History data |
 
+### `conn_events`
+
+Records every WhatsApp connection and disconnection event.
+
+| Field | Type | Description |
+|---|---|---|
+| `event_type` | text | `connected` or `disconnected` |
+| `reason` | text | Disconnect reason string (empty for connect events) |
+| `jid` | text | Bot JID at the time of the event |
+| `created` | datetime | Timestamp (auto) |
+
+### `group_membership`
+
+Records every group membership change observed from `events.GroupInfo`.
+
+| Field | Type | Description |
+|---|---|---|
+| `group_jid` | text | Group JID |
+| `group_name` | text | Group name at the time of the event |
+| `member_jid` | text | Member whose status changed |
+| `action` | text | `join`, `leave`, `promote`, or `demote` |
+| `actor_jid` | text | JID of the member who performed the action (if known) |
+| `created` | datetime | Timestamp (auto) |
+
+### `audit_log`
+
+Tamper-evident log of mutating API operations recorded by the audit middleware.
+
+| Field | Type | Description |
+|---|---|---|
+| `method` | text | HTTP method (`POST`, `PATCH`, `DELETE`) |
+| `path` | text | Request path |
+| `status_code` | text | HTTP status code string |
+| `remote_ip` | text | Client IP address |
+| `request_body` | text | Request body (up to 64 KB) |
+| `created` | datetime | Timestamp (auto) |
+
 ### Other collections
 
 Created by migrations but not actively used by the bot:
@@ -1240,8 +1332,13 @@ A built-in web interface for interacting with all API features without writing a
 | **Conversation View** | Two-pane chat bubble browser — left panel lists all chats (filter by JID, last-message preview); right panel shows messages as sent/received bubbles with inline media thumbnails, load-more pagination, and raw event drawer |
 | **Media Gallery** | Grid view of all downloaded media files (images, video, audio, documents, stickers); type and chat filters; lightbox with inline image/video/audio playback |
 | **Script Triggers** | Automatically execute stored scripts when WhatsApp events arrive; optional JID and text-pattern filters; event type dropdown; enable/disable toggle; trigger list with inline edit |
-| **Scripting** | JavaScript automation sandbox powered by goja; persisted scripts with name, description, configurable timeout, enable/disable toggle; expanded sandbox APIs: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`; ad-hoc console with 10 built-in example snippets; last-run status/output/duration stored per script |
+| **Scripting** | JavaScript automation sandbox powered by goja; persisted scripts with name, description, configurable timeout, enable/disable toggle; expanded sandbox APIs: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`; ad-hoc console with 10 built-in example snippets; last-run status/output/duration stored per script; **Export / Import** — download all scripts as a JSON bundle or import from a file (upserts by name, preserves `enabled` and `timeout_secs`) |
 | **Advanced Stats & Heatmap** | GitHub-style activity heatmap (7×24 grid of day-of-week × hour); daily message sparkline SVG; event type distribution bar chart; summary cards (total, last 24 h, 7 d, 30 d, last event, edited, deleted); configurable period (7 / 30 / 90 / 365 days / all time) |
+| **WA Health Monitor** | Pre-key health check — shows how many pre-keys are uploaded vs. total, a visual progress bar, and highlights when the supply is dangerously low; **Message Secret Inspector** tab — browse all `whatsmeow_message_secrets` entries with key ID, chain key, and related columns |
+| **Frame Analyzers** | **IQ Node Analyzer** — filter and browse `<iq>` XML stanzas captured in the `frames` table (filter by level and IQ type: get / set / result / error); **Binary Node Inspector** — browse Noise/Socket-layer binary frames with level and module filters; expandable full-message detail for any entry |
+| **Group Membership Tracker** | Historical log of all group membership events (join, leave, promote, demote) recorded from `events.GroupInfo`; filter by action type and JID; group-level history view for a specific group JID |
+| **Connection Stability** | Connection event timeline (connected / disconnected with reason); uptime percentage over configurable time windows; event counts per type; powered by the new `conn_events` collection |
+| **Audit Log** | Tamper-evident log of all mutating API operations (send, script run, script import); records method, path, status code, remote IP, and request body; filterable and paginated |
 | **Send Message** | Send all message types with curl preview and response viewer |
 | **Send Raw** | Send any `waE2E.Message` JSON directly — full protocol exploration |
 | **Message Control** | React, edit, revoke/delete, set typing indicator, set disappearing timer |
