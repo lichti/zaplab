@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Dev]
 
+---
+
+## [v1.0.0-beta.8] — 2026-03-17
+
 ### Added
 - **Connection Stability Dashboard** — new section for monitoring WhatsApp connection health over time.
   - **Backend**: new PocketBase collection `conn_events` (`event_type`, `reason`, `jid`); migration `1747300000_create_conn_events.go`. Events are recorded asynchronously from the `Connected` and `Disconnected` whatsmeow event handlers in `internal/whatsapp/conntrack.go`.
