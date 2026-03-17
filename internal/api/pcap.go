@@ -145,8 +145,8 @@ func writePCAPPacket(w *bytes.Buffer, ts time.Time, payload []byte) {
 	ipHdr := make([]byte, 20)
 	ipHdr[0] = 0x45 // version=4, IHL=5 (20 bytes, no options)
 	binary.BigEndian.PutUint16(ipHdr[2:4], ipTotalLen)
-	ipHdr[8] = 64 // TTL
-	ipHdr[9] = 17 // protocol = UDP
+	ipHdr[8] = 64                            // TTL
+	ipHdr[9] = 17                            // protocol = UDP
 	copy(ipHdr[12:16], []byte{127, 0, 0, 1}) // src = 127.0.0.1
 	copy(ipHdr[16:20], []byte{127, 0, 0, 2}) // dst = 127.0.0.2
 
@@ -154,7 +154,7 @@ func writePCAPPacket(w *bytes.Buffer, ts time.Time, payload []byte) {
 	ethHdr := make([]byte, 14)
 	copy(ethHdr[0:6], []byte{0x52, 0x4c, 0x41, 0x42, 0x00, 0x02})  // dst MAC
 	copy(ethHdr[6:12], []byte{0x52, 0x4c, 0x41, 0x42, 0x00, 0x01}) // src MAC
-	binary.BigEndian.PutUint16(ethHdr[12:14], 0x0800)               // EtherType = IPv4
+	binary.BigEndian.PutUint16(ethHdr[12:14], 0x0800)              // EtherType = IPv4
 
 	// ── full packet ───────────────────────────────────────────────────────────
 	pktLen := len(ethHdr) + len(ipHdr) + len(udpHdr) + len(payload)
