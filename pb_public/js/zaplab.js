@@ -39,9 +39,14 @@ function zaplab() {
     networkGraphSection(),
     scriptingSection(),
     triggersSection(),
+    cronSchedulerSection(),
     searchSection(),
     conversationSection(),
     gallerySection(),
+    presenceTimelineSection(),
+    receiptsSection(),
+    exportSection(),
+    dbSandboxSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -128,9 +133,14 @@ function zaplab() {
         this.initNetworkGraph();
         this.initScripting();
         this.initTriggers();
+        this.initCronScheduler();
         this.initSearch();
         this.initConversation();
         this.initGallery();
+        this.initPresenceTimeline();
+        this.initReceipts();
+        this.initExport();
+        this.initDBSandbox();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;

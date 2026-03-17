@@ -732,3 +732,76 @@ func dbeReopenConnections() error {
 func toReadOnlyDSN(dsn string) string {
 	return filePathToDSN(extractFilePath(dsn), "ro")
 }
+
+// postDBQuery executes a read-only SQL query against the WhatsApp SQLite database.
+// Only SELECT statements are allowed. Results are limited to 1000 rows.
+func postDBQuery(e *core.RequestEvent) error {
+	var body struct {
+		SQL string `json:"sql"`
+	}
+	if err := e.BindBody(&body); err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
+	}
+
+	stmt := strings.TrimSpace(body.SQL)
+	if stmt == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "sql is required"})
+	}
+
+	// Only allow SELECT statements
+	upper := strings.ToUpper(stmt)
+	if !strings.HasPrefix(upper, "SELECT") && !strings.HasPrefix(upper, "WITH") && !strings.HasPrefix(upper, "EXPLAIN") {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "only SELECT/WITH/EXPLAIN statements are allowed"})
+	}
+
+	// Check that waDB is initialized
+	if waDB == nil {
+		return e.JSON(http.StatusServiceUnavailable, map[string]any{"error": "whatsapp database not connected"})
+	}
+
+	start := time.Now()
+	rows, err := waDB.QueryContext(e.Request.Context(), stmt+" LIMIT 1000")
+	if err != nil {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
+	var result []map[string]interface{}
+	for rows.Next() {
+		vals := make([]interface{}, len(cols))
+		ptrs := make([]interface{}, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			continue
+		}
+		row := make(map[string]interface{}, len(cols))
+		for i, col := range cols {
+			v := vals[i]
+			if b, ok := v.([]byte); ok {
+				row[col] = string(b)
+			} else {
+				row[col] = v
+			}
+		}
+		result = append(result, row)
+	}
+
+	if result == nil {
+		result = []map[string]interface{}{}
+	}
+
+	execMs := time.Since(start).Milliseconds()
+	return e.JSON(http.StatusOK, map[string]any{
+		"columns": cols,
+		"rows":    result,
+		"count":   len(result),
+		"exec_ms": execMs,
+	})
+}

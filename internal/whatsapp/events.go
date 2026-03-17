@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/core"
 	"go.mau.fi/util/random"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -263,6 +264,10 @@ func handler(rawEvt interface{}) {
 				logger.Errorf("Error persisting receipt event type=%s error=%v", name, err)
 			}
 		}
+		// Calculate receipt latency for delivered/read receipts
+		if evt.Type == types.ReceiptTypeDelivered || evt.Type == types.ReceiptTypeRead {
+			go recordReceiptLatency(evt)
+		}
 		return
 
 	case *events.Presence:
@@ -276,6 +281,13 @@ func handler(rawEvt interface{}) {
 		}
 		if err := saveEvent(presenceType, rawEvt, nil); err != nil {
 			logger.Errorf("Error persisting presence event type=%s error=%v", presenceType, err)
+		}
+		return
+
+	case *events.ChatPresence:
+		presType := "ChatPresence." + string(evt.State)
+		if err := saveEvent(presType, rawEvt, nil); err != nil {
+			logger.Errorf("Error persisting chat presence event type=%s error=%v", presType, err)
 		}
 		return
 
@@ -364,6 +376,53 @@ func recoverAndNotify(evt *events.Message, targetID string, protocolType waE2E.P
 
 	selfJID, _ := ParseJID(client.Store.ID.User)
 	_, _, _ = SendConversationMessage(selfJID, notification, nil)
+}
+
+// recordReceiptLatency looks up the original sent message and records delivery/read latency.
+func recordReceiptLatency(evt *events.Receipt) {
+	defer func() { recover() }() //nolint:errcheck
+
+	col, err := pb.FindCollectionByNameOrId("receipt_latency")
+	if err != nil {
+		return
+	}
+
+	receiptAt := evt.Timestamp
+	receiptAtStr := receiptAt.UTC().Format(time.RFC3339)
+
+	for _, msgID := range evt.MessageIDs {
+		// Look up when the message was sent (created timestamp in events table)
+		type sentRow struct {
+			Created string `db:"created"`
+		}
+		var rows []sentRow
+		_ = pb.DB().NewQuery(
+			"SELECT created FROM events WHERE msgID = {:msgid} AND type LIKE '%Message%' ORDER BY created ASC LIMIT 1",
+		).Bind(dbx.Params{"msgid": msgID}).All(&rows)
+
+		var latencyMs int64
+		var sentAt string
+		if len(rows) > 0 {
+			sentAt = rows[0].Created
+			// Parse PocketBase datetime format: "2006-01-02 15:04:05.000Z"
+			t, parseErr := time.Parse("2006-01-02 15:04:05.000Z", rows[0].Created)
+			if parseErr != nil {
+				t, parseErr = time.Parse("2006-01-02 15:04:05.999Z", rows[0].Created)
+			}
+			if parseErr == nil {
+				latencyMs = receiptAt.UnixMilli() - t.UnixMilli()
+			}
+		}
+
+		record := core.NewRecord(col)
+		record.Set("msg_id", msgID)
+		record.Set("chat_jid", evt.Chat.String())
+		record.Set("receipt_type", string(evt.Type))
+		record.Set("latency_ms", latencyMs)
+		record.Set("sent_at", sentAt)
+		record.Set("receipt_at", receiptAtStr)
+		_ = pb.Save(record)
+	}
 }
 
 // reconnectWithBackoff retries client.Connect with exponential backoff (5s, 10s, 20s … up to 5min).
