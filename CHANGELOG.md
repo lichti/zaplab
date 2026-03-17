@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Frame Capture** — real-time log stream browser backed by a custom `waLog.Logger` wrapper (`CapturingLogger`) that intercepts every log call from whatsmeow (Client, Client/Socket, Client/Send, Client/Recv, Database sub-loggers).
+  - All levels buffered to an in-memory ring buffer (2 000 entries, thread-safe).
+  - INFO/WARN/ERROR entries also persisted to a new PocketBase `frames` collection for historical queries.
+  - **Live mode** (ring buffer): shows DEBUG through ERROR; includes XML node frames at DEBUG log level when `--log-level DEBUG` is configured.
+  - **DB mode** (PocketBase): persistent INFO+ history with server-side filter by module, level, and text search.
+  - Real-time updates via PocketBase subscription (DB mode); module badge, level badge, message, timestamp per row; expandable full-entry detail.
+  - `GET /zaplab/api/frames` — paginated DB query; `GET /zaplab/api/frames/ring` — ring buffer snapshot; `GET /zaplab/api/frames/modules` — distinct modules.
+- **Noise Handshake Inspector** — annotated visualisation of the WhatsApp `Noise_XX_25519_AESGCM_SHA256` handshake.
+  - Step-by-step timeline: Setup → ClientHello → ServerHello → Certificate verification → ClientFinish → Key split, with cryptographic detail per step (HKDF, ECDH, AES-GCM IVs, certificate chain).
+  - **Device public key panel**: shows device JID, Noise static public key (Curve25519, hex), Identity public key (Ed25519, hex), registration ID, platform, and push name — no private keys exposed.
+  - Live connection events panel: filters ring buffer for Client-module connection/handshake/disconnect log entries.
+  - `GET /zaplab/api/wa/keys` — returns public key material only.
+- **New PocketBase collection `frames`** — stores INFO+ log entries with `module`, `level`, `seq`, `msg`, and autodate `created`/`updated` fields; indexed by module, level, and created.
 - **Protocol Timeline** — new dashboard section with a vertical chronological timeline of all WhatsApp protocol events.
   - Color-coded event type badges (Message, Receipt, Presence, HistorySync, AppStateSync, Connected, Disconnected, QR, PairSuccess, CallOffer, GroupInfo, etc.).
   - Per-event human-readable summary extracted from protocol fields (sender JID, message preview, sync type, disconnect reason, etc.).

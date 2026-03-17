@@ -1669,3 +1669,79 @@ Error (not found):
 ```json
 { "error": "message type not found" }
 ```
+
+---
+
+## Frame Capture
+
+All endpoints require **🔒 Auth**.
+
+### Get persistent frames (INFO+)
+
+```
+GET /zaplab/api/frames
+```
+
+Query params: `module`, `level`, `search`, `page` (default 1), `per_page` (default 100, max 500)
+
+Response:
+```json
+{
+  "items": [
+    { "id": "...", "module": "Client", "level": "INFO", "seq": "42", "msg": "Connected to server", "created": "..." }
+  ],
+  "total": 150,
+  "page": 1,
+  "per_page": 100
+}
+```
+
+### Get ring buffer snapshot (all levels)
+
+```
+GET /zaplab/api/frames/ring
+```
+
+Query params: `module`, `level`, `limit` (default 500, max 2000)
+
+Response:
+```json
+{
+  "entries": [
+    { "seq": 2048, "time": "2026-03-16T14:30:22.123Z", "module": "Client/Recv", "level": "DEBUG", "message": "<iq ...>...</iq>" }
+  ],
+  "total": 500
+}
+```
+
+### Get distinct modules in ring buffer
+
+```
+GET /zaplab/api/frames/modules
+```
+
+Response:
+```json
+{ "modules": ["Client", "Client/Recv", "Client/Send", "Client/Socket", "Database"] }
+```
+
+### Get device public keys
+
+```
+GET /zaplab/api/wa/keys
+```
+
+Returns the companion device's public key material (no private keys). Returns `503` if not yet bootstrapped.
+
+Response:
+```json
+{
+  "jid": "15551234567.0:1@s.whatsapp.net",
+  "noise_pub": "a1b2c3d4e5f6...",
+  "identity_pub": "f1e2d3c4b5a6...",
+  "registration_id": 12345,
+  "platform": "WhatsApp Android",
+  "business_name": "",
+  "push_name": "My Device"
+}
+```

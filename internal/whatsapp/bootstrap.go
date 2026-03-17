@@ -119,7 +119,7 @@ func Bootstrap(e *core.BootstrapEvent) error {
 		}
 	}
 
-	dbLog := waLog.Stdout("Database", logLevel, true)
+	dbLog := NewCapturingLogger(waLog.Stdout("Database", logLevel, true), "Database")
 	var err error
 	storeContainer, err = sqlstore.New(context.Background(), *dbDialect, *dbAddress, dbLog)
 	if err != nil {
@@ -132,7 +132,11 @@ func Bootstrap(e *core.BootstrapEvent) error {
 		return fmt.Errorf("failed to get device: %v", err)
 	}
 
-	client = whatsmeow.NewClient(device, waLog.Stdout("Client", logLevel, true))
+	clientLog := NewCapturingLogger(waLog.Stdout("Client", logLevel, true), "Client")
+	client = whatsmeow.NewClient(device, clientLog)
+
+	// Start log consumer after pb is available (set via Init before Bootstrap).
+	StartLogConsumer()
 
 	// Force Device=0 in the login payload to impersonate a primary device.
 	// The GetClientPayload hook runs at every handshake and overrides the device

@@ -1,6 +1,8 @@
 package whatsapp
 
 import (
+	"fmt"
+
 	"github.com/lichti/zaplab/internal/config"
 	"github.com/lichti/zaplab/internal/webhook"
 	"github.com/pocketbase/pocketbase"
@@ -58,4 +60,42 @@ func GetDBDialect() string {
 		return ""
 	}
 	return *dbDialect
+}
+
+// DeviceKeyInfo holds the public key material of the registered device.
+// Private keys are never exposed.
+type DeviceKeyInfo struct {
+	JID            string `json:"jid"`
+	NoisePublicKey string `json:"noise_pub"`    // hex-encoded 32-byte Curve25519 key
+	IdentityPubKey string `json:"identity_pub"` // hex-encoded 32-byte Ed25519 key
+	RegistrationID uint32 `json:"registration_id"`
+	AdvSecretKey   string `json:"adv_secret_key,omitempty"` // hex-encoded if present
+	Platform       string `json:"platform"`
+	BusinessName   string `json:"business_name"`
+	PushName       string `json:"push_name"`
+}
+
+// GetDeviceKeys returns the public key info for the current device.
+// Returns nil if the client is not yet bootstrapped.
+func GetDeviceKeys() *DeviceKeyInfo {
+	if client == nil || client.Store == nil {
+		return nil
+	}
+	s := client.Store
+	info := &DeviceKeyInfo{
+		RegistrationID: s.RegistrationID,
+		Platform:       s.Platform,
+		BusinessName:   s.BusinessName,
+		PushName:       s.PushName,
+	}
+	if s.ID != nil {
+		info.JID = s.ID.String()
+	}
+	if s.NoiseKey != nil {
+		info.NoisePublicKey = fmt.Sprintf("%x", s.NoiseKey.Pub)
+	}
+	if s.IdentityKey != nil {
+		info.IdentityPubKey = fmt.Sprintf("%x", s.IdentityKey.Pub)
+	}
+	return info
 }
