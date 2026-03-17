@@ -372,7 +372,7 @@
              dark:bg-[#161b22] dark:border-[#30363d]"
       :class="sidebarExpanded ? 'w-60' : 'w-12'"
     >
-      <nav class="flex flex-col gap-0.5 p-2">
+      <nav class="flex-1 overflow-y-auto flex flex-col gap-0.5 p-2">
 
         <!-- Pairing / Connection -->
         <a
@@ -431,34 +431,54 @@
           </span>
         </a>
 
+        <!-- ── Group: Overview ── -->
+        <div class="mt-1 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
+          <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Overview</span>
+        </div>
+
         <!-- Dashboard -->
-        <a
-          href="#/dashboard"
-          @click.prevent="setSection('dashboard')"
-          :title="sidebarExpanded ? '' : 'Dashboard'"
-          aria-label="Dashboard"
+        <a href="#/dashboard" @click.prevent="setSection('dashboard')" :title="sidebarExpanded ? '' : 'Dashboard'" aria-label="Dashboard"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'dashboard'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='dashboard'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Dashboard</span>
         </a>
 
-        <!-- Live Events -->
-        <a
-          href="#/events"
-          @click.prevent="setSection('events')"
-          :title="sidebarExpanded ? '' : 'Live Events'"
-          aria-label="Live Events"
+        <!-- Stats & Heatmap -->
+        <a href="#/stats" @click.prevent="setSection('stats')" :title="sidebarExpanded ? '' : 'Stats'" aria-label="Advanced Stats &amp; Heatmap"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'events'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='stats'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Stats &amp; Heatmap</span>
+        </a>
+
+        <!-- Network Graph -->
+        <a href="#/networkgraph" @click.prevent="setSection('networkgraph')" :title="sidebarExpanded ? '' : 'Network Graph'" aria-label="Network Graph"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='networkgraph'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Network Graph</span>
+        </a>
+
+        <!-- ── Group: Events ── -->
+        <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
+          <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Events</span>
+        </div>
+
+        <!-- Live Events -->
+        <a href="#/events" @click.prevent="setSection('events')" :title="sidebarExpanded ? '' : 'Live Events'" aria-label="Live Events"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='events'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
           </svg>
@@ -466,16 +486,10 @@
         </a>
 
         <!-- Event Browser -->
-        <a
-          href="#/eventbrowser"
-          @click.prevent="setSection('eventbrowser')"
-          :title="sidebarExpanded ? '' : 'Event Browser'"
-          aria-label="Event Browser"
+        <a href="#/eventbrowser" @click.prevent="setSection('eventbrowser')" :title="sidebarExpanded ? '' : 'Event Browser'" aria-label="Event Browser"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'eventbrowser'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='eventbrowser'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
           </svg>
@@ -483,67 +497,48 @@
         </a>
 
         <!-- Message History -->
-        <a
-          href="#/msghistory"
-          @click.prevent="setSection('msghistory')"
-          :title="sidebarExpanded ? '' : 'Message History'"
-          aria-label="Message History"
+        <a href="#/msghistory" @click.prevent="setSection('msghistory')" :title="sidebarExpanded ? '' : 'Message History'" aria-label="Message History"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'msghistory'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='msghistory'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Message History</span>
         </a>
 
         <!-- Error Browser -->
-        <a
-          href="#/errorbrowser"
-          @click.prevent="setSection('errorbrowser')"
-          :title="sidebarExpanded ? '' : 'Error Browser'"
-          aria-label="Error Browser"
+        <a href="#/errorbrowser" @click.prevent="setSection('errorbrowser')" :title="sidebarExpanded ? '' : 'Error Browser'" aria-label="Error Browser"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'errorbrowser'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='errorbrowser'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Error Browser</span>
         </a>
 
-        <!-- DB Explorer -->
-        <a
-          href="#/dbexplorer"
-          @click.prevent="setSection('dbexplorer')"
-          :title="sidebarExpanded ? '' : 'DB Explorer'"
-          aria-label="DB Explorer"
+        <!-- Annotations -->
+        <a href="#/annotations" @click.prevent="setSection('annotations')" :title="sidebarExpanded ? '' : 'Annotations'" aria-label="Event Annotations"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'dbexplorer'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='annotations'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
           </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">DB Explorer</span>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Annotations</span>
         </a>
 
+        <!-- ── Group: Protocol ── -->
+        <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
+          <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Protocol</span>
+        </div>
+
         <!-- Protocol Timeline -->
-        <a
-          href="#/protocoltimeline"
-          @click.prevent="setSection('protocoltimeline')"
-          :title="sidebarExpanded ? '' : 'Protocol Timeline'"
-          aria-label="Protocol Timeline"
+        <a href="#/protocoltimeline" @click.prevent="setSection('protocoltimeline')" :title="sidebarExpanded ? '' : 'Protocol Timeline'" aria-label="Protocol Timeline"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'protocoltimeline'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='protocoltimeline'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
@@ -551,16 +546,10 @@
         </a>
 
         <!-- Proto Schema Browser -->
-        <a
-          href="#/protoschema"
-          @click.prevent="setSection('protoschema')"
-          :title="sidebarExpanded ? '' : 'Proto Schema'"
-          aria-label="Proto Schema Browser"
+        <a href="#/protoschema" @click.prevent="setSection('protoschema')" :title="sidebarExpanded ? '' : 'Proto Schema'" aria-label="Proto Schema Browser"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'protoschema'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='protoschema'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
           </svg>
@@ -568,16 +557,10 @@
         </a>
 
         <!-- Frame Capture -->
-        <a
-          href="#/framecapture"
-          @click.prevent="setSection('framecapture')"
-          :title="sidebarExpanded ? '' : 'Frame Capture'"
-          aria-label="Frame Capture"
+        <a href="#/framecapture" @click.prevent="setSection('framecapture')" :title="sidebarExpanded ? '' : 'Frame Capture'" aria-label="Frame Capture"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'framecapture'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='framecapture'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
@@ -585,16 +568,10 @@
         </a>
 
         <!-- Noise Handshake Inspector -->
-        <a
-          href="#/noisehandshake"
-          @click.prevent="setSection('noisehandshake')"
-          :title="sidebarExpanded ? '' : 'Noise Handshake'"
-          aria-label="Noise Handshake Inspector"
+        <a href="#/noisehandshake" @click.prevent="setSection('noisehandshake')" :title="sidebarExpanded ? '' : 'Noise Handshake'" aria-label="Noise Handshake Inspector"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'noisehandshake'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='noisehandshake'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
           </svg>
@@ -602,135 +579,59 @@
         </a>
 
         <!-- Signal Sessions -->
-        <a
-          href="#/signalsessions"
-          @click.prevent="setSection('signalsessions')"
-          :title="sidebarExpanded ? '' : 'Signal Sessions'"
-          aria-label="Signal Session Visualizer"
+        <a href="#/signalsessions" @click.prevent="setSection('signalsessions')" :title="sidebarExpanded ? '' : 'Signal Sessions'" aria-label="Signal Session Visualizer"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'signalsessions'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='signalsessions'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Signal Sessions</span>
         </a>
 
-        <!-- Annotations -->
-        <a
-          href="#/annotations"
-          @click.prevent="setSection('annotations')"
-          :title="sidebarExpanded ? '' : 'Annotations'"
-          aria-label="Event Annotations"
-          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'annotations'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
-          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-          </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Annotations</span>
-        </a>
-
-        <!-- Advanced Stats -->
-        <a
-          href="#/stats"
-          @click.prevent="setSection('stats')"
-          :title="sidebarExpanded ? '' : 'Stats'"
-          aria-label="Advanced Stats & Heatmap"
-          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'stats'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
-          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-          </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Stats & Heatmap</span>
-        </a>
-
-        <!-- App State Inspector -->
-        <a
-          href="#/appstate"
-          @click.prevent="setSection('appstate')"
-          :title="sidebarExpanded ? '' : 'App State'"
-          aria-label="App State Inspector"
-          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'appstate'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
-          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
-          </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">App State</span>
-        </a>
-
         <!-- Session Comparator -->
-        <a
-          href="#/sessioncomparator"
-          @click.prevent="setSection('sessioncomparator')"
-          :title="sidebarExpanded ? '' : 'Session Comparator'"
-          aria-label="Multi-Session Comparator"
+        <a href="#/sessioncomparator" @click.prevent="setSection('sessioncomparator')" :title="sidebarExpanded ? '' : 'Session Comparator'" aria-label="Multi-Session Comparator"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'sessioncomparator'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='sessioncomparator'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Session Compare</span>
         </a>
 
-        <!-- Network Graph -->
-        <a
-          href="#/networkgraph"
-          @click.prevent="setSection('networkgraph')"
-          :title="sidebarExpanded ? '' : 'Network Graph'"
-          aria-label="Network Graph"
+        <!-- App State Inspector -->
+        <a href="#/appstate" @click.prevent="setSection('appstate')" :title="sidebarExpanded ? '' : 'App State'" aria-label="App State Inspector"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'networkgraph'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='appstate'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
           </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Network Graph</span>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">App State</span>
         </a>
 
-        <!-- Scripting -->
-        <a
-          href="#/scripting"
-          @click.prevent="setSection('scripting')"
-          :title="sidebarExpanded ? '' : 'Scripting'"
-          aria-label="Scripting"
+        <!-- DB Explorer -->
+        <a href="#/dbexplorer" @click.prevent="setSection('dbexplorer')" :title="sidebarExpanded ? '' : 'DB Explorer'" aria-label="DB Explorer"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'scripting'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='dbexplorer'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
           </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Scripting</span>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">DB Explorer</span>
         </a>
+
+        <!-- ── Group: Actions ── -->
+        <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
+          <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Actions</span>
+        </div>
 
         <!-- Send Message -->
-        <a
-          href="#/send"
-          @click.prevent="setSection('send')"
-          :title="sidebarExpanded ? '' : 'Send Message'"
-          aria-label="Send Message"
+        <a href="#/send" @click.prevent="setSection('send')" :title="sidebarExpanded ? '' : 'Send Message'" aria-label="Send Message"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'send'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='send'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/>
           </svg>
@@ -738,16 +639,10 @@
         </a>
 
         <!-- Send Raw -->
-        <a
-          href="#/sendraw"
-          @click.prevent="setSection('sendraw')"
-          :title="sidebarExpanded ? '' : 'Send Raw'"
-          aria-label="Send Raw"
+        <a href="#/sendraw" @click.prevent="setSection('sendraw')" :title="sidebarExpanded ? '' : 'Send Raw'" aria-label="Send Raw"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'sendraw'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='sendraw'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"/>
           </svg>
@@ -755,16 +650,10 @@
         </a>
 
         <!-- Message Control -->
-        <a
-          href="#/ctrl"
-          @click.prevent="setSection('ctrl')"
-          :title="sidebarExpanded ? '' : 'Message Control'"
-          aria-label="Message Control"
+        <a href="#/ctrl" @click.prevent="setSection('ctrl')" :title="sidebarExpanded ? '' : 'Message Control'" aria-label="Message Control"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'ctrl'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='ctrl'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
           </svg>
@@ -772,16 +661,10 @@
         </a>
 
         <!-- Spoof Messages -->
-        <a
-          href="#/spoof"
-          @click.prevent="setSection('spoof')"
-          :title="sidebarExpanded ? '' : 'Spoof Messages'"
-          aria-label="Spoof Messages"
+        <a href="#/spoof" @click.prevent="setSection('spoof')" :title="sidebarExpanded ? '' : 'Spoof Messages'" aria-label="Spoof Messages"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'spoof'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='spoof'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>
           </svg>
@@ -789,16 +672,10 @@
         </a>
 
         <!-- Contacts & Polls -->
-        <a
-          href="#/contacts"
-          @click.prevent="setSection('contacts')"
-          :title="sidebarExpanded ? '' : 'Contacts & Polls'"
-          aria-label="Contacts & Polls"
+        <a href="#/contacts" @click.prevent="setSection('contacts')" :title="sidebarExpanded ? '' : 'Contacts &amp; Polls'" aria-label="Contacts &amp; Polls"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'contacts'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='contacts'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/>
           </svg>
@@ -806,33 +683,21 @@
         </a>
 
         <!-- Contacts Management -->
-        <a
-          href="#/contactsmgmt"
-          @click.prevent="setSection('contactsmgmt')"
-          :title="sidebarExpanded ? '' : 'Contacts Management'"
-          aria-label="Contacts Management"
+        <a href="#/contactsmgmt" @click.prevent="setSection('contactsmgmt')" :title="sidebarExpanded ? '' : 'Contacts Mgmt'" aria-label="Contacts Management"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'contactsmgmt'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='contactsmgmt'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3M13.5 3.75a6.75 6.75 0 1 1 0 13.5 6.75 6.75 0 0 1 0-13.5Z"/>
           </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Contacts Management</span>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Contacts Mgmt</span>
         </a>
 
         <!-- Groups -->
-        <a
-          href="#/groups"
-          @click.prevent="setSection('groups')"
-          :title="sidebarExpanded ? '' : 'Groups'"
-          aria-label="Groups"
+        <a href="#/groups" @click.prevent="setSection('groups')" :title="sidebarExpanded ? '' : 'Groups'" aria-label="Groups"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'groups'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='groups'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/>
           </svg>
@@ -840,71 +705,67 @@
         </a>
 
         <!-- Media Decrypt -->
-        <a
-          href="#/media"
-          @click.prevent="setSection('media')"
-          :title="sidebarExpanded ? '' : 'Media Decrypt'"
-          aria-label="Media Decrypt"
+        <a href="#/media" @click.prevent="setSection('media')" :title="sidebarExpanded ? '' : 'Media Decrypt'" aria-label="Media Decrypt"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'media'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='media'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Media Decrypt</span>
         </a>
 
-        <!-- Simulation -->
-        <a
-          href="#/simulation"
-          @click.prevent="setSection('simulation')"
-          :title="sidebarExpanded ? '' : 'Route Simulation'"
-          aria-label="Route Simulation"
+        <!-- ── Group: Automation ── -->
+        <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
+          <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Automation</span>
+        </div>
+
+        <!-- Scripting -->
+        <a href="#/scripting" @click.prevent="setSection('scripting')" :title="sidebarExpanded ? '' : 'Scripting'" aria-label="Scripting"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'simulation'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='scripting'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Scripting</span>
+        </a>
+
+        <!-- Webhooks -->
+        <a href="#/webhook" @click.prevent="setSection('webhook')" :title="sidebarExpanded ? '' : 'Webhooks'" aria-label="Webhooks"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='webhook'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Webhooks</span>
+        </a>
+
+        <!-- Route Simulation -->
+        <a href="#/simulation" @click.prevent="setSection('simulation')" :title="sidebarExpanded ? '' : 'Route Simulation'" aria-label="Route Simulation"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='simulation'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"/>
           </svg>
           <span class="relative flex-shrink-0">
             <span x-show="simActive" class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
           </span>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Route Simulation <span class="text-yellow-500 dark:text-yellow-400 text-[10px]">⚠ WIP</span></span>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Route Simulation <span class="text-yellow-500 dark:text-yellow-400 text-[10px]">&#9888; WIP</span></span>
         </a>
 
-        <!-- Webhooks -->
-        <a
-          href="#/webhook"
-          @click.prevent="setSection('webhook')"
-          :title="sidebarExpanded ? '' : 'Webhooks'"
-          aria-label="Webhooks"
-          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'webhook'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
-          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
-          </svg>
-          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Webhooks</span>
-        </a>
+        <!-- ── Group: System ── -->
+        <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
+          <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">System</span>
+        </div>
 
         <!-- Settings -->
-        <a
-          href="#/settings"
-          @click.prevent="setSection('settings')"
-          :title="sidebarExpanded ? '' : 'Settings'"
-          aria-label="Settings"
+        <a href="#/settings" @click.prevent="setSection('settings')" :title="sidebarExpanded ? '' : 'Settings'" aria-label="Settings"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-          :class="activeSection === 'settings'
-            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-        >
+          :class="activeSection==='settings'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
           <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
@@ -912,44 +773,34 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Settings</span>
         </a>
 
-        <div class="flex-1"></div>
-
-        <!-- User Profile (Bottom) -->
-        <div class="border-t border-gray-100 dark:border-[#30363d] pt-2 mt-2">
-          <a
-            href="#/profile"
-            @click.prevent="setSection('profile')"
-            :title="sidebarExpanded ? '' : 'User Profile'"
-            aria-label="User Profile"
-            class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
-            :class="activeSection === 'profile'
-              ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
-              : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
-          >
-            <div class="h-4 w-4 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-[8px] text-white font-bold uppercase">
-              <span x-text="pb.authStore.model?.email?.charAt(0) || 'U'"></span>
-            </div>
-            <div x-show="sidebarExpanded" class="flex flex-col min-w-0">
-              <span class="text-[10px] font-bold truncate" x-text="pb.authStore.model?.email"></span>
-              <span class="text-[9px] opacity-60">Edit Profile</span>
-            </div>
-          </a>
-
-          <!-- Database Admin Link -->
-          <a
-            href="/_/"
-            target="_blank"
-            class="mt-1 flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-[#21262d]"
-            :title="sidebarExpanded ? '' : 'Database Admin'"
-          >
-            <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-            </svg>
-            <span x-show="sidebarExpanded" class="text-[10px] font-medium whitespace-nowrap uppercase tracking-wider">DB Admin</span>
-          </a>
-        </div>
+        <!-- bottom padding -->
+        <div class="h-2"></div>
 
       </nav>
+
+      <!-- ── Pinned bottom: profile + DB admin ── -->
+      <div class="flex-shrink-0 border-t border-gray-100 dark:border-[#30363d] p-2 space-y-0.5">
+        <a href="#/profile" @click.prevent="setSection('profile')" :title="sidebarExpanded ? '' : 'User Profile'" aria-label="User Profile"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='profile'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <div class="h-4 w-4 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-[8px] text-white font-bold uppercase">
+            <span x-text="pb.authStore.model?.email?.charAt(0) || 'U'"></span>
+          </div>
+          <div x-show="sidebarExpanded" class="flex flex-col min-w-0">
+            <span class="text-[10px] font-bold truncate" x-text="pb.authStore.model?.email"></span>
+            <span class="text-[9px] opacity-60">Edit Profile</span>
+          </div>
+        </a>
+        <a href="/_/" target="_blank" :title="sidebarExpanded ? '' : 'Database Admin'"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-[#21262d]">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+          </svg>
+          <span x-show="sidebarExpanded" class="text-[10px] font-medium whitespace-nowrap uppercase tracking-wider">DB Admin</span>
+        </a>
+      </div>
+
     </aside>
 
     <!-- ── Main content ────────────────────────────────────────────────── -->
