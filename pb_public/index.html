@@ -8358,7 +8358,7 @@
                 <button @click="cvSelectChat(c.chat)"
                   class="w-full text-left px-3 py-2 border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
                   :class="cvSelectedChat === c.chat ? 'bg-blue-50 dark:bg-[#1c3a5e]' : ''">
-                  <p class="text-xs font-medium text-gray-800 dark:text-[#c9d1d9] truncate" x-text="cvShortJID(c.chat)"></p>
+                  <p class="text-xs font-medium text-gray-800 dark:text-[#c9d1d9] truncate" x-text="cvDisplayName(c.chat)"></p>
                   <p class="text-[10px] text-gray-400 dark:text-[#484f58] flex justify-between">
                     <span x-text="c.msg_count + ' msgs'"></span>
                     <span x-text="cvFormatLastMsg(c.last_msg)"></span>
@@ -8379,7 +8379,7 @@
               <div class="flex-1 flex flex-col overflow-hidden">
                 <!-- Chat header -->
                 <div class="flex-shrink-0 px-4 py-2 border-b border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] flex items-center gap-2">
-                  <span class="text-xs font-semibold text-gray-800 dark:text-[#c9d1d9] flex-1 truncate" x-text="cvSelectedChat"></span>
+                  <span class="text-xs font-semibold text-gray-800 dark:text-[#c9d1d9] flex-1 truncate" x-text="cvDisplayName(cvSelectedChat)"></span>
                   <button x-show="cvHasMore" @click="cvLoadMore()" :disabled="cvMsgLoading"
                     class="px-2 py-0.5 text-[10px] rounded border border-gray-300 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] disabled:opacity-50">
                     Load older
@@ -8401,7 +8401,7 @@
                           <!-- Sender (only for received group messages) -->
                           <p x-show="!msg.is_from_me" class="text-[10px] font-semibold mb-0.5"
                             :class="msg.is_from_me ? 'text-green-100' : 'text-blue-500 dark:text-blue-400'"
-                            x-text="cvShortJID(msg.sender)"></p>
+                            x-text="cvDisplayName(msg.sender)"></p>
                           <!-- Media type icon -->
                           <span x-show="msg.type !== 'text' && msg.type !== 'unknown' && msg.type !== 'reaction'"
                             class="text-base mr-1" x-text="cvMsgIcon(msg.type)"></span>

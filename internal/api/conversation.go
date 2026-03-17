@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -251,4 +252,46 @@ func detectMsgType(msg map[string]any) (msgType, text, caption string, skip bool
 	}
 	// senderKeyDistributionMessage-only — skip
 	return "unknown", "", "", true
+}
+
+// ── Name Resolution ────────────────────────────────────────────────────────────
+//
+// GET /zaplab/api/conversation/names
+//   Returns a {jid: displayName} map for all known contacts and groups.
+//   Sources:
+//     - whatsmeow_contacts (waDB) — covers @s.whatsapp.net and @lid contacts
+//     - whatsapp.GetJoinedGroups() — covers @g.us groups (live call, may fail)
+
+func getConversationNames(e *core.RequestEvent) error {
+	names := map[string]string{}
+
+	// ── Contacts from whatsapp.db ──────────────────────────────────────────
+	if waDB != nil {
+		rows, err := waDB.Query(`
+			SELECT their_jid,
+			       COALESCE(NULLIF(full_name, ''), NULLIF(push_name, '')) AS name
+			FROM whatsmeow_contacts
+			WHERE full_name != '' OR push_name != ''`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var jid, name string
+				if rows.Scan(&jid, &name) == nil && name != "" {
+					names[jid] = name
+				}
+			}
+		}
+	}
+
+	// ── Groups from whatsapp API (best-effort, fails gracefully if offline) ─
+	groups, err := whatsapp.GetJoinedGroups()
+	if err == nil {
+		for _, g := range groups {
+			if g.Name != "" {
+				names[g.JID.String()] = g.Name
+			}
+		}
+	}
+
+	return e.JSON(http.StatusOK, map[string]any{"names": names})
 }
