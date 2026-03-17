@@ -29,6 +29,132 @@ function scriptingSection() {
     scNewTimeout: 10,
     scShowNew:    false,
 
+    // ── example scripts ──
+    scExamples: [
+      {
+        name: 'WA Connection Status',
+        description: 'Check current WhatsApp connection status',
+        code: `// Check WhatsApp connection status
+const status = wa.status();
+console.log("Connection status:", status);`,
+      },
+      {
+        name: 'List DB Tables',
+        description: 'Show all SQLite tables in the database',
+        code: `// List all tables in the PocketBase SQLite database
+const rows = db.query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+rows.forEach(r => console.log(r.name));
+console.log("Total tables:", rows.length);`,
+      },
+      {
+        name: 'Recent Events',
+        description: 'Show the 10 most recent stored events',
+        code: `// List the 10 most recent events (all types)
+const rows = db.query(\`
+  SELECT id, type, msgID, created
+  FROM events
+  ORDER BY created DESC
+  LIMIT 10
+\`);
+rows.forEach(r => console.log(r.created, "|", r.type, "|", r.msgID || '—'));
+console.log("Total rows:", rows.length);`,
+      },
+      {
+        name: 'Event Types Count',
+        description: 'Count events grouped by type',
+        code: `// Count events grouped by type
+const rows = db.query(\`
+  SELECT type, COUNT(*) as cnt
+  FROM events
+  GROUP BY type
+  ORDER BY cnt DESC
+\`);
+rows.forEach(r => console.log(r.cnt, "×", r.type));`,
+      },
+      {
+        name: 'Messages per Chat',
+        description: 'Count messages per chat using json_extract (top 10)',
+        code: `// Count Message events per chat using SQLite json_extract
+const rows = db.query(\`
+  SELECT json_extract(raw, '$.Info.Chat') AS chat,
+         COUNT(*) AS cnt
+  FROM events
+  WHERE type = 'Message'
+  GROUP BY chat
+  ORDER BY cnt DESC
+  LIMIT 10
+\`);
+rows.forEach(r => console.log(r.cnt, "msgs |", r.chat));`,
+      },
+      {
+        name: 'Send Test Message',
+        description: 'Send a WhatsApp message to a JID (edit JID first)',
+        code: `// Send a test message — replace JID with a real number
+const jid = "5511999999999@s.whatsapp.net";
+const text = "Hello from zaplab scripting! 🚀";
+wa.sendText(jid, text);
+console.log("Sent to:", jid);`,
+      },
+      {
+        name: 'HTTP GET Example',
+        description: 'Fetch data from an external URL',
+        code: `// Make an outbound HTTP GET request
+const res = http.get("https://httpbin.org/get");
+console.log("Status:", res.status);
+const data = JSON.parse(res.body);
+console.log("Origin IP:", data.origin);
+console.log("User-Agent:", data.headers["User-Agent"]);`,
+      },
+      {
+        name: 'HTTP POST Webhook',
+        description: 'Send a JSON payload to a webhook URL',
+        code: `// POST a JSON payload to a webhook (edit URL)
+const url = "https://httpbin.org/post";
+const payload = JSON.stringify({
+  event: "zaplab-test",
+  status: wa.status(),
+  ts: new Date().toISOString(),
+});
+const res = http.post(url, payload);
+console.log("Response status:", res.status);
+console.log(res.body.substring(0, 200));`,
+      },
+      {
+        name: 'Recent Messages (parsed)',
+        description: 'Show last 10 Message events with chat and sender extracted',
+        code: `// Last 10 Message events with chat/sender from raw JSON
+const rows = db.query(\`
+  SELECT msgID,
+         json_extract(raw, '$.Info.Chat')     AS chat,
+         json_extract(raw, '$.Info.Sender')   AS sender,
+         json_extract(raw, '$.Info.IsFromMe') AS from_me,
+         created
+  FROM events
+  WHERE type = 'Message'
+  ORDER BY created DESC
+  LIMIT 10
+\`);
+rows.forEach(r => {
+  const dir = r.from_me === '1' ? '→' : '←';
+  console.log(r.created, dir, r.chat, "|", r.sender);
+});`,
+      },
+      {
+        name: 'Sleep & Loop',
+        description: 'Demonstrate sleep and iteration',
+        code: `// Sleep between iterations (max 5000 ms per call)
+for (let i = 1; i <= 3; i++) {
+  console.log("Step", i, "- status:", wa.status());
+  sleep(500);
+}
+console.log("Done.");`,
+      },
+    ],
+
+    scLoadExample(ex) {
+      this.scAdhocCode = ex.code;
+    },
+
     // ── init ──
     initScripting() {
       this.$watch('activeSection', val => {
