@@ -57,6 +57,11 @@
   <script src="js/sections/search.js"></script>
   <script src="js/sections/conversation.js"></script>
   <script src="js/sections/gallery.js"></script>
+  <script src="js/sections/presencetimeline.js"></script>
+  <script src="js/sections/receipts.js"></script>
+  <script src="js/sections/export.js"></script>
+  <script src="js/sections/cronscheduler.js"></script>
+  <script src="js/sections/dbsandbox.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -566,6 +571,39 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Media Gallery</span>
         </a>
 
+        <!-- Presence Timeline -->
+        <a href="#/presencetimeline" @click.prevent="setSection('presencetimeline')" :title="sidebarExpanded ? '' : 'Presence Timeline'" aria-label="Presence Timeline"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='presencetimeline'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Presence Timeline</span>
+        </a>
+
+        <!-- Receipt Latency -->
+        <a href="#/receipts" @click.prevent="setSection('receipts')" :title="sidebarExpanded ? '' : 'Receipt Latency'" aria-label="Receipt Latency Tracker"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='receipts'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Receipt Latency</span>
+        </a>
+
+        <!-- Export -->
+        <a href="#/export" @click.prevent="setSection('export')" :title="sidebarExpanded ? '' : 'Export'" aria-label="Export CSV / JSON / HAR"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='export'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Export</span>
+        </a>
+
         <!-- ── Group: Protocol ── -->
         <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
           <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Protocol</span>
@@ -657,6 +695,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">DB Explorer</span>
+        </a>
+
+        <!-- DB Sandbox -->
+        <a href="#/dbsandbox" @click.prevent="setSection('dbsandbox')" :title="sidebarExpanded ? '' : 'DB Sandbox'" aria-label="DB Sandbox"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='dbsandbox'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">DB Sandbox</span>
         </a>
 
         <!-- ── Group: Actions ── -->
@@ -777,6 +826,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Triggers</span>
+        </a>
+
+        <!-- Cron Scheduler -->
+        <a href="#/cronscheduler" @click.prevent="setSection('cronscheduler')" :title="sidebarExpanded ? '' : 'Cron Scheduler'" aria-label="Cron Scheduler"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='cronscheduler'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Cron Scheduler</span>
         </a>
 
         <!-- Webhooks -->
@@ -8808,6 +8868,479 @@
           </template>
         </div>
       </div>
+      <!-- ── Section: Presence Timeline ─────────────────────────────── -->
+      <div x-show="activeSection === 'presencetimeline'" class="h-full overflow-y-auto">
+        <div class="max-w-5xl mx-auto w-full p-6 flex flex-col gap-6">
+
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="text-base font-semibold">Presence Timeline</h2>
+            <button @click="ptLoad()" :disabled="ptLoading"
+              class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff] transition-colors disabled:opacity-40">
+              <svg class="h-3.5 w-3.5" :class="ptLoading?'animate-spin':''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div class="flex flex-wrap gap-3 items-end p-3 rounded-lg border bg-gray-50 dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">JID filter</label>
+              <input x-model="ptJid" @keydown.enter="ptLoad()" placeholder="5511999@s.whatsapp.net"
+                class="px-2 py-1.5 rounded border text-xs font-mono w-56
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Look-back (days)</label>
+              <select x-model.number="ptDays"
+                class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                <option value="1">1 day</option><option value="7">7 days</option>
+                <option value="30">30 days</option><option value="0">All time</option>
+              </select>
+            </div>
+            <button @click="ptLoad()" :disabled="ptLoading"
+              class="px-4 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+              <span x-show="!ptLoading">Load</span><span x-show="ptLoading">Loading…</span>
+            </button>
+          </div>
+
+          <div x-show="ptError" class="text-xs text-red-500 px-3 py-2 rounded border border-red-200 dark:border-red-900/20 bg-red-50 dark:bg-red-900/10" x-text="ptError"></div>
+
+          <!-- Summary per JID -->
+          <template x-if="ptSummary.length > 0">
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#484f58]">Contact Summary</h3>
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                <template x-for="s in ptSummary" :key="s.jid">
+                  <div class="p-3 rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] flex flex-col gap-1">
+                    <div class="text-xs font-mono truncate text-gray-700 dark:text-[#c9d1d9]" x-text="s.jid || '—'"></div>
+                    <div class="flex gap-3 text-xs">
+                      <span class="text-green-600 dark:text-green-400" x-text="s.online + ' online'"></span>
+                      <span class="text-red-500 dark:text-red-400" x-text="s.offline + ' offline'"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <!-- Event list -->
+          <div class="flex flex-col gap-0 rounded-lg border border-gray-200 dark:border-[#30363d] overflow-hidden">
+            <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider bg-gray-50 dark:bg-[#161b22] text-gray-400 dark:text-[#484f58] border-b border-gray-200 dark:border-[#30363d]"
+                 x-text="ptTotal + ' events'"></div>
+            <div x-show="ptRows.length === 0 && !ptLoading" class="px-4 py-8 text-center text-xs text-gray-400 dark:text-[#484f58]">
+              No presence events. Use filters and click Load.
+            </div>
+            <template x-for="row in ptRows" :key="row.id">
+              <div class="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]">
+                <span class="text-xs font-semibold px-1.5 py-0.5 rounded" :class="ptTypeClass(row.type)" x-text="ptTypeLabel(row.type)"></span>
+                <span class="text-xs font-mono text-gray-500 dark:text-[#8b949e] flex-1 truncate" x-text="ptFromJid(row.raw)"></span>
+                <span class="text-xs text-gray-400 dark:text-[#484f58] whitespace-nowrap" x-text="fmtTime(row.created)"></span>
+                <span class="text-xs text-gray-400 dark:text-[#484f58] hidden md:block" x-text="ptLastSeen(row.raw)"></span>
+              </div>
+            </template>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section: Receipt Latency ──────────────────────────────────── -->
+      <div x-show="activeSection === 'receipts'" class="h-full overflow-y-auto">
+        <div class="max-w-4xl mx-auto w-full p-6 flex flex-col gap-6">
+
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold">Receipt Latency Tracker</h2>
+            <button @click="rlLoad()" :disabled="rlLoading"
+              class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff] transition-colors disabled:opacity-40">
+              <svg class="h-3.5 w-3.5" :class="rlLoading?'animate-spin':''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div class="flex flex-wrap gap-3 items-end p-3 rounded-lg border bg-gray-50 dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Chat JID</label>
+              <input x-model="rlJid" @keydown.enter="rlLoad()" placeholder="optional"
+                class="px-2 py-1.5 rounded border text-xs font-mono w-52
+                       bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                       dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Type</label>
+              <select x-model="rlType"
+                class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                <option value="">All</option>
+                <option value="delivered">Delivered</option>
+                <option value="read">Read</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 dark:text-[#8b949e]">Period</label>
+              <select x-model.number="rlDays"
+                class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                <option value="7">7 days</option><option value="30">30 days</option>
+                <option value="90">90 days</option><option value="0">All time</option>
+              </select>
+            </div>
+            <button @click="rlLoad()" :disabled="rlLoading"
+              class="px-4 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+              <span x-show="!rlLoading">Load</span><span x-show="rlLoading">Loading…</span>
+            </button>
+          </div>
+
+          <div x-show="rlError" class="text-xs text-red-500 px-3 py-2 rounded border border-red-200 dark:border-red-900/20 bg-red-50 dark:bg-red-900/10" x-text="rlError"></div>
+
+          <!-- Stats summary -->
+          <template x-if="rlStats && rlStats.count > 0">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="p-3 rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-center">
+                <div class="text-lg font-bold" :class="rlLatClass(rlStats.avg_ms)" x-text="rlFmt(Math.round(rlStats.avg_ms))"></div>
+                <div class="text-xs text-gray-400 dark:text-[#484f58]">Avg latency</div>
+              </div>
+              <div class="p-3 rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-center">
+                <div class="text-lg font-bold text-green-600 dark:text-green-400" x-text="rlFmt(rlStats.min_ms)"></div>
+                <div class="text-xs text-gray-400 dark:text-[#484f58]">Min</div>
+              </div>
+              <div class="p-3 rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-center">
+                <div class="text-lg font-bold text-red-500 dark:text-red-400" x-text="rlFmt(rlStats.max_ms)"></div>
+                <div class="text-xs text-gray-400 dark:text-[#484f58]">Max</div>
+              </div>
+              <div class="p-3 rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-center">
+                <div class="text-lg font-bold text-blue-600 dark:text-blue-400" x-text="rlStats.count"></div>
+                <div class="text-xs text-gray-400 dark:text-[#484f58]">Receipts</div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Table -->
+          <div class="rounded-lg border border-gray-200 dark:border-[#30363d] overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-[#161b22] text-gray-400 dark:text-[#484f58] uppercase tracking-wider">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Msg ID</th>
+                    <th class="px-3 py-2 text-left">Chat</th>
+                    <th class="px-3 py-2 text-left">Type</th>
+                    <th class="px-3 py-2 text-right">Latency</th>
+                    <th class="px-3 py-2 text-left hidden md:table-cell">Sent</th>
+                    <th class="px-3 py-2 text-left hidden md:table-cell">Receipt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-if="rlRows.length === 0 && !rlLoading">
+                    <tr><td colspan="6" class="px-3 py-8 text-center text-gray-400 dark:text-[#484f58]">No data. Set filters and click Load.</td></tr>
+                  </template>
+                  <template x-for="row in rlRows" :key="row.msg_id + row.receipt_type + row.receipt_at">
+                    <tr class="border-t border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]">
+                      <td class="px-3 py-2 font-mono truncate max-w-[8rem]" x-text="row.msg_id"></td>
+                      <td class="px-3 py-2 font-mono truncate max-w-[10rem] text-gray-500 dark:text-[#8b949e]" x-text="row.chat_jid"></td>
+                      <td class="px-3 py-2">
+                        <span class="px-1.5 py-0.5 rounded text-xs"
+                              :class="row.receipt_type==='read'?'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400':'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'"
+                              x-text="row.receipt_type"></span>
+                      </td>
+                      <td class="px-3 py-2 text-right font-mono font-semibold" :class="rlLatClass(row.latency_ms)" x-text="rlFmt(row.latency_ms)"></td>
+                      <td class="px-3 py-2 text-gray-400 dark:text-[#484f58] hidden md:table-cell" x-text="row.sent_at ? fmtTime(row.sent_at) : '—'"></td>
+                      <td class="px-3 py-2 text-gray-400 dark:text-[#484f58] hidden md:table-cell" x-text="row.receipt_at ? fmtTime(row.receipt_at) : '—'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section: Export ───────────────────────────────────────────── -->
+      <div x-show="activeSection === 'export'" class="h-full overflow-y-auto">
+        <div class="max-w-2xl mx-auto w-full p-6 flex flex-col gap-6">
+
+          <h2 class="text-base font-semibold">Export</h2>
+
+          <!-- Tab selector -->
+          <div class="flex gap-1 p-1 rounded-lg bg-gray-100 dark:bg-[#21262d] w-fit">
+            <template x-for="tab in [{id:'events',label:'Events'},{id:'conversation',label:'Conversation'},{id:'frames',label:'Frames (HAR)'}]" :key="tab.id">
+              <button @click="expTabSelect(tab.id)"
+                class="px-4 py-1.5 rounded-md text-xs font-medium transition-colors"
+                :class="expTab===tab.id
+                  ? 'bg-white dark:bg-[#161b22] text-gray-900 dark:text-[#c9d1d9] shadow-sm'
+                  : 'text-gray-500 dark:text-[#8b949e] hover:text-gray-700 dark:hover:text-[#c9d1d9]'"
+                x-text="tab.label">
+              </button>
+            </template>
+          </div>
+
+          <div class="flex flex-col gap-4 p-4 rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22]">
+
+            <!-- Events tab -->
+            <template x-if="expTab === 'events'">
+              <div class="flex flex-col gap-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">Format</label>
+                    <select x-model="expFormat" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                      <option value="csv">CSV</option><option value="json">JSON</option>
+                    </select>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">Max rows</label>
+                    <select x-model.number="expLimit" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                      <option value="100">100</option><option value="500">500</option>
+                      <option value="1000">1 000</option><option value="5000">5 000</option><option value="10000">10 000</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs text-gray-500 dark:text-[#8b949e]">Event type (optional)</label>
+                  <input x-model="expType" placeholder="e.g. Message, ReceiptRead" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 placeholder-gray-300 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58] focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">From date</label>
+                    <input type="date" x-model="expFrom" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]"/>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">To date</label>
+                    <input type="date" x-model="expTo" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]"/>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Conversation tab -->
+            <template x-if="expTab === 'conversation'">
+              <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs text-gray-500 dark:text-[#8b949e]">Chat JID <span class="text-red-400">*</span></label>
+                  <input x-model="expJid" placeholder="5511999@s.whatsapp.net or group@g.us" class="px-2 py-1.5 rounded border text-xs font-mono bg-white border-gray-200 text-gray-900 placeholder-gray-300 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58] focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">Format</label>
+                    <select x-model="expFormat" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                      <option value="csv">CSV</option><option value="json">JSON</option>
+                    </select>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">Max rows</label>
+                    <select x-model.number="expLimit" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                      <option value="100">100</option><option value="500">500</option>
+                      <option value="1000">1 000</option><option value="5000">5 000</option><option value="10000">10 000</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Frames HAR tab -->
+            <template x-if="expTab === 'frames'">
+              <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs text-gray-500 dark:text-[#8b949e]">Max frames</label>
+                  <select x-model.number="expHarLimit" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] w-40">
+                    <option value="100">100</option><option value="500">500</option>
+                    <option value="1000">1 000</option><option value="5000">5 000</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">From date</label>
+                    <input type="date" x-model="expFrom" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]"/>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-500 dark:text-[#8b949e]">To date</label>
+                    <input type="date" x-model="expTo" class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]"/>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-[#484f58]">HAR files can be imported into browser DevTools (Network tab → Import) for protocol analysis.</p>
+              </div>
+            </template>
+
+          </div>
+
+          <!-- Error / Success -->
+          <div x-show="expError" class="text-xs text-red-500 px-3 py-2 rounded border border-red-200 dark:border-red-900/20 bg-red-50 dark:bg-red-900/10" x-text="expError"></div>
+          <div x-show="expSuccess" class="text-xs text-green-600 px-3 py-2 rounded border border-green-200 dark:border-green-900/20 bg-green-50 dark:bg-green-900/10" x-text="expSuccess"></div>
+
+          <button @click="expDownload()" :disabled="expLoading"
+            class="w-full py-2.5 rounded-lg font-semibold text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            <span x-show="!expLoading">Download</span>
+            <span x-show="expLoading">Downloading…</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ── Section: Cron Scheduler ───────────────────────────────────── -->
+      <div x-show="activeSection === 'cronscheduler'" class="h-full overflow-y-auto">
+        <div class="max-w-3xl mx-auto w-full p-6 flex flex-col gap-6">
+
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold">Cron Scheduler</h2>
+            <button @click="csLoad()" :disabled="csLoading"
+              class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-500 dark:text-[#8b949e] dark:hover:text-[#58a6ff] transition-colors disabled:opacity-40">
+              <svg class="h-3.5 w-3.5" :class="csLoading?'animate-spin':''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+
+          <div x-show="csError" class="text-xs text-red-500 px-3 py-2 rounded border border-red-200 dark:border-red-900/20 bg-red-50 dark:bg-red-900/10" x-text="csError"></div>
+
+          <!-- Quick reference -->
+          <div class="p-3 rounded-lg border border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] text-xs text-gray-500 dark:text-[#8b949e]">
+            <p class="font-semibold mb-1">Cron format: <span class="font-mono text-gray-700 dark:text-[#c9d1d9]">min hour day month weekday</span></p>
+            <p>Examples: <span class="font-mono">* * * * *</span> (every min) &nbsp;·&nbsp; <span class="font-mono">0 */4 * * *</span> (every 4h) &nbsp;·&nbsp; <span class="font-mono">30 8 * * 1-5</span> (weekdays 08:30)</p>
+          </div>
+
+          <!-- Script list -->
+          <div class="flex flex-col gap-2">
+            <template x-if="csAllScripts().length === 0 && !csLoading">
+              <div class="text-center py-8 text-xs text-gray-400 dark:text-[#484f58]">No scripts found. Create scripts in the Scripting section first.</div>
+            </template>
+
+            <template x-for="script in csAllScripts()" :key="script.id">
+              <div class="rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-4 flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="h-2 w-2 rounded-full flex-shrink-0"
+                          :class="csIsActive(script.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-[#30363d]'"></span>
+                    <span class="text-sm font-medium truncate" x-text="script.name"></span>
+                    <span x-show="script.cron_expression" class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]" x-text="script.cron_expression"></span>
+                  </div>
+                  <div class="flex gap-2 flex-shrink-0">
+                    <button @click="csStartEdit(script)"
+                      class="px-2.5 py-1 text-xs rounded border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:border-blue-400 hover:text-blue-600">
+                      Edit
+                    </button>
+                    <button x-show="script.cron_expression" @click="csClear(script.id)"
+                      class="px-2.5 py-1 text-xs rounded border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Next run info -->
+                <div x-show="csIsActive(script.id)" class="flex gap-4 text-xs text-gray-400 dark:text-[#484f58]">
+                  <span>Next: <span class="text-gray-600 dark:text-[#8b949e]" x-text="csNextRun(script.id)"></span></span>
+                  <span>Prev: <span class="text-gray-600 dark:text-[#8b949e]" x-text="csPrevRun(script.id)"></span></span>
+                </div>
+
+                <!-- Edit form -->
+                <template x-if="csEditId === script.id">
+                  <div class="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-[#21262d]">
+                    <div class="flex flex-wrap gap-1.5 mb-1">
+                      <template x-for="q in csQuickExprs" :key="q.expr">
+                        <button @click="csEditExpr = q.expr"
+                          class="px-2 py-0.5 text-xs rounded border border-gray-200 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] hover:border-blue-400 hover:text-blue-600"
+                          x-text="q.label">
+                        </button>
+                      </template>
+                    </div>
+                    <div class="flex gap-2">
+                      <input x-model="csEditExpr" placeholder="* * * * *"
+                        class="flex-1 px-2 py-1.5 rounded border text-xs font-mono bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+                      <button @click="csSave()"
+                        class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
+                      <button @click="csEditId = null"
+                        class="px-3 py-1.5 text-xs rounded border border-gray-200 dark:border-[#30363d] text-gray-500">Cancel</button>
+                    </div>
+                  </div>
+                </template>
+
+              </div>
+            </template>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section: DB Sandbox ───────────────────────────────────────── -->
+      <div x-show="activeSection === 'dbsandbox'" class="h-full flex flex-col overflow-hidden">
+        <div class="flex flex-col flex-1 min-h-0 p-4 gap-3">
+
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold">DB Sandbox</h2>
+            <span class="text-xs text-gray-400 dark:text-[#484f58]">Read-only · SELECT / WITH / EXPLAIN only · Max 1 000 rows</span>
+          </div>
+
+          <!-- Quick examples -->
+          <div class="flex flex-wrap gap-1.5">
+            <template x-for="ex in sbExamples" :key="ex.label">
+              <button @click="sbLoadExample(ex.sql)"
+                class="px-2.5 py-1 text-xs rounded border border-gray-200 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] hover:border-blue-400 hover:text-blue-600 transition-colors"
+                x-text="ex.label">
+              </button>
+            </template>
+          </div>
+
+          <!-- SQL editor -->
+          <div class="flex gap-2">
+            <textarea x-model="sbSQL" @keydown.ctrl.enter.prevent="sbRun()" @keydown.meta.enter.prevent="sbRun()"
+              rows="4" placeholder="SELECT ..."
+              class="flex-1 px-3 py-2 rounded border text-xs font-mono resize-none
+                     bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                     dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                     focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </textarea>
+            <div class="flex flex-col gap-2">
+              <button @click="sbRun()" :disabled="sbLoading"
+                class="px-4 py-2 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                <span x-show="!sbLoading">Run</span><span x-show="sbLoading">Running…</span>
+              </button>
+              <span class="text-[10px] text-gray-400 dark:text-[#484f58] text-center">⌘↵</span>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div x-show="sbError" class="text-xs text-red-500 px-3 py-2 rounded border border-red-200 dark:border-red-900/20 bg-red-50 dark:bg-red-900/10" x-text="sbError"></div>
+
+          <!-- Results meta -->
+          <div x-show="sbColumns.length > 0" class="flex items-center gap-3 text-xs text-gray-400 dark:text-[#484f58]">
+            <span x-text="sbCount + ' row' + (sbCount !== 1 ? 's' : '')"></span>
+            <span x-text="sbExecMs + 'ms'"></span>
+          </div>
+
+          <!-- Results table -->
+          <div x-show="sbColumns.length > 0" class="flex-1 min-h-0 overflow-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+            <table class="w-full text-xs border-collapse">
+              <thead class="bg-gray-50 dark:bg-[#161b22] sticky top-0 z-10">
+                <tr>
+                  <template x-for="col in sbColumns" :key="col">
+                    <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider text-gray-400 dark:text-[#484f58] border-b border-gray-200 dark:border-[#30363d] whitespace-nowrap" x-text="col"></th>
+                  </template>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(row, ri) in sbRows" :key="ri">
+                  <tr class="border-t border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]">
+                    <template x-for="col in sbColumns" :key="col">
+                      <td class="px-3 py-2 font-mono max-w-[20rem] truncate text-gray-700 dark:text-[#c9d1d9]" :title="String(row[col] ?? '')" x-text="row[col] ?? 'NULL'"></td>
+                    </template>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty state -->
+          <div x-show="sbColumns.length === 0 && !sbLoading && !sbError"
+            class="flex-1 flex items-center justify-center text-xs text-gray-400 dark:text-[#484f58]">
+            Enter a SQL query and press Run (or ⌘↵)
+          </div>
+
+        </div>
+      </div>
+
     </main>
   </div>
 

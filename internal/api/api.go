@@ -37,6 +37,7 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 		pb.Logger().Warn("DB Explorer init failed", "error", err)
 	}
 	InitTriggerDispatch()
+	InitCronScheduler()
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -185,6 +186,26 @@ func RegisterRoutes(e *core.ServeEvent) error {
 
 	// Media gallery
 	e.Router.GET("/zaplab/api/media/gallery", getMediaGallery).Bind(auth)
+
+	// SSE stream
+	e.Router.GET("/zaplab/api/events/stream", getSSEStream).Bind(auth)
+
+	// Receipt latency
+	e.Router.GET("/zaplab/api/stats/receipt-latency", getReceiptLatency).Bind(auth)
+
+	// wa.db SQL sandbox
+	e.Router.POST("/zaplab/api/db/query", postDBQuery).Bind(auth)
+
+	// Export
+	e.Router.GET("/zaplab/api/export/events", getExportEvents).Bind(auth)
+	e.Router.GET("/zaplab/api/export/conversation", getExportConversation).Bind(auth)
+	e.Router.GET("/zaplab/api/export/frames/har", getExportFramesHAR).Bind(auth)
+
+	// Presence timeline
+	e.Router.GET("/zaplab/api/presence/timeline", getPresenceTimeline).Bind(auth)
+
+	// Cron schedules
+	e.Router.GET("/zaplab/api/scripts/cron", getCronSchedules).Bind(auth)
 
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
