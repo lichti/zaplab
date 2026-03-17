@@ -6,8 +6,43 @@ Toolkit em Go para estudo e teste do protocolo WhatsApp Web, com uma API REST em
 
 ---
 
+## Início Rápido
+
+```bash
+# 1. Clonar e compilar
+git clone https://github.com/lichti/zaplab.git
+cd zaplab
+cp .env.example .env          # defina API_TOKEN (obrigatório)
+make build                    # requer Go 1.25+
+
+# 2. Executar (binário local)
+make run                      # inicia em http://localhost:8090
+
+# OU executar com Docker
+make run-docker               # stack completa (engine + n8n + cloudflared)
+```
+
+```bash
+# 3. Parear o WhatsApp — escaneie o QR code exibido nos logs
+make logs                     # aguarde o QR code no terminal
+# No celular: Configurações → Aparelhos conectados → Conectar aparelho
+
+# 4. Abrir o dashboard
+open http://localhost:8090    # redireciona para /zaplab/tools/
+# Login padrão: zaplab@zaplab.local / <senha exibida na primeira inicialização>
+
+# 5. Verificar a conexão
+curl http://localhost:8090/health
+# {"pocketbase":"ok","whatsapp":true}
+```
+
+> A sessão é persistida em `data/db/whatsapp.db`. Nas próximas inicializações o bot reconecta automaticamente — sem QR code.
+
+---
+
 ## Sumário
 
+- [Início Rápido](#início-rápido)
 - [Visão geral](#visão-geral)
 - [Arquitetura](#arquitetura)
 - [Estrutura do projeto](#estrutura-do-projeto)
@@ -1157,6 +1192,43 @@ Armazena metadados de sincronização de histórico (o conteúdo vai para `data/
 | `msgID` | text | ID da mensagem |
 | `raw` | json | Dados do histórico |
 
+### `conn_events`
+
+Registra cada evento de conexão e desconexão do WhatsApp.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `event_type` | text | `connected` ou `disconnected` |
+| `reason` | text | Motivo da desconexão (vazio em eventos de conexão) |
+| `jid` | text | JID do bot no momento do evento |
+| `created` | datetime | Timestamp (auto) |
+
+### `group_membership`
+
+Registra cada mudança de participação em grupos observada via `events.GroupInfo`.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `group_jid` | text | JID do grupo |
+| `group_name` | text | Nome do grupo no momento do evento |
+| `member_jid` | text | Membro cujo status mudou |
+| `action` | text | `join`, `leave`, `promote` ou `demote` |
+| `actor_jid` | text | JID de quem executou a ação (se conhecido) |
+| `created` | datetime | Timestamp (auto) |
+
+### `audit_log`
+
+Log imutável das operações mutantes da API, gravado pelo middleware de auditoria.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `method` | text | Método HTTP (`POST`, `PATCH`, `DELETE`) |
+| `path` | text | Caminho da requisição |
+| `status_code` | text | Código de status HTTP |
+| `remote_ip` | text | IP do cliente |
+| `request_body` | text | Corpo da requisição (até 64 KB) |
+| `created` | datetime | Timestamp (auto) |
+
 ### Outras collections
 
 Criadas pelas migrations mas não utilizadas ativamente pelo bot:
@@ -1218,8 +1290,13 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Visualização de Conversa** | Navegador de bolhas de chat em dois painéis — painel esquerdo lista todos os chats (filtro por JID, preview da última mensagem); painel direito exibe mensagens como bolhas enviadas/recebidas com miniaturas de mídia, paginação "Carregar mais" e drawer de evento raw |
 | **Galeria de Mídia** | Visualização em grade de todos os arquivos de mídia baixados (imagens, vídeo, áudio, documentos, figurinhas); filtros por tipo e chat; lightbox com reprodução inline de imagem/vídeo/áudio |
 | **Script Triggers** | Execute scripts automaticamente quando eventos WhatsApp chegam; filtros opcionais por JID e padrão de texto; dropdown de tipo de evento; toggle de habilitado/desabilitado; lista de triggers com edição inline |
-| **Scripting** | Sandbox de automação JavaScript com motor goja; scripts persistidos com nome, descrição, timeout configurável, toggle de habilitado/desabilitado; APIs expandidas: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`; console ad-hoc com 10 exemplos integrados; status/saída/duração da última execução armazenados por script |
+| **Scripting** | Sandbox de automação JavaScript com motor goja; scripts persistidos com nome, descrição, timeout configurável, toggle de habilitado/desabilitado; APIs expandidas: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`; console ad-hoc com 10 exemplos integrados; status/saída/duração da última execução armazenados por script; **Exportar / Importar** — baixe todos os scripts como um bundle JSON ou importe de um arquivo (upsert por nome, preserva `enabled` e `timeout_secs`) |
 | **Stats Avançadas & Heatmap** | Heatmap de atividade estilo GitHub (grade 7×24 de dia da semana × hora); sparkline SVG de mensagens diárias; gráfico de barras de distribuição de tipos de evento; cards de resumo (total, últimas 24 h, 7 d, 30 d, último evento, editadas, apagadas); período configurável (7 / 30 / 90 / 365 dias / todo o tempo) |
+| **WA Health Monitor** | Verificação de saúde das pre-keys — mostra total, quantidade carregada e uma barra visual que fica vermelha quando o estoque está criticamente baixo; aba **Message Secrets** — navega pelos registros de `whatsmeow_message_secrets` |
+| **Frame Analyzers** | **IQ Node Analyzer** — filtra e navega pelos stanzas XML `<iq>` capturados na tabela `frames` (filtro por nível e tipo IQ: get / set / result / error); **Binary Node Inspector** — navega pelos frames binários da camada Noise/Socket com filtros de nível e módulo; detalhe expansível por entrada |
+| **Group Membership Tracker** | Histórico de todas as mudanças de participação em grupos (entrar, sair, promover, rebaixar) gravadas a partir de `events.GroupInfo`; filtro por tipo de ação e JID; visualização do histórico de um grupo específico |
+| **Connection Stability** | Timeline de eventos de conexão (conectado / desconectado com motivo); percentual de uptime em janelas de tempo configuráveis; contagens por tipo de evento; alimentado pela nova coleção `conn_events` |
+| **Audit Log** | Log imutável de todas as operações mutantes da API (envio, execução de script, importação de script); registra método, caminho, código de status, IP remoto e corpo da requisição; filtrável e paginado |
 | **Send Message** | Envio de todos os tipos de mensagem com preview curl e visualizador de resposta |
 | **Send Raw** | Envio de qualquer JSON `waE2E.Message` diretamente — exploração completa do protocolo |
 | **Message Control** | Reagir, editar, revogar/apagar, indicador de digitação, timer de mensagens temporárias |
