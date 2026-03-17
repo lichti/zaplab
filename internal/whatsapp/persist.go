@@ -1,6 +1,7 @@
 package whatsapp
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -45,6 +46,14 @@ func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName 
 	if err := pb.Save(record); err != nil {
 		return fmt.Errorf("failed to save record: %w", err)
 	}
+	if TriggerDispatchFunc != nil {
+		if rawBytes, err := json.Marshal(raw); err == nil {
+			go func() {
+				defer func() { recover() }() //nolint:errcheck
+				TriggerDispatchFunc(evtType, rawBytes)
+			}()
+		}
+	}
 	return nil
 }
 
@@ -75,6 +84,14 @@ func saveEvent(evtType string, raw interface{}, extra interface{}) error {
 
 	if err := pb.Save(record); err != nil {
 		return fmt.Errorf("failed to save record: %w", err)
+	}
+	if TriggerDispatchFunc != nil {
+		if rawBytes, err := json.Marshal(raw); err == nil {
+			go func() {
+				defer func() { recover() }() //nolint:errcheck
+				TriggerDispatchFunc(evtType, rawBytes)
+			}()
+		}
 	}
 	return nil
 }

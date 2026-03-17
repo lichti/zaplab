@@ -1,6 +1,9 @@
 package api
 
 import (
+	"context"
+	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -153,7 +156,7 @@ func postScriptRun(e *core.RequestEvent) error {
 	}
 	timeout := time.Duration(timeoutSecs * float64(time.Second))
 
-	output, runErr, duration := runScript(code, timeout)
+	output, runErr, duration := runScript(code, timeout, nil)
 
 	status := "success"
 	errMsg := ""
@@ -194,7 +197,7 @@ func postScriptRunAdhoc(e *core.RequestEvent) error {
 	}
 	timeout := time.Duration(req.TimeoutSecs * float64(time.Second))
 
-	output, runErr, duration := runScript(req.Code, timeout)
+	output, runErr, duration := runScript(req.Code, timeout, nil)
 
 	status := "success"
 	errMsg := ""
@@ -214,8 +217,8 @@ func postScriptRunAdhoc(e *core.RequestEvent) error {
 // ── sandbox ────────────────────────────────────────────────────────────────────
 
 // runScript executes JS code in an isolated goja VM and returns (output, error, duration).
-// The sandbox exposes: console.log, wa.sendText, wa.status, http.get, http.post, db.query, sleep.
-func runScript(code string, timeout time.Duration) (output string, runErr error, duration time.Duration) {
+// env is an optional map of extra variables to inject before execution (e.g. {"event": payload}).
+func runScript(code string, timeout time.Duration, env map[string]any) (output string, runErr error, duration time.Duration) {
 	vm := goja.New()
 
 	// Interrupt after timeout
@@ -256,25 +259,266 @@ func runScript(code string, timeout time.Duration) (output string, runErr error,
 
 	// ── wa ────────────────────────────────────────────────────────────────────
 	waObj := vm.NewObject()
+
+	// wa.jid — device JID string (evaluated once at sandbox setup)
+	deviceJID := ""
+	if c := whatsapp.GetClient(); c != nil && c.Store != nil && c.Store.ID != nil {
+		deviceJID = c.Store.ID.String()
+	}
+	_ = waObj.Set("jid", deviceJID)
+
+	_ = waObj.Set("status", func(call goja.FunctionCall) goja.Value {
+		return vm.ToValue(string(whatsapp.GetConnectionStatus()))
+	})
+
+	// wa.sendText(jid, text)
 	_ = waObj.Set("sendText", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 {
 			panic(vm.ToValue("wa.sendText(jid, text) requires 2 arguments"))
 		}
-		jidStr := call.Arguments[0].String()
-		text := call.Arguments[1].String()
-		jid, ok := whatsapp.ParseJID(jidStr)
+		jid, ok := whatsapp.ParseJID(call.Arguments[0].String())
 		if !ok {
-			panic(vm.ToValue(fmt.Sprintf("wa.sendText: invalid JID %q", jidStr)))
+			panic(vm.ToValue(fmt.Sprintf("wa.sendText: invalid JID %q", call.Arguments[0].String())))
 		}
-		_, _, err := whatsapp.SendConversationMessage(jid, text, nil)
-		if err != nil {
+		if _, _, err := whatsapp.SendConversationMessage(jid, call.Arguments[1].String(), nil); err != nil {
 			panic(vm.ToValue(fmt.Sprintf("wa.sendText error: %v", err)))
 		}
 		return goja.Undefined()
 	})
-	_ = waObj.Set("status", func(call goja.FunctionCall) goja.Value {
-		return vm.ToValue(string(whatsapp.GetConnectionStatus()))
+
+	// wa.sendImage(jid, base64, caption)
+	_ = waObj.Set("sendImage", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 2 {
+			panic(vm.ToValue("wa.sendImage(jid, base64, caption) requires at least 2 arguments"))
+		}
+		jid, ok := whatsapp.ParseJID(call.Arguments[0].String())
+		if !ok {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendImage: invalid JID %q", call.Arguments[0].String())))
+		}
+		data, err := base64.StdEncoding.DecodeString(call.Arguments[1].String())
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendImage: invalid base64: %v", err)))
+		}
+		caption := ""
+		if len(call.Arguments) > 2 {
+			caption = call.Arguments[2].String()
+		}
+		if _, _, err := whatsapp.SendImage(jid, data, caption, nil, false); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendImage error: %v", err)))
+		}
+		return goja.Undefined()
 	})
+
+	// wa.sendAudio(jid, base64)
+	_ = waObj.Set("sendAudio", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 2 {
+			panic(vm.ToValue("wa.sendAudio(jid, base64) requires 2 arguments"))
+		}
+		jid, ok := whatsapp.ParseJID(call.Arguments[0].String())
+		if !ok {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendAudio: invalid JID %q", call.Arguments[0].String())))
+		}
+		data, err := base64.StdEncoding.DecodeString(call.Arguments[1].String())
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendAudio: invalid base64: %v", err)))
+		}
+		if _, _, err := whatsapp.SendAudio(jid, data, false, nil); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendAudio error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.sendDocument(jid, base64, filename, caption?)
+	_ = waObj.Set("sendDocument", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 3 {
+			panic(vm.ToValue("wa.sendDocument(jid, base64, filename, caption?) requires at least 3 arguments"))
+		}
+		jid, ok := whatsapp.ParseJID(call.Arguments[0].String())
+		if !ok {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendDocument: invalid JID %q", call.Arguments[0].String())))
+		}
+		data, err := base64.StdEncoding.DecodeString(call.Arguments[1].String())
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendDocument: invalid base64: %v", err)))
+		}
+		filename := call.Arguments[2].String()
+		caption := ""
+		if len(call.Arguments) > 3 {
+			caption = call.Arguments[3].String()
+		}
+		if _, _, err := whatsapp.SendDocumentFile(jid, data, filename, caption, nil); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendDocument error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.sendLocation(jid, lat, lon, name?)
+	_ = waObj.Set("sendLocation", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 3 {
+			panic(vm.ToValue("wa.sendLocation(jid, lat, lon, name?) requires at least 3 arguments"))
+		}
+		jid, ok := whatsapp.ParseJID(call.Arguments[0].String())
+		if !ok {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendLocation: invalid JID %q", call.Arguments[0].String())))
+		}
+		lat := call.Arguments[1].ToFloat()
+		lon := call.Arguments[2].ToFloat()
+		name := ""
+		if len(call.Arguments) > 3 {
+			name = call.Arguments[3].String()
+		}
+		if _, _, err := whatsapp.SendLocation(jid, lat, lon, name, "", nil); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendLocation error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.sendReaction(chat, sender, msgID, emoji)
+	_ = waObj.Set("sendReaction", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 4 {
+			panic(vm.ToValue("wa.sendReaction(chat, sender, msgID, emoji) requires 4 arguments"))
+		}
+		chat, ok1 := whatsapp.ParseJID(call.Arguments[0].String())
+		sender, ok2 := whatsapp.ParseJID(call.Arguments[1].String())
+		if !ok1 || !ok2 {
+			panic(vm.ToValue("wa.sendReaction: invalid JID"))
+		}
+		if _, _, err := whatsapp.SendReaction(chat, sender, call.Arguments[2].String(), call.Arguments[3].String()); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.sendReaction error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.editMessage(chat, msgID, newText)
+	_ = waObj.Set("editMessage", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 3 {
+			panic(vm.ToValue("wa.editMessage(chat, msgID, newText) requires 3 arguments"))
+		}
+		chat, ok := whatsapp.ParseJID(call.Arguments[0].String())
+		if !ok {
+			panic(vm.ToValue(fmt.Sprintf("wa.editMessage: invalid JID %q", call.Arguments[0].String())))
+		}
+		if _, _, err := whatsapp.EditMessage(chat, call.Arguments[1].String(), call.Arguments[2].String()); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.editMessage error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.revokeMessage(chat, sender, msgID)
+	_ = waObj.Set("revokeMessage", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 3 {
+			panic(vm.ToValue("wa.revokeMessage(chat, sender, msgID) requires 3 arguments"))
+		}
+		chat, ok1 := whatsapp.ParseJID(call.Arguments[0].String())
+		sender, ok2 := whatsapp.ParseJID(call.Arguments[1].String())
+		if !ok1 || !ok2 {
+			panic(vm.ToValue("wa.revokeMessage: invalid JID"))
+		}
+		if _, _, err := whatsapp.RevokeMessage(chat, sender, call.Arguments[2].String()); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.revokeMessage error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.setTyping(jid, state) — state: "composing" | "paused"
+	_ = waObj.Set("setTyping", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 2 {
+			panic(vm.ToValue("wa.setTyping(jid, state) requires 2 arguments"))
+		}
+		jid, ok := whatsapp.ParseJID(call.Arguments[0].String())
+		if !ok {
+			panic(vm.ToValue(fmt.Sprintf("wa.setTyping: invalid JID %q", call.Arguments[0].String())))
+		}
+		if err := whatsapp.SetTyping(jid, call.Arguments[1].String(), "text"); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.setTyping error: %v", err)))
+		}
+		return goja.Undefined()
+	})
+
+	// wa.getContacts() — returns array of {jid, name, push_name, short_name}
+	_ = waObj.Set("getContacts", func(call goja.FunctionCall) goja.Value {
+		contacts, err := whatsapp.GetAllContacts()
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.getContacts error: %v", err)))
+		}
+		b, _ := json.Marshal(contacts)
+		var out any
+		_ = json.Unmarshal(b, &out)
+		return vm.ToValue(out)
+	})
+
+	// wa.getGroups() — returns array of {jid, name, participant_count}
+	_ = waObj.Set("getGroups", func(call goja.FunctionCall) goja.Value {
+		c := whatsapp.GetClient()
+		if c == nil {
+			panic(vm.ToValue("wa.getGroups: not connected"))
+		}
+		groups, err := c.GetJoinedGroups(context.Background())
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.getGroups error: %v", err)))
+		}
+		type groupOut struct {
+			JID              string `json:"jid"`
+			Name             string `json:"name"`
+			ParticipantCount int    `json:"participant_count"`
+		}
+		out := make([]groupOut, len(groups))
+		for i, g := range groups {
+			out[i] = groupOut{JID: g.JID.String(), Name: g.Name, ParticipantCount: len(g.Participants)}
+		}
+		b, _ := json.Marshal(out)
+		var result any
+		_ = json.Unmarshal(b, &result)
+		return vm.ToValue(result)
+	})
+
+	// wa.db.query(sql) — read-only access to whatsapp.db (separate from db.query which targets PocketBase)
+	waDbObj := vm.NewObject()
+	_ = waDbObj.Set("query", func(call goja.FunctionCall) goja.Value {
+		if waDB == nil {
+			panic(vm.ToValue("wa.db.query: whatsapp DB not available"))
+		}
+		if len(call.Arguments) < 1 {
+			panic(vm.ToValue("wa.db.query(sql) requires 1 argument"))
+		}
+		sqlStr := call.Arguments[0].String()
+		rows, err := waDB.QueryContext(context.Background(), sqlStr)
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("wa.db.query error: %v", err)))
+		}
+		defer rows.Close()
+		cols, _ := rows.Columns()
+		var result []map[string]any
+		for rows.Next() {
+			vals := make([]any, len(cols))
+			ptrs := make([]any, len(cols))
+			for i := range vals {
+				ptrs[i] = &vals[i]
+			}
+			if err := rows.Scan(ptrs...); err != nil {
+				continue
+			}
+			row := make(map[string]any, len(cols))
+			for i, col := range cols {
+				switch v := vals[i].(type) {
+				case []byte:
+					row[col] = sql.RawBytes(v)
+				default:
+					row[col] = v
+				}
+			}
+			result = append(result, row)
+		}
+		if result == nil {
+			result = []map[string]any{}
+		}
+		b, _ := json.Marshal(result)
+		var out any
+		_ = json.Unmarshal(b, &out)
+		return vm.ToValue(out)
+	})
+	_ = waObj.Set("db", waDbObj)
+
 	_ = vm.Set("wa", waObj)
 
 	// ── http ─────────────────────────────────────────────────────────────────
@@ -366,6 +610,11 @@ func runScript(code string, timeout time.Duration) (output string, runErr error,
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 		return goja.Undefined()
 	})
+
+	// Inject optional environment variables (e.g. event payload for triggers)
+	for k, v := range env {
+		_ = vm.Set(k, v)
+	}
 
 	start := time.Now()
 	_, runErr = vm.RunString(code)

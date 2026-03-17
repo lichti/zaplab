@@ -36,6 +36,7 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 	if err := initDBExplorer(whatsapp.GetDBAddress(), whatsapp.GetDBDialect()); err != nil {
 		pb.Logger().Warn("DB Explorer init failed", "error", err)
 	}
+	InitTriggerDispatch()
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -166,6 +167,23 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.DELETE("/zaplab/api/scripts/{id}", deleteScript).Bind(auth)
 	e.Router.POST("/zaplab/api/scripts/{id}/run", postScriptRun).Bind(auth)
 	e.Router.POST("/zaplab/api/scripts/run", postScriptRunAdhoc).Bind(auth)
+
+	// Script triggers (event hooks)
+	e.Router.GET("/zaplab/api/script-triggers", getTriggers).Bind(auth)
+	e.Router.POST("/zaplab/api/script-triggers", postTrigger).Bind(auth)
+	e.Router.PATCH("/zaplab/api/script-triggers/{id}", patchTrigger).Bind(auth)
+	e.Router.DELETE("/zaplab/api/script-triggers/{id}", deleteTrigger).Bind(auth)
+	e.Router.GET("/zaplab/api/script-triggers/event-types", getScriptEventTypes).Bind(auth)
+
+	// Full-text search
+	e.Router.GET("/zaplab/api/search", getSearch).Bind(auth)
+
+	// Conversation view
+	e.Router.GET("/zaplab/api/conversation/chats", getConversationChats).Bind(auth)
+	e.Router.GET("/zaplab/api/conversation", getConversation).Bind(auth)
+
+	// Media gallery
+	e.Router.GET("/zaplab/api/media/gallery", getMediaGallery).Bind(auth)
 
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 

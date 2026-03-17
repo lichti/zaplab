@@ -185,6 +185,31 @@ func EditMessage(chat types.JID, messageID, newText string) (*waE2E.Message, *wh
 	return sendMessage(chat, msg)
 }
 
+// SendDocumentFile sends a document with both a display filename and optional caption.
+func SendDocumentFile(to types.JID, data []byte, filename, caption string, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
+	uploaded, err := client.Upload(context.Background(), data, whatsmeow.MediaDocument)
+	if err != nil {
+		saveError("SendDocumentFile", "Failed to upload file", &sentErrorPayload{Message: nil, Response: nil, Error: err})
+		logger.Debugf("Failed to upload file: %v", err)
+		return &waE2E.Message{}, &whatsmeow.SendResponse{}, fmt.Errorf("failed to upload file: %v", err)
+	}
+	msg := &waE2E.Message{
+		DocumentMessage: &waE2E.DocumentMessage{
+			FileName:      proto.String(filename),
+			Caption:       proto.String(caption),
+			URL:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(http.DetectContentType(data)),
+			FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(data))),
+			ContextInfo:   buildContextInfo(reply),
+		},
+	}
+	return sendMessage(to, msg)
+}
+
 func SendDocument(to types.JID, data []byte, caption string, reply *ReplyInfo) (*waE2E.Message, *whatsmeow.SendResponse, error) {
 	uploaded, err := client.Upload(context.Background(), data, whatsmeow.MediaDocument)
 	if err != nil {
