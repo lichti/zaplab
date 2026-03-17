@@ -156,6 +156,9 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	// PCAP export
 	e.Router.GET("/zaplab/api/frames/pcap", getFramesPCAP).Bind(auth)
 
+	// Network graph
+	e.Router.GET("/zaplab/api/network/graph", getNetworkGraph).Bind(auth)
+
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil

@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Multi-Session Comparator** — side-by-side comparison of up to 6 Signal Protocol sessions or group SenderKey records.
+  - Sessions tab: checkbox selection from the full session list; comparison table with properties as rows and sessions as columns; differences relative to the first selected session highlighted in amber; diff count badge (0 diffs = green, N > 0 = amber).
+  - Sender Keys tab: same UX for group SenderKey records (key ID, iteration, signing key, decode error).
+  - Compared properties: version, has sender chain, sender counter, receiver chains, previous counter, previous states, raw size, remote/local identity key, decode error.
+  - No new backend endpoints — reuses the existing `/zaplab/api/signal/sessions` and `/zaplab/api/signal/senderkeys`.
+- **Network Graph** — interactive force-directed contact/group relationship graph built from stored Message events.
+  - **Backend**: new `GET /zaplab/api/network/graph?period=<days>` endpoint scans `events WHERE type='Message'`, extracts `Info.Chat` / `Info.Sender` / `Info.IsGroup` from the raw JSON in Go, aggregates nodes (self, contacts, groups, broadcast lists) and edges (device ↔ chat message count; sender ↔ group membership), enriches node labels from `whatsmeow_contacts` push names, returns top-100 nodes by message count with corresponding edges.
+  - **Frontend**: pure-JS Verlet force simulation (repulsion + spring attraction + centre gravity + damping); HTML `<canvas>` renderer (dark/light mode aware); node radius scales with `√(msg_count)`; edge opacity and thickness scale with weight.
+  - Period selector (7d / 30d / 90d / 365d / all time); Pause/Resume simulation button; stats chips (node count, edge count, message count).
+  - Node detail panel (click to inspect): type, label, JID, message count, connection list with per-edge weight.
+  - Mouse interaction: drag nodes to pin/reposition; hover shows labels for all nodes; self node always pinned to centre.
+  - Legend: self (blue), contact (orange), group (green), broadcast (purple).
 - **App State Inspector** — new dashboard section that exposes the three whatsmeow app state SQLite tables for protocol research.
   - **Collections tab**: reads `whatsmeow_app_state_version`; shows every known collection (`critical`, `regular`, `critical_unblock_to_primary`, `critical_block`, `regular_low`) with its current version index, Merkle-tree state hash, and a plain-English description; filterable by name or JID.
   - **Sync Keys tab**: reads `whatsmeow_app_state_sync_keys`; shows key ID (hex), creation timestamp, fingerprint (hex), and key size in bytes for every app state decryption key; raw key bytes are withheld.
