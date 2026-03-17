@@ -13,8 +13,10 @@ function conversationSection() {
     cvMsgLoading:   false,
     cvMsgError:     '',
     cvMessages:     [],  // all events in ASC order (including edits/deletes/reactions)
-    cvReactions:    {},  // {msgID: [{emoji, sender}]}
-    cvEdits:        {},  // {originalMsgID: {type:'edited_text'|'deleted', text, created}}
+    cvReactions:    {},  // {msgID: [{emoji, sender}]}            — for chips in the bubble
+    cvEdits:        {},  // {originalMsgID: {type, text, created}} — for bubble coloring (last wins)
+    cvReactMap:     {},  // {msgID: [fullMsg, ...]}                — for detail panel
+    cvEditMap:      {},  // {originalMsgID: [fullMsg, ...]}        — for detail panel
     cvHasMore:      false,
     cvNextBefore:   null,
     cvSelectedMsg:  null,
@@ -55,6 +57,8 @@ function conversationSection() {
       this.cvMessages     = [];
       this.cvReactions    = {};
       this.cvEdits        = {};
+      this.cvReactMap     = {};
+      this.cvEditMap      = {};
       this.cvHasMore      = false;
       this.cvNextBefore   = null;
       this.cvSelectedMsg  = null;
@@ -94,23 +98,30 @@ function conversationSection() {
     },
 
     // ── build annotation maps ──
-    // Processes all loaded messages to build:
-    //   cvReactions: {msgID: [{emoji, sender}]}
-    //   cvEdits:     {originalMsgID: {type, text, created}}  (last write wins = most recent edit)
+    // cvReactions / cvReactMap  — keyed by target msgID, for chips and detail panel
+    // cvEdits / cvEditMap       — keyed by original msgID; last write wins for bubble color
     cvBuildMaps() {
       const reactions = {};
+      const reactMap  = {};
       const edits     = {};
+      const editMap   = {};
       for (const msg of this.cvMessages) {
         if (msg.type === 'reaction' && msg.react_target) {
           if (!reactions[msg.react_target]) reactions[msg.react_target] = [];
+          if (!reactMap[msg.react_target])  reactMap[msg.react_target]  = [];
           reactions[msg.react_target].push({ emoji: msg.text || '❤️', sender: msg.sender });
+          reactMap[msg.react_target].push(msg);
         }
         if ((msg.type === 'deleted' || (msg.type && msg.type.startsWith('edited_'))) && msg.edit_target) {
           edits[msg.edit_target] = { type: msg.type, text: msg.text || '', created: msg.created };
+          if (!editMap[msg.edit_target]) editMap[msg.edit_target] = [];
+          editMap[msg.edit_target].push(msg);
         }
       }
       this.cvReactions = reactions;
+      this.cvReactMap  = reactMap;
       this.cvEdits     = edits;
+      this.cvEditMap   = editMap;
     },
 
     // ── display helpers ──
@@ -127,6 +138,17 @@ function conversationSection() {
     },
 
     cvToggleOrder() { this.cvOrderAsc = !this.cvOrderAsc; },
+
+    // Navigate to Event Browser pre-filtered by msgID.
+    cvOpenInEventBrowser(msgId) {
+      if (!msgId) return;
+      this.eb.filterMsgID = msgId;
+      // Reset other filters so the result is clean
+      this.eb.filterType = '';
+      this.eb.filterText = '';
+      this.setSection('events');
+      this.ebSearch();
+    },
 
     // Effective state of a message considering later edits/deletes.
     // Returns null if no annotation, or {type, text, created} from cvEdits.

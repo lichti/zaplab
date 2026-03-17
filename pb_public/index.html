@@ -8458,23 +8458,75 @@
             </template>
           </div>
 
-          <!-- Raw msg drawer -->
-          <div x-show="cvSelectedMsg" class="w-72 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] flex flex-col bg-white dark:bg-[#0d1117]">
+          <!-- Message Detail drawer -->
+          <div x-show="cvSelectedMsg" class="w-80 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] flex flex-col bg-white dark:bg-[#0d1117]">
             <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22]">
               <span class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] flex-1">Message Detail</span>
               <button @click="cvSelectedMsg = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm">✕</button>
             </div>
             <template x-if="cvSelectedMsg">
-              <div class="flex-1 overflow-y-auto p-2 space-y-1">
-                <p class="text-[10px] text-gray-400"><strong>ID:</strong> <span x-text="cvSelectedMsg.id"></span></p>
-                <p class="text-[10px] text-gray-400"><strong>msgID:</strong> <span x-text="cvSelectedMsg.msgID"></span></p>
-                <p class="text-[10px] text-gray-400"><strong>Type:</strong> <span x-text="cvSelectedMsg.type"></span></p>
-                <p class="text-[10px] text-gray-400"><strong>Sender:</strong> <span x-text="cvSelectedMsg.sender"></span></p>
-                <p class="text-[10px] text-gray-400"><strong>Time:</strong> <span x-text="cvSelectedMsg.created"></span></p>
-                <template x-if="cvSelectedMsg.file_url">
-                  <a :href="cvSelectedMsg.file_url" target="_blank"
-                    class="block text-[10px] text-blue-500 hover:underline">⬇ Download file</a>
+              <div class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-[#21262d]">
+
+                <!-- ── Selected message ── -->
+                <div class="p-3 space-y-1">
+                  <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-[#484f58] mb-1">Original Message</p>
+                  <p class="text-[10px] text-gray-500 dark:text-[#8b949e]"><span class="font-semibold">From:</span> <span x-text="cvDisplayName(cvSelectedMsg.sender)"></span></p>
+                  <p class="text-[10px] text-gray-500 dark:text-[#8b949e]"><span class="font-semibold">Time:</span> <span x-text="cvSelectedMsg.created"></span></p>
+                  <p class="text-[10px] text-gray-500 dark:text-[#8b949e]"><span class="font-semibold">Type:</span> <span x-text="cvSelectedMsg.type"></span></p>
+                  <p class="text-[10px] font-mono text-gray-400 dark:text-[#484f58] break-all"><span class="font-semibold font-sans">msgID:</span> <span x-text="cvSelectedMsg.msgID"></span></p>
+                  <template x-if="cvSelectedMsg.file_url">
+                    <a :href="cvSelectedMsg.file_url" target="_blank"
+                      class="block text-[10px] text-blue-500 hover:underline mt-1">⬇ Download file</a>
+                  </template>
+                  <button @click="cvOpenInEventBrowser(cvSelectedMsg.msgID)"
+                    class="mt-2 w-full px-2 py-1 text-[10px] rounded border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-left">
+                    🔍 Inspect JSON in Event Browser
+                  </button>
+                </div>
+
+                <!-- ── Edit / Delete history ── -->
+                <template x-if="cvEditMap[cvSelectedMsg.msgID] && cvEditMap[cvSelectedMsg.msgID].length > 0">
+                  <div class="p-3 space-y-2">
+                    <p class="text-[10px] font-bold uppercase tracking-wide text-yellow-600 dark:text-yellow-400 mb-1">Edit / Delete History</p>
+                    <template x-for="(ev, i) in cvEditMap[cvSelectedMsg.msgID]" :key="i">
+                      <div :class="ev.type === 'deleted'
+                          ? 'rounded p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                          : 'rounded p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700'">
+                        <p class="text-[10px] font-semibold mb-0.5"
+                          :class="ev.type === 'deleted' ? 'text-red-600 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'"
+                          x-text="ev.type === 'deleted' ? '🗑 Apagada' : '✏️ Editada'"></p>
+                        <p x-show="ev.text" class="text-[10px] text-gray-700 dark:text-[#c9d1d9] break-words whitespace-pre-wrap mb-0.5"
+                          x-text="ev.text"></p>
+                        <p class="text-[10px] text-gray-400 dark:text-[#484f58]" x-text="ev.created"></p>
+                        <button @click="cvOpenInEventBrowser(ev.msgID)"
+                          class="mt-1 px-2 py-0.5 text-[10px] rounded border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                          🔍 Inspect JSON
+                        </button>
+                      </div>
+                    </template>
+                  </div>
                 </template>
+
+                <!-- ── Reactions ── -->
+                <template x-if="cvReactMap[cvSelectedMsg.msgID] && cvReactMap[cvSelectedMsg.msgID].length > 0">
+                  <div class="p-3 space-y-2">
+                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-[#484f58] mb-1">Reactions</p>
+                    <template x-for="(ev, i) in cvReactMap[cvSelectedMsg.msgID]" :key="i">
+                      <div class="rounded p-2 bg-gray-50 dark:bg-[#21262d] border border-gray-200 dark:border-[#30363d] flex items-start gap-2">
+                        <span class="text-lg leading-none" x-text="ev.text || '❤️'"></span>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-[10px] text-gray-600 dark:text-[#c9d1d9] truncate" x-text="cvDisplayName(ev.sender)"></p>
+                          <p class="text-[10px] text-gray-400 dark:text-[#484f58]" x-text="ev.created"></p>
+                          <button @click="cvOpenInEventBrowser(ev.msgID)"
+                            class="mt-1 px-2 py-0.5 text-[10px] rounded border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                            🔍 Inspect JSON
+                          </button>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+
               </div>
             </template>
           </div>
