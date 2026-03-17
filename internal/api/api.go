@@ -141,6 +141,13 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.PATCH("/zaplab/api/annotations/{id}", patchAnnotation).Bind(auth)
 	e.Router.DELETE("/zaplab/api/annotations/{id}", deleteAnnotation).Bind(auth)
 
+	// Stats & heatmap
+	e.Router.GET("/zaplab/api/stats/heatmap", getStatsHeatmap).Bind(auth)
+	e.Router.GET("/zaplab/api/stats/daily", getStatsDaily).Bind(auth)
+	e.Router.GET("/zaplab/api/stats/types", getStatsTypes).Bind(auth)
+	e.Router.GET("/zaplab/api/stats/summary", getStatsSummary).Bind(auth)
+	e.Router.GET("/zaplab/api/stats/editchain", getStatsEditChain).Bind(auth)
+
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil

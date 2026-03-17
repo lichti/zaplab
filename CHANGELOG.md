@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Advanced Stats & Heatmap** — new dedicated Stats section with activity analytics.
+  - **Activity heatmap**: GitHub-style 7×24 grid (day-of-week × hour-of-day) showing message density; 5-level green colour scale; peak hour label; period selector (7d / 30d / 90d / 1y / all time).
+  - **Daily sparkline**: SVG bar chart of message volume per day, with min/max/avg labels; fills gaps automatically.
+  - **Event type distribution**: horizontal bar chart of top 15 event types with relative widths.
+  - **Summary cards**: Total messages, Last 24h, Edited count + rate, Deleted count + rate.
+  - Pure HTML/CSS/SVG — no external charting libraries.
+  - 5 new backend endpoints powered by raw SQLite queries on PocketBase's own DB:
+    `GET /zaplab/api/stats/heatmap`, `GET /zaplab/api/stats/daily`, `GET /zaplab/api/stats/types`,
+    `GET /zaplab/api/stats/summary`, `GET /zaplab/api/stats/editchain`.
+- **Enhanced Message Diff** — major upgrade to the Edit Diff panel in Message History.
+  - **View toggle**: switch between **inline** (additions and removals in a single stream) and **side-by-side** (before / after panels with coloured backgrounds).
+  - **Granularity toggle**: switch between **word-level** (default, fast) and **character-level** diff (individual characters as tokens, useful for small edits).
+  - **Diff statistics bar**: shows `+N added / −M removed` token counts and a **similarity percentage** computed from the LCS result.
+  - **Edit chain timeline**: loads all events that share the same `msgID` from the new `/stats/editchain` endpoint and renders a chronological vertical timeline with kind badges (original / edit / delete) and message content at each step.
 - **Signal Session Visualizer** — new dashboard section that decodes all Signal Protocol Double Ratchet sessions and group SenderKey records stored in `whatsapp.db`.
   - **Individual sessions** tab: decodes every row in `whatsmeow_sessions`; shows address, session version (v2/v3/v4), sender chain counter, receiver chain count, previous counter, archived state count, remote identity public key (hex), and raw blob size.
   - **Group sender keys** tab: decodes every row in `whatsmeow_sender_keys`; shows chat ID, sender ID, key ID, chain iteration (messages sent), signing key public (hex), and raw blob size.

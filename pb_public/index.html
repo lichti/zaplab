@@ -48,6 +48,7 @@
   <script src="js/sections/noisehandshake.js"></script>
   <script src="js/sections/signalsessions.js"></script>
   <script src="js/sections/annotations.js"></script>
+  <script src="js/sections/stats.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -628,6 +629,23 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Annotations</span>
+        </a>
+
+        <!-- Advanced Stats -->
+        <a
+          href="#/stats"
+          @click.prevent="setSection('stats')"
+          :title="sidebarExpanded ? '' : 'Stats'"
+          aria-label="Advanced Stats & Heatmap"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'stats'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Stats & Heatmap</span>
         </a>
 
         <!-- Send Message -->
@@ -2318,21 +2336,115 @@
                     </div>
                   </div>
 
-                  <!-- ── Edit Diff section ── -->
-                  <template x-if="mhKind(mh.selected) === 'edit' && mh.origEvent && mhDiffHtml(mh.selected)">
-                    <div class="px-4 py-4 border-t border-gray-100 dark:border-[#21262d]">
-                      <div class="flex items-center gap-2 mb-3">
-                        <div class="text-xs font-semibold uppercase tracking-wider
-                                    text-gray-400 dark:text-[#8b949e]">Edit Diff</div>
-                        <div class="flex items-center gap-2 text-xs ml-1">
-                          <span class="diff-del px-1.5 py-0.5 rounded">removed</span>
-                          <span class="diff-ins px-1.5 py-0.5 rounded">added</span>
+                  <!-- ── Enhanced Edit Diff section ── -->
+                  <template x-if="mhKind(mh.selected) === 'edit' && mh.origEvent">
+                    <div class="px-4 py-4 border-t border-gray-100 dark:border-[#21262d] space-y-3">
+
+                      <!-- Diff toolbar -->
+                      <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                          <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#8b949e]">Edit Diff</div>
+                          <div class="flex items-center gap-1 text-xs">
+                            <span class="diff-del px-1 py-0.5 rounded text-xs">−removed</span>
+                            <span class="diff-ins px-1 py-0.5 rounded text-xs">+added</span>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <!-- View mode toggle -->
+                          <div class="flex rounded border border-gray-200 dark:border-[#30363d] overflow-hidden text-xs">
+                            <button @click="mhDiffMode='inline'"
+                              :class="mhDiffMode==='inline' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-50 dark:hover:bg-[#30363d]'"
+                              class="px-2 py-1 transition-colors">Inline</button>
+                            <button @click="mhDiffMode='sidebyside'"
+                              :class="mhDiffMode==='sidebyside' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-50 dark:hover:bg-[#30363d]'"
+                              class="px-2 py-1 border-l border-gray-200 dark:border-[#30363d] transition-colors">Side-by-side</button>
+                          </div>
+                          <!-- Char/word toggle -->
+                          <button @click="mhCharLevel = !mhCharLevel"
+                            :class="mhCharLevel ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-300 dark:border-purple-800' : 'bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e] border-gray-200 dark:border-[#30363d]'"
+                            class="px-2 py-1 text-xs rounded border transition-colors"
+                            title="Toggle between word-level and character-level diff granularity"
+                          >
+                            <span x-text="mhCharLevel ? 'Char-level' : 'Word-level'"></span>
+                          </button>
+                          <!-- Edit chain button -->
+                          <button @click="mhToggleChain()"
+                            :disabled="mhChainLoading"
+                            :class="mhShowChain ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-300 dark:border-teal-800' : 'bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e] border-gray-200 dark:border-[#30363d]'"
+                            class="flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors disabled:opacity-50"
+                            title="Show all edits for this message"
+                          >
+                            <svg x-show="mhChainLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9"/></svg>
+                            Edit Chain
+                          </button>
                         </div>
                       </div>
-                      <div class="rounded-md border px-3 py-3 text-sm leading-relaxed break-words
-                                  bg-white border-gray-200 dark:bg-[#0d1117] dark:border-[#30363d]"
-                           x-html="mhDiffHtml(mh.selected)">
+
+                      <!-- Diff stats bar -->
+                      <template x-if="mhDiffStats(mh.selected)">
+                        <div class="flex items-center gap-3 text-xs px-2 py-1.5 rounded bg-gray-50 dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d]">
+                          <span class="diff-ins rounded px-1.5 py-0.5" x-text="'+' + mhDiffStats(mh.selected).added + ' added'"></span>
+                          <span class="diff-del rounded px-1.5 py-0.5" x-text="'−' + mhDiffStats(mh.selected).removed + ' removed'"></span>
+                          <span class="text-gray-500 dark:text-[#8b949e]">
+                            Similarity: <span class="font-semibold" x-text="mhDiffStats(mh.selected).similarity + '%'"></span>
+                          </span>
+                          <span class="text-gray-400 dark:text-[#6e7681]" x-text="mhCharLevel ? '(char-level)' : '(word-level)'"></span>
+                        </div>
+                      </template>
+
+                      <!-- Inline diff -->
+                      <div x-show="mhDiffMode === 'inline'">
+                        <div class="rounded-md border px-3 py-3 text-sm leading-relaxed break-words font-mono
+                                    bg-white border-gray-200 dark:bg-[#0d1117] dark:border-[#30363d]"
+                             x-html="mhDiffHtml(mh.selected)">
+                        </div>
                       </div>
+
+                      <!-- Side-by-side diff -->
+                      <div x-show="mhDiffMode === 'sidebyside'" class="grid grid-cols-2 gap-2">
+                        <div>
+                          <div class="text-xs font-medium text-gray-500 dark:text-[#8b949e] mb-1 px-1">Before</div>
+                          <div class="rounded-md border px-3 py-3 text-sm leading-relaxed break-words font-mono
+                                      bg-red-50/30 border-red-200 dark:bg-red-950/20 dark:border-red-900/40"
+                               x-html="mhDiffSideA(mh.selected)">
+                          </div>
+                        </div>
+                        <div>
+                          <div class="text-xs font-medium text-gray-500 dark:text-[#8b949e] mb-1 px-1">After</div>
+                          <div class="rounded-md border px-3 py-3 text-sm leading-relaxed break-words font-mono
+                                      bg-green-50/30 border-green-200 dark:bg-green-950/20 dark:border-green-900/40"
+                               x-html="mhDiffSideB(mh.selected)">
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Edit chain timeline -->
+                      <div x-show="mhShowChain && mhChain.length > 0" class="space-y-2 pt-1">
+                        <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#8b949e] mb-2">Edit Chain (<span x-text="mhChain.length"></span> versions)</div>
+                        <div class="relative pl-4 space-y-3">
+                          <!-- Timeline line -->
+                          <div class="absolute left-1.5 top-2 bottom-2 w-px bg-gray-200 dark:bg-[#30363d]"></div>
+                          <template x-for="(entry, idx) in mhChain" :key="entry.id">
+                            <div class="relative flex items-start gap-3">
+                              <!-- Dot -->
+                              <div class="absolute -left-2.5 mt-1 w-2 h-2 rounded-full flex-shrink-0"
+                                   :class="mhChainKind(entry) === 'original' ? 'bg-gray-400' : mhChainKind(entry) === 'edit' ? 'bg-blue-500' : 'bg-red-500'"></div>
+                              <div class="flex-1 min-w-0 bg-gray-50 dark:bg-[#161b22] rounded border border-gray-200 dark:border-[#30363d] px-3 py-2">
+                                <div class="flex items-center gap-2 mb-1">
+                                  <span class="text-xs px-1.5 py-0.5 rounded font-medium" :class="mhChainKindClass(mhChainKind(entry))" x-text="mhChainKind(entry)"></span>
+                                  <span class="text-xs text-gray-400 dark:text-[#6e7681]" x-text="mhFmtDateTime(entry.created)"></span>
+                                  <span x-show="idx === 0" class="text-xs text-gray-400 dark:text-[#6e7681] italic">← original</span>
+                                </div>
+                                <div class="text-xs font-mono text-gray-700 dark:text-[#c9d1d9] break-words leading-relaxed"
+                                     x-text="mhChainContent(entry) || '(no text content)'"></div>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                      <div x-show="mhShowChain && mhChain.length === 0 && !mhChainLoading"
+                           class="text-xs text-gray-400 dark:text-[#8b949e] italic">No additional versions found in database.</div>
+
                     </div>
                   </template>
 
@@ -7272,6 +7384,181 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════ -->
+      <!-- Advanced Stats & Heatmap                                           -->
+      <!-- ══════════════════════════════════════════════════════════════════ -->
+      <div
+        x-show="activeSection === 'stats'"
+        x-effect="if (activeSection === 'stats' && !stSummary && !stLoading) stLoad()"
+        class="p-6 space-y-6"
+      >
+        <!-- Header -->
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-[#e6edf3]">Stats &amp; Heatmap</h2>
+            <p class="text-xs text-gray-500 dark:text-[#8b949e] mt-0.5">Message activity analytics with time-of-day heatmap</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Period selector -->
+            <template x-for="opt in stPeriodOpts" :key="opt.value">
+              <button
+                @click="stSetPeriod(opt.value)"
+                :class="stPeriod === opt.value
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e] border-gray-300 dark:border-[#30363d] hover:bg-gray-50 dark:hover:bg-[#30363d]'"
+                class="px-2.5 py-1 text-xs rounded border transition-colors"
+                x-text="opt.label"
+              ></button>
+            </template>
+            <button
+              @click="stRefresh()"
+              :disabled="stLoading"
+              class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-700 dark:text-[#c9d1d9] hover:bg-gray-50 dark:hover:bg-[#30363d] disabled:opacity-50 transition-colors"
+            >
+              <svg class="h-3 w-3" :class="stLoading && 'animate-spin'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div x-show="stError" class="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-3 py-2" x-text="stError"></div>
+
+        <!-- Loading skeleton -->
+        <div x-show="stLoading && !stSummary" class="text-center py-10 text-xs text-gray-400 dark:text-[#8b949e]">Loading statistics…</div>
+
+        <template x-if="stSummary || stHeatCells.length">
+
+          <div class="space-y-6">
+
+            <!-- Summary cards row -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-3">
+                <div class="text-xs text-gray-500 dark:text-[#8b949e] mb-1">Total Messages</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-[#e6edf3]" x-text="stFmt(stSummary?.total)"></div>
+                <div class="text-xs text-gray-400 dark:text-[#6e7681] mt-0.5" x-text="'Last 30d: ' + stFmt(stSummary?.last_30d)"></div>
+              </div>
+              <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-3">
+                <div class="text-xs text-gray-500 dark:text-[#8b949e] mb-1">Last 24h</div>
+                <div class="text-xl font-bold text-blue-600 dark:text-[#58a6ff]" x-text="stFmt(stSummary?.last_24h)"></div>
+                <div class="text-xs text-gray-400 dark:text-[#6e7681] mt-0.5" x-text="'Last 7d: ' + stFmt(stSummary?.last_7d)"></div>
+              </div>
+              <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-3">
+                <div class="text-xs text-gray-500 dark:text-[#8b949e] mb-1">Edited</div>
+                <div class="text-xl font-bold text-yellow-600 dark:text-yellow-400" x-text="stFmt(stSummary?.edited)"></div>
+                <div class="text-xs text-gray-400 dark:text-[#6e7681] mt-0.5" x-text="'Rate: ' + stRate(stSummary?.edited, stSummary?.total)"></div>
+              </div>
+              <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-3">
+                <div class="text-xs text-gray-500 dark:text-[#8b949e] mb-1">Deleted</div>
+                <div class="text-xl font-bold text-red-600 dark:text-red-400" x-text="stFmt(stSummary?.deleted)"></div>
+                <div class="text-xs text-gray-400 dark:text-[#6e7681] mt-0.5" x-text="'Rate: ' + stRate(stSummary?.deleted, stSummary?.total)"></div>
+              </div>
+            </div>
+
+            <!-- Activity Heatmap -->
+            <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-800 dark:text-[#c9d1d9]">Activity Heatmap</h3>
+                  <p class="text-xs text-gray-400 dark:text-[#6e7681]">Messages by day of week × hour of day</p>
+                </div>
+                <div x-show="stPeakCell()" class="text-xs text-gray-500 dark:text-[#8b949e]">
+                  Peak: <span class="font-semibold text-gray-700 dark:text-[#c9d1d9]" x-text="stPeakLabel()"></span>
+                  (<span x-text="stPeakCell()?.count || 0"></span> msgs)
+                </div>
+              </div>
+
+              <!-- Hour labels row -->
+              <div class="overflow-x-auto">
+                <div style="display:grid;grid-template-columns:2.5rem repeat(24,1fr);gap:2px;min-width:500px">
+                  <!-- Corner -->
+                  <div></div>
+                  <!-- Hour headers -->
+                  <template x-for="h in stHourLabels" :key="h">
+                    <div class="text-center text-gray-400 dark:text-[#6e7681]"
+                         style="font-size:9px;line-height:1.2" x-text="h"></div>
+                  </template>
+
+                  <!-- Rows: each day of week -->
+                  <template x-for="(day, d) in stDayLabels" :key="day">
+                    <!-- Day label -->
+                    <template x-for="col in [-1, ...Array.from({length:24},(_,i)=>i)]" :key="col">
+                      <template x-if="col === -1">
+                        <div class="flex items-center justify-end pr-1 text-gray-500 dark:text-[#8b949e]"
+                             style="font-size:10px" x-text="day"></div>
+                      </template>
+                      <template x-if="col >= 0">
+                        <div
+                          class="rounded-sm heat-cell"
+                          style="height:14px;cursor:default"
+                          :style="stCellStyle(stHeatCount(d, col))"
+                          :class="stHeatCount(d, col) === 0 ? 'bg-gray-100 dark:bg-[#161b22]' : ''"
+                          :title="stCellTitle(d, col, stHeatCount(d, col))"
+                        ></div>
+                      </template>
+                    </template>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Colour scale legend -->
+              <div class="flex items-center gap-2 text-xs text-gray-400 dark:text-[#6e7681]">
+                <span>Less</span>
+                <div class="w-3 h-3 rounded-sm bg-gray-100 dark:bg-[#161b22]"></div>
+                <div class="w-3 h-3 rounded-sm" style="background:#9be9a8"></div>
+                <div class="w-3 h-3 rounded-sm" style="background:#40c463"></div>
+                <div class="w-3 h-3 rounded-sm" style="background:#30a14e"></div>
+                <div class="w-3 h-3 rounded-sm" style="background:#216e39"></div>
+                <span>More</span>
+              </div>
+            </div>
+
+            <!-- Daily Sparkline -->
+            <div x-show="stDaily.length > 0"
+                 class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-800 dark:text-[#c9d1d9]">Daily Message Volume</h3>
+                  <p class="text-xs text-gray-400 dark:text-[#6e7681]" x-text="`${stDaily.length} days — avg ${stDailyAvg()} / day — peak ${stDailyMax()}`"></p>
+                </div>
+                <div class="text-xs text-gray-400 dark:text-[#6e7681]" x-text="`Total: ${stFmt(stDailyTotal())}`"></div>
+              </div>
+              <div x-html="stSparkSVG()" class="w-full"></div>
+              <div class="flex justify-between text-xs text-gray-400 dark:text-[#6e7681]">
+                <span x-text="stSparkFirstDay()"></span>
+                <span x-text="stSparkLastDay()"></span>
+              </div>
+            </div>
+
+            <!-- Event Type Distribution -->
+            <div x-show="stTypes.length > 0"
+                 class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-4 space-y-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-800 dark:text-[#c9d1d9]">Event Type Distribution</h3>
+                <p class="text-xs text-gray-400 dark:text-[#6e7681]">Top event types by count</p>
+              </div>
+              <div class="space-y-1.5">
+                <template x-for="t in stTypes" :key="t.type">
+                  <div class="flex items-center gap-3">
+                    <div class="w-28 flex-shrink-0 text-right text-xs font-mono text-gray-600 dark:text-[#8b949e] truncate" x-text="t.type"></div>
+                    <div class="flex-1 h-4 bg-gray-100 dark:bg-[#21262d] rounded-sm overflow-hidden">
+                      <div class="h-full rounded-sm transition-all duration-300"
+                           :class="stTypeColor(t.type)"
+                           :style="`width:${stTypeBarWidth(t.count)}%`"></div>
+                    </div>
+                    <div class="w-14 text-right text-xs text-gray-500 dark:text-[#8b949e]" x-text="stFmt(t.count)"></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+          </div>
+        </template>
+
       </div>
 
     </main>
