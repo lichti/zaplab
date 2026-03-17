@@ -53,6 +53,10 @@
   <script src="js/sections/sessioncomparator.js"></script>
   <script src="js/sections/networkgraph.js"></script>
   <script src="js/sections/scripting.js"></script>
+  <script src="js/sections/triggers.js"></script>
+  <script src="js/sections/search.js"></script>
+  <script src="js/sections/conversation.js"></script>
+  <script src="js/sections/gallery.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -529,6 +533,39 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Annotations</span>
         </a>
 
+        <!-- Search -->
+        <a href="#/search" @click.prevent="setSection('search')" :title="sidebarExpanded ? '' : 'Search'" aria-label="Search"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='search'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Search</span>
+        </a>
+
+        <!-- Conversations -->
+        <a href="#/conversation" @click.prevent="setSection('conversation')" :title="sidebarExpanded ? '' : 'Conversations'" aria-label="Conversations"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='conversation'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Conversations</span>
+        </a>
+
+        <!-- Media Gallery -->
+        <a href="#/gallery" @click.prevent="setSection('gallery')" :title="sidebarExpanded ? '' : 'Media Gallery'" aria-label="Media Gallery"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='gallery'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Media Gallery</span>
+        </a>
+
         <!-- ── Group: Protocol ── -->
         <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
           <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Protocol</span>
@@ -729,6 +766,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Scripting</span>
+        </a>
+
+        <!-- Script Triggers -->
+        <a href="#/triggers" @click.prevent="setSection('triggers')" :title="sidebarExpanded ? '' : 'Triggers'" aria-label="Script Triggers"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='triggers'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Triggers</span>
         </a>
 
         <!-- Webhooks -->
@@ -8114,8 +8162,15 @@
             <template x-if="!scSelected">
               <div class="flex-1 flex flex-col">
                 <!-- Adhoc panel -->
-                <div class="flex-shrink-0 px-3 py-2 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] flex items-center gap-2">
+                <div class="flex-shrink-0 px-3 py-2 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] flex flex-wrap items-center gap-2">
                   <span class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] flex-1">Ad-hoc Console</span>
+                  <select @change="scLoadExample(scExamples[$event.target.value]); $event.target.value = ''"
+                    class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9] max-w-[180px]">
+                    <option value="">Load example…</option>
+                    <template x-for="(ex, i) in scExamples" :key="i">
+                      <option :value="i" x-text="ex.name"></option>
+                    </template>
+                  </select>
                   <button @click="scRunAdhoc()" :disabled="scAdhocRunning || !scAdhocCode.trim()"
                     class="px-3 py-1 text-xs rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-50">
                     <span x-text="scAdhocRunning ? 'Running…' : '▶ Run'"></span>
@@ -8186,6 +8241,439 @@
         </div>
       </div>
 
+
+      <!-- ── Section: Search ────────────────────────────────────────────────── -->
+      <div
+        x-show="activeSection === 'search'"
+        class="flex flex-col h-full overflow-hidden"
+      >
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Search Messages</h2>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <input x-model="srQuery" @keyup.enter="srSearch()" placeholder="Search text or msgID…"
+              class="flex-1 min-w-[180px] text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]" />
+            <input x-model="srChat" placeholder="Chat JID (optional)"
+              class="w-48 text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]" />
+            <select x-model="srType"
+              class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9]">
+              <option value="">All types</option>
+              <option value="Message">Message</option>
+              <option value="SentMessage">SentMessage</option>
+            </select>
+            <button @click="srSearch()" :disabled="srLoading || !srQuery.trim()"
+              class="px-3 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+              <span x-text="srLoading ? 'Searching…' : '🔍 Search'"></span>
+            </button>
+            <button @click="srClear()"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e]">Clear</button>
+          </div>
+          <p x-show="srError" x-text="srError" class="mt-1 text-xs text-red-500 dark:text-red-400"></p>
+        </div>
+
+        <div class="flex flex-1 overflow-hidden">
+          <!-- Results list -->
+          <div class="flex-1 overflow-y-auto">
+            <template x-if="srResults.length === 0 && !srLoading && srQuery">
+              <p class="p-4 text-xs text-gray-400 dark:text-[#484f58]">No results for "<span x-text="srQuery"></span>".</p>
+            </template>
+            <template x-if="srResults.length === 0 && !srQuery">
+              <p class="p-4 text-xs text-gray-400 dark:text-[#484f58]">Enter a search term above to find messages.</p>
+            </template>
+            <template x-for="r in srResults" :key="r.id">
+              <div @click="srOpenEvent(r)"
+                class="border-b border-gray-100 dark:border-[#21262d] px-4 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22]"
+                :class="srSelectedEvent && srSelectedEvent.id === r.id ? 'bg-blue-50 dark:bg-[#1c3a5e]' : ''">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="text-[10px] font-semibold px-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300" x-text="r.type"></span>
+                  <button @click.stop="srOpenConversation(r.chat)"
+                    class="text-[10px] text-blue-500 hover:underline truncate max-w-[200px]" x-text="r.chat"></button>
+                  <span class="text-[10px] text-gray-400 dark:text-[#484f58] ml-auto" x-text="r.created?.substring(0,16)"></span>
+                </div>
+                <p class="text-xs text-gray-700 dark:text-[#c9d1d9] truncate" x-text="r.text_preview || '(no text)'"></p>
+                <p class="text-[10px] text-gray-400 dark:text-[#484f58]" x-text="r.sender"></p>
+              </div>
+            </template>
+          </div>
+
+          <!-- Raw event drawer -->
+          <div x-show="srSelectedEvent" class="w-80 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] flex flex-col bg-white dark:bg-[#0d1117]">
+            <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22]">
+              <span class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] flex-1">Event Detail</span>
+              <button @click="srSelectedEvent = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm">✕</button>
+            </div>
+            <template x-if="srSelectedEvent">
+              <div class="flex-1 overflow-y-auto p-2">
+                <p class="text-[10px] text-gray-400 mb-1"><strong>ID:</strong> <span x-text="srSelectedEvent.id"></span></p>
+                <p class="text-[10px] text-gray-400 mb-1"><strong>msgID:</strong> <span x-text="srSelectedEvent.msgID"></span></p>
+                <p class="text-[10px] text-gray-400 mb-2"><strong>Chat:</strong> <span x-text="srSelectedEvent.chat"></span></p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] mb-1">Preview:</p>
+                <pre class="text-xs font-mono bg-gray-50 dark:bg-black/30 rounded p-2 whitespace-pre-wrap break-all text-gray-700 dark:text-[#c9d1d9]"
+                  x-text="srSelectedEvent.text_preview || '(no text)'"></pre>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div x-show="srTotal > 0" class="flex-shrink-0 flex items-center gap-3 px-4 py-2 border-t border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22]">
+          <span class="text-xs text-gray-500 dark:text-[#8b949e] flex-1" x-text="srPageLabel()"></span>
+          <button @click="srPrevPage()" :disabled="srOffset === 0 || srLoading"
+            class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] disabled:opacity-40">← Prev</button>
+          <button @click="srNextPage()" :disabled="srOffset + srLimit >= srTotal || srLoading"
+            class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] disabled:opacity-40">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── Section: Conversations ──────────────────────────────────────────── -->
+      <div
+        x-show="activeSection === 'conversation'"
+        class="flex flex-col h-full overflow-hidden"
+      >
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Conversations</h2>
+            <button @click="cvLoadChats()" :disabled="cvChatsLoading"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9] disabled:opacity-50">
+              <span x-text="cvChatsLoading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+          </div>
+          <p x-show="cvChatsError" x-text="cvChatsError" class="mt-1 text-xs text-red-500 dark:text-red-400"></p>
+        </div>
+
+        <div class="flex flex-1 overflow-hidden">
+
+          <!-- Chat list (left sidebar) -->
+          <div class="w-56 flex-shrink-0 border-r border-gray-200 dark:border-[#30363d] flex flex-col bg-white dark:bg-[#0d1117]">
+            <div class="px-2 py-1 border-b border-gray-100 dark:border-[#21262d]">
+              <input x-model="cvChatFilter" placeholder="Filter chats…"
+                class="w-full text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-gray-700 dark:text-[#c9d1d9]" />
+            </div>
+            <div class="flex-1 overflow-y-auto">
+              <template x-if="cvChats.length === 0 && !cvChatsLoading">
+                <p class="p-3 text-xs text-gray-400 dark:text-[#484f58]">No conversations found.</p>
+              </template>
+              <template x-for="c in cvFilteredChats()" :key="c.chat">
+                <button @click="cvSelectChat(c.chat)"
+                  class="w-full text-left px-3 py-2 border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
+                  :class="cvSelectedChat === c.chat ? 'bg-blue-50 dark:bg-[#1c3a5e]' : ''">
+                  <p class="text-xs font-medium text-gray-800 dark:text-[#c9d1d9] truncate" x-text="cvShortJID(c.chat)"></p>
+                  <p class="text-[10px] text-gray-400 dark:text-[#484f58] flex justify-between">
+                    <span x-text="c.msg_count + ' msgs'"></span>
+                    <span x-text="cvFormatLastMsg(c.last_msg)"></span>
+                  </p>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Message bubbles -->
+          <div class="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0d1117]">
+            <template x-if="!cvSelectedChat">
+              <div class="flex-1 flex items-center justify-center">
+                <p class="text-xs text-gray-400 dark:text-[#484f58]">Select a conversation on the left.</p>
+              </div>
+            </template>
+            <template x-if="cvSelectedChat">
+              <div class="flex-1 flex flex-col overflow-hidden">
+                <!-- Chat header -->
+                <div class="flex-shrink-0 px-4 py-2 border-b border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] flex items-center gap-2">
+                  <span class="text-xs font-semibold text-gray-800 dark:text-[#c9d1d9] flex-1 truncate" x-text="cvSelectedChat"></span>
+                  <button x-show="cvHasMore" @click="cvLoadMore()" :disabled="cvMsgLoading"
+                    class="px-2 py-0.5 text-[10px] rounded border border-gray-300 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] disabled:opacity-50">
+                    Load older
+                  </button>
+                </div>
+                <p x-show="cvMsgError" x-text="cvMsgError" class="text-xs text-red-500 px-4 py-1"></p>
+                <!-- Messages -->
+                <div class="flex-1 overflow-y-auto px-4 py-3 space-y-1" id="cv-msg-list">
+                  <template x-if="cvMsgLoading && cvMessages.length === 0">
+                    <p class="text-xs text-gray-400 text-center py-4">Loading…</p>
+                  </template>
+                  <template x-for="msg in cvMessages" :key="msg.id">
+                    <div class="flex" :class="msg.is_from_me ? 'justify-end' : 'justify-start'">
+                      <div @click="cvSelectedMsg = msg" class="max-w-[70%] cursor-pointer group">
+                        <div class="rounded-xl px-3 py-2 text-xs shadow-sm"
+                          :class="msg.is_from_me
+                            ? 'bg-green-500 dark:bg-green-700 text-white rounded-br-sm'
+                            : 'bg-white dark:bg-[#21262d] text-gray-800 dark:text-[#c9d1d9] rounded-bl-sm border border-gray-200 dark:border-[#30363d]'">
+                          <!-- Sender (only for received group messages) -->
+                          <p x-show="!msg.is_from_me" class="text-[10px] font-semibold mb-0.5"
+                            :class="msg.is_from_me ? 'text-green-100' : 'text-blue-500 dark:text-blue-400'"
+                            x-text="cvShortJID(msg.sender)"></p>
+                          <!-- Media type icon -->
+                          <span x-show="msg.type !== 'text' && msg.type !== 'unknown' && msg.type !== 'reaction'"
+                            class="text-base mr-1" x-text="cvMsgIcon(msg.type)"></span>
+                          <!-- Image preview -->
+                          <img x-show="msg.type === 'image' && msg.thumb_url"
+                            :src="msg.thumb_url" class="max-w-full rounded mb-1 max-h-32 object-cover" />
+                          <!-- Text content -->
+                          <span x-text="cvMsgLabel(msg)" class="break-words"></span>
+                          <!-- Time -->
+                          <span class="block text-right text-[9px] mt-0.5 opacity-70" x-text="cvFormatTime(msg.created)"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Raw msg drawer -->
+          <div x-show="cvSelectedMsg" class="w-72 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] flex flex-col bg-white dark:bg-[#0d1117]">
+            <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22]">
+              <span class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] flex-1">Message Detail</span>
+              <button @click="cvSelectedMsg = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm">✕</button>
+            </div>
+            <template x-if="cvSelectedMsg">
+              <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                <p class="text-[10px] text-gray-400"><strong>ID:</strong> <span x-text="cvSelectedMsg.id"></span></p>
+                <p class="text-[10px] text-gray-400"><strong>msgID:</strong> <span x-text="cvSelectedMsg.msgID"></span></p>
+                <p class="text-[10px] text-gray-400"><strong>Type:</strong> <span x-text="cvSelectedMsg.type"></span></p>
+                <p class="text-[10px] text-gray-400"><strong>Sender:</strong> <span x-text="cvSelectedMsg.sender"></span></p>
+                <p class="text-[10px] text-gray-400"><strong>Time:</strong> <span x-text="cvSelectedMsg.created"></span></p>
+                <template x-if="cvSelectedMsg.file_url">
+                  <a :href="cvSelectedMsg.file_url" target="_blank"
+                    class="block text-[10px] text-blue-500 hover:underline">⬇ Download file</a>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section: Media Gallery ──────────────────────────────────────────── -->
+      <div
+        x-show="activeSection === 'gallery'"
+        class="flex flex-col h-full overflow-hidden"
+      >
+        <!-- Header + filters -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Media Gallery</h2>
+            <button @click="glLoad()" :disabled="glLoading"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9] disabled:opacity-50">
+              <span x-text="glLoading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <select x-model="glTypeFilter" @change="glApplyFilters()"
+              class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9]">
+              <option value="">All media</option>
+              <option value="image">Images</option>
+              <option value="video">Videos</option>
+              <option value="audio">Audio</option>
+              <option value="document">Documents</option>
+              <option value="sticker">Stickers</option>
+            </select>
+            <input x-model="glChatFilter" placeholder="Chat JID (optional)" @change="glApplyFilters()"
+              class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] w-52" />
+          </div>
+          <p x-show="glError" x-text="glError" class="mt-1 text-xs text-red-500 dark:text-red-400"></p>
+        </div>
+
+        <!-- Grid -->
+        <div class="flex-1 overflow-y-auto p-3">
+          <template x-if="glItems.length === 0 && !glLoading">
+            <p class="text-xs text-gray-400 dark:text-[#484f58] text-center py-8">No media files found. Media is stored when images/videos/audio are received with the file downloaded.</p>
+          </template>
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <template x-for="item in glItems" :key="item.id">
+              <div @click="glOpenLightbox(item)" class="cursor-pointer group relative rounded overflow-hidden bg-gray-100 dark:bg-[#21262d] aspect-square flex items-center justify-center">
+                <!-- Image / sticker thumbnail -->
+                <template x-if="(item.media_type === 'image' || item.media_type === 'sticker') && item.thumb_url">
+                  <img :src="item.thumb_url" class="w-full h-full object-cover group-hover:opacity-90 transition-opacity" :alt="item.caption" />
+                </template>
+                <!-- Non-image placeholder -->
+                <template x-if="item.media_type !== 'image' && item.media_type !== 'sticker'">
+                  <div class="flex flex-col items-center justify-center text-gray-400 dark:text-[#484f58] p-2">
+                    <span class="text-2xl" x-text="glTypeIcon(item.media_type)"></span>
+                    <span class="text-[9px] mt-1 text-center truncate w-full" x-text="item.caption || item.media_type"></span>
+                  </div>
+                </template>
+                <!-- Hover overlay -->
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-end">
+                  <span class="text-[9px] text-white bg-black/50 px-1 py-0.5 truncate w-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    x-text="glShortJID(item.chat)"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex-shrink-0 flex items-center gap-3 px-4 py-2 border-t border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22]">
+          <span class="text-xs text-gray-500 dark:text-[#8b949e] flex-1" x-text="glPageLabel()"></span>
+          <button @click="glPrevPage()" :disabled="glOffset === 0 || glLoading"
+            class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] disabled:opacity-40">← Prev</button>
+          <button @click="glNextPage()" :disabled="glOffset + glLimit >= glTotal || glLoading"
+            class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] disabled:opacity-40">Next →</button>
+        </div>
+
+        <!-- Lightbox -->
+        <div x-show="glLightboxItem" @click.self="glCloseLightbox()"
+          class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <template x-if="glLightboxItem">
+            <div class="bg-white dark:bg-[#161b22] rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+              <div class="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-[#30363d]">
+                <span class="text-sm font-semibold text-gray-700 dark:text-[#c9d1d9] flex-1 truncate"
+                  x-text="glLightboxItem.caption || glLightboxItem.media_type"></span>
+                <a x-show="glLightboxItem.file_url" :href="glLightboxItem.file_url" target="_blank"
+                  class="text-xs text-blue-500 hover:underline mr-2">⬇ Download</a>
+                <button @click="glCloseLightbox()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">✕</button>
+              </div>
+              <div class="flex-1 overflow-auto p-4 flex items-center justify-center">
+                <template x-if="glLightboxItem.media_type === 'image' && glLightboxItem.file_url">
+                  <img :src="glLightboxItem.file_url" class="max-w-full max-h-[60vh] object-contain rounded" />
+                </template>
+                <template x-if="glLightboxItem.media_type === 'sticker' && glLightboxItem.file_url">
+                  <img :src="glLightboxItem.file_url" class="max-w-full max-h-[40vh] object-contain" />
+                </template>
+                <template x-if="glLightboxItem.media_type === 'video' && glLightboxItem.file_url">
+                  <video :src="glLightboxItem.file_url" controls class="max-w-full max-h-[60vh]"></video>
+                </template>
+                <template x-if="glLightboxItem.media_type === 'audio' && glLightboxItem.file_url">
+                  <audio :src="glLightboxItem.file_url" controls class="w-full"></audio>
+                </template>
+                <template x-if="(glLightboxItem.media_type === 'document' || !glLightboxItem.file_url)">
+                  <div class="text-center text-gray-400 dark:text-[#484f58]">
+                    <span class="text-6xl block mb-3" x-text="glTypeIcon(glLightboxItem.media_type)"></span>
+                    <p class="text-sm" x-text="glLightboxItem.caption || 'No preview available'"></p>
+                  </div>
+                </template>
+              </div>
+              <div class="px-4 py-2 border-t border-gray-200 dark:border-[#30363d] text-[10px] text-gray-400 flex gap-4">
+                <span x-text="glLightboxItem.chat"></span>
+                <span x-text="glFormatDate(glLightboxItem.created)"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ── Section: Script Triggers ───────────────────────────────────────── -->
+      <div
+        x-show="activeSection === 'triggers'"
+        class="flex flex-col h-full overflow-hidden"
+      >
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Script Triggers</h2>
+            <button @click="trLoad()" :disabled="trLoading"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9] disabled:opacity-50">
+              <span x-text="trLoading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+            <button @click="trShowNew = !trShowNew"
+              class="px-2 py-1 text-xs rounded border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+              + New Trigger
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 dark:text-[#484f58] mt-1">Automatically run a script when a WhatsApp event is received. The event payload is available as <code class="font-mono">event</code> in the script.</p>
+          <p x-show="trError" x-text="trError" class="mt-1 text-xs text-red-500 dark:text-red-400"></p>
+        </div>
+
+        <!-- New trigger form -->
+        <div x-show="trShowNew" class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-yellow-50 dark:bg-yellow-900/10 px-4 py-3 space-y-2">
+          <div class="flex gap-2 flex-wrap">
+            <select x-model="trNewScriptId"
+              class="flex-1 min-w-[160px] text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]">
+              <option value="">Select script…</option>
+              <template x-for="s in trScriptOptions" :key="s.id">
+                <option :value="s.id" x-text="s.name"></option>
+              </template>
+            </select>
+            <select x-model="trNewEventType"
+              class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]">
+              <template x-for="t in trEventTypes" :key="t.type">
+                <option :value="t.type" x-text="t.type + (t.count ? ' (' + t.count + ')' : '')"></option>
+              </template>
+            </select>
+            <input x-model="trNewJidFilter" placeholder="JID filter (optional)"
+              class="flex-1 min-w-[140px] text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]" />
+            <input x-model="trNewTextPattern" placeholder="Text pattern (optional)"
+              class="flex-1 min-w-[140px] text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]" />
+            <label class="flex items-center gap-1 text-xs text-gray-600 dark:text-[#c9d1d9]">
+              <input type="checkbox" x-model="trNewEnabled" class="rounded" /> Enabled
+            </label>
+          </div>
+          <div class="flex gap-2">
+            <button @click="trCreate()" :disabled="!trNewScriptId || !trNewEventType"
+              class="px-3 py-1 text-xs rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-50">Save Trigger</button>
+            <button @click="trShowNew = false"
+              class="px-3 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] text-gray-600 dark:text-[#c9d1d9]">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Trigger list -->
+        <div class="flex-1 overflow-y-auto">
+          <template x-if="trTriggers.length === 0 && !trLoading">
+            <p class="p-4 text-xs text-gray-400 dark:text-[#484f58]">No triggers yet. Click "+ New Trigger" to create one.</p>
+          </template>
+          <template x-for="t in trTriggers" :key="t.id">
+            <div class="border-b border-gray-100 dark:border-[#21262d] px-4 py-3">
+              <div class="flex items-start gap-3">
+                <button @click="trToggleEnabled(t)" class="mt-0.5 flex-shrink-0"
+                  :class="t.enabled ? 'text-green-500' : 'text-gray-300 dark:text-gray-600'"
+                  :title="t.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'">
+                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
+                    <path d="M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
+                  </svg>
+                </button>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9]"
+                      x-text="t.script_name || t.script_id"></span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 font-mono"
+                      x-text="t.event_type"></span>
+                    <span x-show="t.jid_filter" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700/40 text-gray-500 dark:text-gray-400"
+                      x-text="'JID: ' + t.jid_filter"></span>
+                    <span x-show="t.text_pattern" class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400"
+                      x-text="'Text: ' + t.text_pattern"></span>
+                  </div>
+                  <p class="text-[10px] text-gray-400 dark:text-[#484f58] mt-0.5" x-text="'ID: ' + t.id"></p>
+                </div>
+                <div class="flex gap-1 flex-shrink-0">
+                  <button @click="trSelected = (trSelected && trSelected.id === t.id ? null : {...t})"
+                    class="px-2 py-1 text-[10px] rounded border border-gray-300 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e]">Edit</button>
+                  <button @click="trDelete(t)"
+                    class="px-2 py-1 text-[10px] rounded border border-red-300 dark:border-red-700/50 text-red-500 dark:text-red-400">Del</button>
+                </div>
+              </div>
+              <!-- Inline edit form -->
+              <template x-if="trSelected && trSelected.id === t.id">
+                <div class="mt-2 pt-2 border-t border-gray-100 dark:border-[#21262d] flex flex-wrap gap-2">
+                  <select x-model="trSelected.script_id"
+                    class="flex-1 min-w-[140px] text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]">
+                    <template x-for="s in trScriptOptions" :key="s.id">
+                      <option :value="s.id" x-text="s.name"></option>
+                    </template>
+                  </select>
+                  <select x-model="trSelected.event_type"
+                    class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9]">
+                    <template x-for="et in trEventTypes" :key="et.type">
+                      <option :value="et.type" x-text="et.type"></option>
+                    </template>
+                  </select>
+                  <input x-model="trSelected.jid_filter" placeholder="JID filter"
+                    class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9] w-40" />
+                  <input x-model="trSelected.text_pattern" placeholder="Text pattern"
+                    class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-800 dark:text-[#c9d1d9] w-40" />
+                  <label class="flex items-center gap-1 text-xs">
+                    <input type="checkbox" x-model="trSelected.enabled" class="rounded" /> Enabled
+                  </label>
+                  <button @click="trSave(trSelected); trSelected = null"
+                    class="px-3 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white">Save</button>
+                  <button @click="trSelected = null"
+                    class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] text-gray-500">Cancel</button>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
     </main>
   </div>
 

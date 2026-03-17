@@ -10,6 +10,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Conversation View** — new two-pane section for browsing chat history as a chat bubble interface.
+  - **Backend**: `GET /zaplab/api/conversation/chats?limit=N` returns a deduplicated list of chats ordered by most-recent message; `GET /zaplab/api/conversation?chat=...&limit=N&before=RFC3339` returns paginated messages with `has_more` / `next_before` cursor for infinite scroll upward.
+  - Messages queried via `json_extract(raw, '$.Info.Chat')` from the `events` table; media type detected from proto fields (text, image, video, audio, document, sticker, location, reaction).
+  - **Frontend**: left chat list with filter and last-message/timestamp preview; right bubble area with sent/received alignment, inline media thumbnails, and a "Load older messages" button.
+  - Drawer panel for raw event JSON on any message click.
+  - Navigable from the Search section via "Open conversation" link.
+- **Script Triggers (Event Hooks)** — automatically execute stored scripts when WhatsApp events arrive.
+  - **Backend**: new PocketBase collection `script_triggers` (fields: `script_id`, `event_type`, `jid_filter`, `text_pattern`, `enabled`); migration `1743000000_create_script_triggers.go`.
+  - Dispatch wired via `whatsapp.TriggerDispatchFunc` callback (set in `api.InitTriggerDispatch()`) to avoid import cycles; triggers fire asynchronously after every saved event with the full event JSON injected as `event` into the goja sandbox.
+  - Optional `jid_filter` (substring match on `Info.Chat`) and `text_pattern` (case-insensitive contains on message text) for selective targeting.
+  - CRUD: `GET /zaplab/api/script-triggers`, `POST /zaplab/api/script-triggers`, `PATCH /zaplab/api/script-triggers/{id}`, `DELETE /zaplab/api/script-triggers/{id}`.
+  - `GET /zaplab/api/script-triggers/event-types` — returns all distinct event types found in the `events` table plus canonical fallbacks.
+  - **Frontend**: Triggers section with a list view (event type, script name, filter summary, enabled toggle) and inline edit form; new-trigger form with event type + script dropdowns.
+- **Full-text Message Search** — new Search section for querying message content across all chats.
+  - `GET /zaplab/api/search?q=...&type=...&chat=...&limit=50&offset=0` — LIKE search across `Conversation`, `ExtendedTextMessage.Text`, and media caption fields; also matches exact `msgID`.
+  - Paginated results showing sender JID, chat, message type, text preview, and timestamp.
+  - **Frontend**: search bar with optional type and chat filters; result cards with "Open conversation" deep link; raw event drawer for any result; keyboard shortcut (Enter to search).
+- **Expanded `wa.*` scripting bindings** — 11 new functions available in the goja sandbox:
+  - `wa.jid` — own JID string of the connected account.
+  - `wa.sendImage(to, base64Data, mime, caption)` — send an image message.
+  - `wa.sendAudio(to, base64Data, mime, ptt)` — send audio (voice note when `ptt=true`).
+  - `wa.sendDocument(to, base64Data, mime, filename, caption)` — send a file attachment.
+  - `wa.sendLocation(to, lat, lng, name)` — send a location pin.
+  - `wa.sendReaction(to, msgId, emoji)` — react to a message.
+  - `wa.editMessage(to, msgId, newText)` — edit a previously sent text message.
+  - `wa.revokeMessage(to, msgId)` — delete a sent message for everyone.
+  - `wa.setTyping(to, typing)` — set composing/paused presence.
+  - `wa.getContacts()` — return all stored contacts as an array.
+  - `wa.getGroups()` — return all joined groups as an array.
+  - `wa.db.query(sql, params)` — query the `whatsapp.db` SQLite database directly.
+  - `runScript` now accepts an `env map[string]any` parameter for injecting variables (e.g., `event` for triggers).
+- **Media Gallery** — new section for browsing all downloaded media files.
+  - `GET /zaplab/api/media/gallery?type=...&chat=...&limit=50&offset=0` queries events with attached files (`file != ''`); media type detected via JSON field presence.
+  - Returns `{items: [{id, msgID, chat, sender, is_from_me, media_type, file_url, thumb_url, caption, created}], total, limit, offset}`.
+  - **Frontend**: responsive grid (2–5 columns) with type icon overlay and date badge; type/chat filters; pagination; lightbox viewer for images with video and audio inline playback; Escape key closes lightbox.
+- **Scripting example scripts** — the ad-hoc console now includes 10 built-in example snippets: List Tables, Recent Messages, Messages per Chat, Top Event Types, Contacts from WA DB, Recent WA Events, Send Text, Get Status, HTTP GET, Sleep & Log.
+- **`wa.sendDocument` backend** — new `whatsapp.SendDocumentFile(to, data, filename, caption)` function setting `FileName` and `Caption` on the `DocumentMessage` proto.
+
+### Fixed
+- **`db.query` sandbox function** — was failing with `"Invalid variable type: must be a slice of struct or NullStringMap"` when using `pb.DB().NewQuery().All()`. Fixed by using `[]dbx.NullStringMap` and converting `sql.NullString` values to `map[string]any` before returning to the JS sandbox.
+
 - **Plugin System / Scripting Engine** — JavaScript sandbox for automating WhatsApp interactions directly from the browser.
   - **Backend**: new `scripts` PocketBase collection (`name`, `description`, `code`, `enabled`, `timeout_secs`, last-run metadata); 6 REST endpoints: `GET /zaplab/api/scripts`, `POST /zaplab/api/scripts`, `PATCH /zaplab/api/scripts/{id}`, `DELETE /zaplab/api/scripts/{id}`, `POST /zaplab/api/scripts/{id}/run`, `POST /zaplab/api/scripts/run` (ad-hoc).
   - **Sandbox** — goja JavaScript engine (`github.com/dop251/goja`) with configurable per-script timeout; exposes: `console.log/error/warn`, `wa.sendText(jid, text)`, `wa.status()`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`.

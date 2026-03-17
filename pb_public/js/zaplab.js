@@ -38,6 +38,10 @@ function zaplab() {
     sessionComparatorSection(),
     networkGraphSection(),
     scriptingSection(),
+    triggersSection(),
+    searchSection(),
+    conversationSection(),
+    gallerySection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -123,6 +127,10 @@ function zaplab() {
         this.initSessionComparator();
         this.initNetworkGraph();
         this.initScripting();
+        this.initTriggers();
+        this.initSearch();
+        this.initConversation();
+        this.initGallery();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;

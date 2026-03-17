@@ -43,6 +43,10 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 	deviceSpoof = spoof
 }
 
+// TriggerDispatchFunc is set by package api during Init to dispatch script triggers
+// without creating an import cycle (api imports whatsapp, not vice-versa).
+var TriggerDispatchFunc func(evtType string, rawJSON []byte)
+
 // GetClient returns the active whatsmeow client (nil if not yet bootstrapped).
 func GetClient() *whatsmeow.Client { return client }
 
