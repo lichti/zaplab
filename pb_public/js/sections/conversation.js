@@ -146,7 +146,7 @@ function conversationSection() {
       // Reset other filters so the result is clean
       this.eb.filterType = '';
       this.eb.filterText = '';
-      this.setSection('events');
+      this.setSection('eventbrowser');
       this.ebSearch();
     },
 
@@ -193,7 +193,7 @@ function conversationSection() {
     cvMsgIcon(type) {
       if (!type) return '';
       const base = type.startsWith('edited_') ? type.slice(7) : type;
-      const icons = { image: '🖼', video: '▶', audio: '🎵', document: '📄', sticker: '🔖', location: '📍' };
+      const icons = { image: '🖼', video: '▶', audio: '🎵', document: '📄', sticker: '🔖', location: '📍', contact: '👤', poll: '📊', poll_vote: '🗳', enc_reaction: '🔒' };
       return icons[base] || '';
     },
 

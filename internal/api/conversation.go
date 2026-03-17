@@ -174,6 +174,14 @@ func getConversation(e *core.RequestEvent) error {
 					}
 				}
 			}
+			// For encrypted reactions (encReactionMessage), extract target via targetMessageKey.ID.
+			if out.MsgType == "enc_reaction" {
+				if er, ok := msg["encReactionMessage"].(map[string]any); ok {
+					if key, ok := er["targetMessageKey"].(map[string]any); ok {
+						out.ReactTarget, _ = key["ID"].(string)
+					}
+				}
+			}
 			// For edit/delete protocol messages, extract the original message ID
 			// from protocolMessage.key.ID so the frontend can annotate the original bubble.
 			if out.MsgType == "deleted" || strings.HasPrefix(out.MsgType, "edited_") {
@@ -266,6 +274,24 @@ func detectMsgType(msg map[string]any) (msgType, text, caption string, skip bool
 	if loc, ok := msg["locationMessage"].(map[string]any); ok {
 		name, _ := loc["name"].(string)
 		return "location", name, "", false
+	}
+	// Contact card
+	if contact, ok := msg["contactMessage"].(map[string]any); ok {
+		name, _ := contact["displayName"].(string)
+		return "contact", name, "", false
+	}
+	// Poll vote update
+	if _, ok := msg["pollUpdateMessage"]; ok {
+		return "poll_vote", "(votou na enquete)", "", false
+	}
+	// Poll creation
+	if poll, ok := msg["pollCreationMessage"].(map[string]any); ok {
+		name, _ := poll["name"].(string)
+		return "poll", name, "", false
+	}
+	// Encrypted reaction (emoji not available)
+	if _, ok := msg["encReactionMessage"]; ok {
+		return "enc_reaction", "🔒", "", false
 	}
 	// senderKeyDistributionMessage-only — skip
 	return "unknown", "", "", true
