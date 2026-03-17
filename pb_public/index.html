@@ -49,6 +49,7 @@
   <script src="js/sections/signalsessions.js"></script>
   <script src="js/sections/annotations.js"></script>
   <script src="js/sections/stats.js"></script>
+  <script src="js/sections/appstate.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -646,6 +647,23 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Stats & Heatmap</span>
+        </a>
+
+        <!-- App State Inspector -->
+        <a
+          href="#/appstate"
+          @click.prevent="setSection('appstate')"
+          :title="sidebarExpanded ? '' : 'App State'"
+          aria-label="App State Inspector"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'appstate'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">App State</span>
         </a>
 
         <!-- Send Message -->
@@ -6779,6 +6797,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
               </svg>
             </button>
+
+            <!-- Export PCAP -->
+            <button @click="fcExportPCAP()" title="Export DB frames as PCAP (Wireshark)"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              <span>PCAP</span>
+            </button>
           </div>
 
           <!-- Ring buffer info banner -->
@@ -7559,6 +7586,217 @@
           </div>
         </template>
 
+      </div>
+
+      <!-- ── Section: App State Inspector ─────────────────────────────────── -->
+      <div
+        x-show="activeSection === 'appstate'"
+        x-effect="if (activeSection === 'appstate' && !asCollections.length && !asLoading) asLoad()"
+        class="flex flex-col h-full overflow-hidden"
+      >
+
+        <!-- Header -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">App State Inspector</h2>
+
+            <!-- Tab selector -->
+            <div class="flex rounded-md border border-gray-200 dark:border-[#30363d] overflow-hidden text-xs">
+              <button @click="asTab='collections'" class="px-3 py-1.5 transition-colors"
+                :class="asTab==='collections' ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'">Collections</button>
+              <button @click="asTab='synckeys'" class="px-3 py-1.5 border-l border-gray-200 dark:border-[#30363d] transition-colors"
+                :class="asTab==='synckeys' ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'">Sync Keys</button>
+              <button @click="asTab='mutations'; asLoadMutations()" class="px-3 py-1.5 border-l border-gray-200 dark:border-[#30363d] transition-colors"
+                :class="asTab==='mutations' ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'">Mutations</button>
+            </div>
+
+            <!-- Collections filter -->
+            <input x-show="asTab==='collections'" x-model="asColFilter" type="search" placeholder="Filter…"
+              class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 w-36"/>
+
+            <!-- Mutations: collection selector + limit -->
+            <template x-if="asTab==='mutations'">
+              <div class="flex items-center gap-2">
+                <select x-model="asMutCollection" @change="asLoadMutations()"
+                  class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-500/40">
+                  <template x-for="c in asMutCollections" :key="c">
+                    <option :value="c" x-text="c"></option>
+                  </template>
+                </select>
+                <select x-model.number="asMutLimit" @change="asLoadMutations()"
+                  class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-500/40">
+                  <option value="50">50</option>
+                  <option value="100" selected>100</option>
+                  <option value="250">250</option>
+                  <option value="500">500</option>
+                </select>
+              </div>
+            </template>
+
+            <!-- Refresh -->
+            <button @click="asLoad(); if(asTab==='mutations') asLoadMutations()" :disabled="asLoading||asMutLoading"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors disabled:opacity-50">
+              <svg class="h-3.5 w-3.5" :class="(asLoading||asMutLoading) ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Error -->
+          <div x-show="asError" class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono" x-text="asError"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto">
+
+          <!-- Loading -->
+          <div x-show="asLoading" class="flex items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
+            <svg class="h-5 w-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span class="text-sm">Loading…</span>
+          </div>
+
+          <!-- ── Tab: Collections ── -->
+          <div x-show="!asLoading && asTab==='collections'" class="p-4 space-y-3">
+            <p class="text-xs text-gray-500 dark:text-[#8b949e]">
+              App state collections track WhatsApp settings and contact data synced from the server.
+              Each collection has a monotonically increasing <strong>version index</strong> and a
+              Merkle tree <strong>hash</strong> that represents the current known state.
+            </p>
+
+            <template x-if="asFilteredCollections().length === 0 && !asLoading">
+              <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
+                <svg class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                </svg>
+                <p class="text-sm">No collections found — WhatsApp may not have synced yet</p>
+              </div>
+            </template>
+
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <template x-for="c in asFilteredCollections()" :key="c.jid+c.name">
+                <div class="rounded-lg border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 space-y-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg leading-none" x-text="asCollectionIcon(c.name)"></span>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-semibold text-gray-800 dark:text-[#e6edf3] font-mono" x-text="c.name"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium" :class="asCollectionBadgeClass(c.name)" x-text="c.name.includes('critical') ? 'critical' : 'regular'"></span>
+                      </div>
+                      <p class="text-[10px] text-gray-500 dark:text-[#8b949e] mt-0.5" x-text="asCollectionDesc(c.name)"></p>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <div class="text-[10px] uppercase text-gray-400 dark:text-[#484f58] font-medium mb-0.5">Version</div>
+                      <div class="font-mono text-gray-800 dark:text-[#e6edf3] font-semibold" x-text="c.version"></div>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-[10px] uppercase text-gray-400 dark:text-[#484f58] font-medium mb-0.5">State Hash</div>
+                      <div class="font-mono text-[10px] text-gray-600 dark:text-[#8b949e] truncate" :title="c.hash_hex" x-text="asHexShort(c.hash_hex)"></div>
+                    </div>
+                  </div>
+                  <div class="text-[10px] text-gray-400 dark:text-[#484f58] font-mono truncate" :title="c.jid" x-text="c.jid"></div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- ── Tab: Sync Keys ── -->
+          <div x-show="!asLoading && asTab==='synckeys'" class="p-4">
+            <p class="text-xs text-gray-500 dark:text-[#8b949e] mb-4">
+              Symmetric AES keys used to decrypt app state patches received from WhatsApp servers.
+              Keys are identified by a 4-byte <strong>key ID</strong> and carry a
+              <strong>fingerprint</strong> for verification. Raw key bytes are withheld.
+            </p>
+
+            <template x-if="asSyncKeys.length === 0 && !asLoading">
+              <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
+                <svg class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                </svg>
+                <p class="text-sm">No sync keys — WhatsApp may not have set up app state yet</p>
+              </div>
+            </template>
+
+            <div x-show="asSyncKeys.length > 0" class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+              <table class="min-w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-[#161b22]">
+                  <tr>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Key ID</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Timestamp</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Fingerprint</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Data</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">JID</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
+                  <template x-for="k in asSyncKeys" :key="k.jid+k.key_id_hex">
+                    <tr class="hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors">
+                      <td class="px-3 py-2 font-mono text-blue-600 dark:text-[#58a6ff]" x-text="k.key_id_hex"></td>
+                      <td class="px-3 py-2 text-gray-600 dark:text-[#8b949e] whitespace-nowrap" x-text="asTsLabel(k.timestamp)"></td>
+                      <td class="px-3 py-2 font-mono text-[10px] text-gray-500 dark:text-[#8b949e]" :title="k.fingerprint_hex" x-text="asHexShort(k.fingerprint_hex)"></td>
+                      <td class="px-3 py-2 text-gray-500 dark:text-[#8b949e]"><span x-text="k.data_len_bytes"></span> B</td>
+                      <td class="px-3 py-2 font-mono text-[10px] text-gray-500 dark:text-[#484f58] max-w-[160px] truncate" :title="k.jid" x-text="k.jid"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ── Tab: Mutations ── -->
+          <div x-show="!asLoading && asTab==='mutations'" class="p-4">
+            <p class="text-xs text-gray-500 dark:text-[#8b949e] mb-4">
+              Per-mutation HMAC integrity codes stored in the app state Merkle tree.
+              Each row represents one leaf in the tree: an <strong>index MAC</strong>
+              (path hash) and a <strong>value MAC</strong> (content HMAC), keyed to
+              a specific collection version.
+            </p>
+
+            <!-- Loading -->
+            <div x-show="asMutLoading" class="flex items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
+              <svg class="h-5 w-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <span class="text-sm">Loading mutations…</span>
+            </div>
+
+            <template x-if="!asMutLoading && asMutations.length === 0">
+              <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
+                <svg class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <p class="text-sm">No mutations for this collection</p>
+              </div>
+            </template>
+
+            <div x-show="!asMutLoading && asMutations.length > 0" class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+              <table class="min-w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-[#161b22]">
+                  <tr>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Version</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Index MAC</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">Value MAC</th>
+                    <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider">JID</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
+                  <template x-for="(m, i) in asMutations" :key="i">
+                    <tr class="hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors">
+                      <td class="px-3 py-2 font-mono text-purple-600 dark:text-[#bc8cff] font-semibold" x-text="m.version"></td>
+                      <td class="px-3 py-2 font-mono text-[10px] text-gray-600 dark:text-[#8b949e]" :title="m.index_mac_hex" x-text="asHexShort(m.index_mac_hex)"></td>
+                      <td class="px-3 py-2 font-mono text-[10px] text-gray-600 dark:text-[#8b949e]" :title="m.value_mac_hex" x-text="asHexShort(m.value_mac_hex)"></td>
+                      <td class="px-3 py-2 font-mono text-[10px] text-gray-500 dark:text-[#484f58] max-w-[160px] truncate" :title="m.jid" x-text="m.jid"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
       </div>
 
     </main>

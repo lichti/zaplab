@@ -148,6 +148,14 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/stats/summary", getStatsSummary).Bind(auth)
 	e.Router.GET("/zaplab/api/stats/editchain", getStatsEditChain).Bind(auth)
 
+	// App State Inspector
+	e.Router.GET("/zaplab/api/appstate/collections", getAppStateCollections).Bind(auth)
+	e.Router.GET("/zaplab/api/appstate/synckeys", getAppStateSyncKeys).Bind(auth)
+	e.Router.GET("/zaplab/api/appstate/mutations", getAppStateMutations).Bind(auth)
+
+	// PCAP export
+	e.Router.GET("/zaplab/api/frames/pcap", getFramesPCAP).Bind(auth)
+
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil
