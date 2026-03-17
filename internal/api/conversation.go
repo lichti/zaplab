@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/lichti/zaplab/internal/whatsapp"
@@ -135,6 +136,7 @@ func getConversation(e *core.RequestEvent) error {
 		FileURL     string `json:"file_url"`
 		ThumbURL    string `json:"thumb_url"`
 		ReactTarget string `json:"react_target,omitempty"` // for reactions: msgID of the reacted-to message
+		EditTarget  string `json:"edit_target,omitempty"`  // for edited_*/deleted: msgID of the original message
 		Created     string `json:"created"`
 	}
 
@@ -164,12 +166,20 @@ func getConversation(e *core.RequestEvent) error {
 			if skip {
 				continue
 			}
-			// For reactions, extract the target message ID so the frontend
-			// can render the emoji as a chip on the reacted-to bubble.
+			// For reactions, extract the target message ID.
 			if out.MsgType == "reaction" {
 				if react, ok := msg["reactionMessage"].(map[string]any); ok {
 					if key, ok := react["key"].(map[string]any); ok {
 						out.ReactTarget, _ = key["ID"].(string)
+					}
+				}
+			}
+			// For edit/delete protocol messages, extract the original message ID
+			// from protocolMessage.key.ID so the frontend can annotate the original bubble.
+			if out.MsgType == "deleted" || strings.HasPrefix(out.MsgType, "edited_") {
+				if pm, ok := msg["protocolMessage"].(map[string]any); ok {
+					if key, ok := pm["key"].(map[string]any); ok {
+						out.EditTarget, _ = key["ID"].(string)
 					}
 				}
 			}

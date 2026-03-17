@@ -5,29 +5,28 @@
 function conversationSection() {
   return {
     // ── state ──
-    cvChatsLoading:  false,
-    cvChatsError:    '',
-    cvChats:         [],
-    cvChatFilter:    '',
-    cvSelectedChat:  '',
-    cvMsgLoading:    false,
-    cvMsgError:      '',
-    cvMessages:      [],   // all messages including reaction events (ASC order)
-    cvReactions:     {},   // {msgID: [{emoji, sender, fromMe}]}
-    cvHasMore:       false,
-    cvNextBefore:    null,
-    cvSelectedMsg:   null,  // raw event drawer
-    cvNames:         {},    // {jid: displayName}
-    cvOrderAsc:      true,  // true = old→new (default chat order), false = new→old
+    cvChatsLoading: false,
+    cvChatsError:   '',
+    cvChats:        [],
+    cvChatFilter:   '',
+    cvSelectedChat: '',
+    cvMsgLoading:   false,
+    cvMsgError:     '',
+    cvMessages:     [],  // all events in ASC order (including edits/deletes/reactions)
+    cvReactions:    {},  // {msgID: [{emoji, sender}]}
+    cvEdits:        {},  // {originalMsgID: {type:'edited_text'|'deleted', text, created}}
+    cvHasMore:      false,
+    cvNextBefore:   null,
+    cvSelectedMsg:  null,
+    cvNames:        {},
+    cvOrderAsc:     true, // true = old→new, false = new→old
 
     // ── init ──
     initConversation() {
       this.$watch('activeSection', val => {
         if (val === 'conversation' && this.cvChats.length === 0) this.cvLoadChats();
-        // if navigated here with a chat already selected (from search), load it
-        if (val === 'conversation' && this.cvSelectedChat && this.cvMessages.length === 0) {
+        if (val === 'conversation' && this.cvSelectedChat && this.cvMessages.length === 0)
           this.cvSelectChat(this.cvSelectedChat);
-        }
       });
     },
 
@@ -50,11 +49,12 @@ function conversationSection() {
       }
     },
 
-    // ── select chat and load messages ──
+    // ── select chat ──
     async cvSelectChat(chat) {
       this.cvSelectedChat = chat;
       this.cvMessages     = [];
       this.cvReactions    = {};
+      this.cvEdits        = {};
       this.cvHasMore      = false;
       this.cvNextBefore   = null;
       this.cvSelectedMsg  = null;
@@ -70,16 +70,12 @@ function conversationSection() {
         if (before) params.set('before', before);
         const res = await fetch('/zaplab/api/conversation?' + params, { headers: this.apiHeaders() });
         if (res.ok) {
-          const d = await res.json();
-          const msgs = (d.messages || []).reverse(); // API returns DESC, reverse for ASC display
-          if (before) {
-            this.cvMessages = [...msgs, ...this.cvMessages];
-          } else {
-            this.cvMessages = msgs;
-          }
-          this.cvHasMore    = d.has_more    || false;
-          this.cvNextBefore = d.next_before || null;
-          this.cvBuildReactionsMap();
+          const d    = await res.json();
+          const msgs = (d.messages || []).reverse();
+          this.cvMessages    = before ? [...msgs, ...this.cvMessages] : msgs;
+          this.cvHasMore     = d.has_more    || false;
+          this.cvNextBefore  = d.next_before || null;
+          this.cvBuildMaps();
         } else {
           this.cvMsgError = `HTTP ${res.status}`;
         }
@@ -97,44 +93,88 @@ function conversationSection() {
       }
     },
 
-    // Build reactions map: {targetMsgID: [{emoji, sender, fromMe}]}
-    cvBuildReactionsMap() {
-      const r = {};
+    // ── build annotation maps ──
+    // Processes all loaded messages to build:
+    //   cvReactions: {msgID: [{emoji, sender}]}
+    //   cvEdits:     {originalMsgID: {type, text, created}}  (last write wins = most recent edit)
+    cvBuildMaps() {
+      const reactions = {};
+      const edits     = {};
       for (const msg of this.cvMessages) {
         if (msg.type === 'reaction' && msg.react_target) {
-          if (!r[msg.react_target]) r[msg.react_target] = [];
-          r[msg.react_target].push({ emoji: msg.text || '❤️', sender: msg.sender, fromMe: msg.is_from_me });
+          if (!reactions[msg.react_target]) reactions[msg.react_target] = [];
+          reactions[msg.react_target].push({ emoji: msg.text || '❤️', sender: msg.sender });
+        }
+        if ((msg.type === 'deleted' || (msg.type && msg.type.startsWith('edited_'))) && msg.edit_target) {
+          edits[msg.edit_target] = { type: msg.type, text: msg.text || '', created: msg.created };
         }
       }
-      this.cvReactions = r;
+      this.cvReactions = reactions;
+      this.cvEdits     = edits;
     },
 
-    // Messages to display: exclude standalone reaction events, apply order.
+    // ── display helpers ──
+
+    // Returns messages to show: filters out standalone reactions and edit/delete events
+    // (those are rendered as annotations on the original bubble), then applies sort order.
     cvDisplayMessages() {
-      const msgs = this.cvMessages.filter(m => m.type !== 'reaction');
+      const msgs = this.cvMessages.filter(m =>
+        m.type !== 'reaction' &&
+        m.type !== 'deleted' &&
+        !(m.type && m.type.startsWith('edited_'))
+      );
       return this.cvOrderAsc ? msgs : [...msgs].reverse();
     },
 
-    cvToggleOrder() {
-      this.cvOrderAsc = !this.cvOrderAsc;
-    },
+    cvToggleOrder() { this.cvOrderAsc = !this.cvOrderAsc; },
 
-    // CSS classes for the bubble based on message type and direction.
+    // Effective state of a message considering later edits/deletes.
+    // Returns null if no annotation, or {type, text, created} from cvEdits.
+    cvAnnotation(msg) { return this.cvEdits[msg.msgID] || null; },
+
+    // CSS classes for the bubble. Checks cvEdits to color original messages.
     cvBubbleClass(msg) {
-      if (msg.type === 'deleted') {
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 text-xs shadow-sm';
+      const ann = this.cvAnnotation(msg);
+      const isDel     = ann && ann.type === 'deleted';
+      const isEdited  = ann && ann.type && ann.type.startsWith('edited_');
+
+      if (isDel) {
+        return 'rounded-xl px-3 py-2 text-xs shadow-sm ' +
+          'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800';
       }
-      if (msg.type && msg.type.startsWith('edited_')) {
-        return msg.is_from_me
-          ? 'bg-yellow-500 dark:bg-yellow-700 text-white rounded-xl rounded-br-sm px-3 py-2 text-xs shadow-sm'
-          : 'bg-yellow-50 dark:bg-yellow-900/30 text-gray-800 dark:text-[#e6c97a] border border-yellow-200 dark:border-yellow-700 rounded-xl rounded-bl-sm px-3 py-2 text-xs shadow-sm';
+      if (isEdited) {
+        return 'rounded-xl px-3 py-2 text-xs shadow-sm ' + (msg.is_from_me
+          ? 'bg-yellow-400 dark:bg-yellow-700 text-white rounded-br-sm'
+          : 'bg-yellow-50 dark:bg-yellow-900/30 text-gray-800 dark:text-[#e6c97a] border border-yellow-300 dark:border-yellow-700 rounded-bl-sm');
       }
-      return msg.is_from_me
-        ? 'bg-green-500 dark:bg-green-700 text-white rounded-xl rounded-br-sm px-3 py-2 text-xs shadow-sm'
-        : 'bg-white dark:bg-[#21262d] text-gray-800 dark:text-[#c9d1d9] border border-gray-200 dark:border-[#30363d] rounded-xl rounded-bl-sm px-3 py-2 text-xs shadow-sm';
+      return 'rounded-xl px-3 py-2 text-xs shadow-sm ' + (msg.is_from_me
+        ? 'bg-green-500 dark:bg-green-700 text-white rounded-br-sm'
+        : 'bg-white dark:bg-[#21262d] text-gray-800 dark:text-[#c9d1d9] border border-gray-200 dark:border-[#30363d] rounded-bl-sm');
     },
 
-    // ── helpers ──
+    // CSS classes for the annotation sub-bubble inside a modified message.
+    cvAnnotationClass(ann, fromMe) {
+      if (ann.type === 'deleted') {
+        return 'mt-1.5 pt-1.5 border-t border-red-300 dark:border-red-700 text-[10px] italic opacity-80';
+      }
+      return 'mt-1.5 pt-1.5 border-t text-[10px] ' + (fromMe
+        ? 'border-yellow-300 dark:border-yellow-600'
+        : 'border-yellow-300 dark:border-yellow-700');
+    },
+
+    cvMsgLabel(msg) {
+      if (msg.text)    return msg.text.substring(0, 400);
+      if (msg.caption) return msg.caption.substring(0, 400);
+      return '';
+    },
+
+    cvMsgIcon(type) {
+      if (!type) return '';
+      const base = type.startsWith('edited_') ? type.slice(7) : type;
+      const icons = { image: '🖼', video: '▶', audio: '🎵', document: '📄', sticker: '🔖', location: '📍' };
+      return icons[base] || '';
+    },
+
     cvFilteredChats() {
       if (!this.cvChatFilter) return this.cvChats;
       const f = this.cvChatFilter.toLowerCase();
@@ -149,27 +189,6 @@ function conversationSection() {
       return this.cvNames[jid] || this.cvShortJID(jid);
     },
 
-    cvMsgIcon(type) {
-      const icons = {
-        text: '', image: '🖼', video: '▶', audio: '🎵',
-        document: '📄', sticker: '🔖', location: '📍',
-        reaction: '💬', deleted: '🗑',
-      };
-      if (type && type.startsWith('edited_')) return '✏️';
-      return icons[type] ?? '';
-    },
-
-    cvMsgLabel(msg) {
-      const base = msg.type && msg.type.startsWith('edited_') ? msg.type.slice(7) : msg.type;
-      if (base === 'deleted')  return '';
-      if (base === 'reaction') return msg.text || '❤️';
-      if (base === 'audio')    return '';
-      if (base === 'sticker')  return '';
-      if (msg.text)    return msg.text.substring(0, 300);
-      if (msg.caption) return msg.caption.substring(0, 300);
-      return '';
-    },
-
     cvFormatTime(created) {
       if (!created) return '';
       return new Date(created.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -181,8 +200,8 @@ function conversationSection() {
     cvFormatLastMsg(ts) {
       if (!ts) return '';
       const d = new Date(ts.replace(' ', 'T'));
-      const now = new Date();
-      if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (d.toDateString() === new Date().toDateString())
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return d.toLocaleDateString();
     },
     cvShortJID(jid) {
