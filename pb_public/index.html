@@ -6769,49 +6769,57 @@
           </div>
         </div>
 
-        <!-- Log list -->
-        <div class="flex-1 overflow-y-auto font-mono text-xs">
-          <div x-show="fcLoading && fcEntries.length === 0" class="flex items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
-            <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            Loading…
-          </div>
+        <!-- Main area: log list + fixed detail panel -->
+        <div class="flex-1 overflow-hidden flex">
 
-          <div x-show="!fcLoading && fcFiltered().length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
-            <svg class="h-10 w-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p class="text-sm">No log entries</p>
-            <p class="text-xs mt-1 opacity-60">Start the WhatsApp client to capture frames</p>
-          </div>
-
-          <template x-for="(entry, idx) in fcFiltered()" :key="idx">
-            <div
-              class="flex items-start gap-2 px-3 py-1.5 border-b border-gray-50 dark:border-[#21262d]/50 hover:bg-gray-50 dark:hover:bg-[#21262d]/30 cursor-pointer transition-colors"
-              @click="fcSelected = fcSelected === entry ? null : entry"
-              :class="fcSelected === entry ? 'bg-blue-50 dark:bg-[#1c3a5e]/20' : ''"
-            >
-              <!-- Level badge -->
-              <span class="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase w-14 text-center" :class="fcLevelBadge(entry)" x-text="fcLevel(entry)"></span>
-              <!-- Module -->
-              <span class="flex-shrink-0 w-20 text-gray-400 dark:text-[#484f58] truncate text-[11px]" x-text="fcModuleShort(entry)" :title="fcModule(entry)"></span>
-              <!-- Message -->
-              <span class="flex-1 text-gray-700 dark:text-[#c9d1d9] break-all leading-relaxed" x-text="fcMsg(entry)"></span>
-              <!-- Time -->
-              <span class="flex-shrink-0 text-gray-300 dark:text-[#484f58] text-[10px] whitespace-nowrap" x-text="fcTime(entry)"></span>
+          <!-- Log list -->
+          <div class="flex-1 overflow-y-auto font-mono text-xs">
+            <div x-show="fcLoading && fcEntries.length === 0" class="flex items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
+              <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Loading…
             </div>
-          </template>
 
-          <!-- Detail row -->
-          <div x-show="fcSelected" class="border-t-2 border-blue-300 dark:border-[#1c3a5e] bg-blue-50 dark:bg-[#1c3a5e]/10 p-4">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-[10px] font-bold uppercase text-blue-600 dark:text-[#58a6ff]">Full entry</span>
-              <span class="text-[10px] font-mono text-gray-500 dark:text-[#8b949e]" x-text="fcModule(fcSelected || {})"></span>
+            <div x-show="!fcLoading && fcFiltered().length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
+              <svg class="h-10 w-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <p class="text-sm">No log entries</p>
+              <p class="text-xs mt-1 opacity-60">Start the WhatsApp client to capture frames</p>
             </div>
-            <pre class="text-[11px] text-gray-700 dark:text-[#c9d1d9] whitespace-pre-wrap break-all leading-relaxed" x-text="JSON.stringify(fcSelected, null, 2)"></pre>
+
+            <template x-for="(entry, idx) in fcFiltered()" :key="idx">
+              <div
+                class="flex items-start gap-2 px-3 py-1.5 border-b border-gray-50 dark:border-[#21262d]/50 hover:bg-gray-50 dark:hover:bg-[#21262d]/30 cursor-pointer transition-colors"
+                @click="fcSelected = fcSelected === entry ? null : entry"
+                :class="fcSelected === entry ? 'bg-blue-50 dark:bg-[#1c3a5e]/20' : ''"
+              >
+                <!-- Level badge -->
+                <span class="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase w-14 text-center" :class="fcLevelBadge(entry)" x-text="fcLevel(entry)"></span>
+                <!-- Module -->
+                <span class="flex-shrink-0 w-20 text-gray-400 dark:text-[#484f58] truncate text-[11px]" x-text="fcModuleShort(entry)" :title="fcModule(entry)"></span>
+                <!-- Message -->
+                <span class="flex-1 text-gray-700 dark:text-[#c9d1d9] break-all leading-relaxed" x-text="fcMsg(entry)"></span>
+                <!-- Time -->
+                <span class="flex-shrink-0 text-gray-300 dark:text-[#484f58] text-[10px] whitespace-nowrap" x-text="fcTime(entry)"></span>
+              </div>
+            </template>
           </div>
+
+          <!-- Full Entry panel (fixed right) -->
+          <div x-show="fcSelected"
+            class="w-96 flex-shrink-0 flex flex-col border-l border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117]">
+            <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] flex-shrink-0">
+              <span class="text-[10px] font-bold uppercase text-blue-600 dark:text-[#58a6ff]">Full Entry</span>
+              <span class="text-[10px] font-mono text-gray-500 dark:text-[#8b949e] flex-1 truncate" x-text="fcModule(fcSelected || {})"></span>
+              <button @click="fcSelected = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm flex-shrink-0">✕</button>
+            </div>
+            <pre class="flex-1 overflow-y-auto p-3 text-[11px] text-gray-700 dark:text-[#c9d1d9] whitespace-pre-wrap break-all leading-relaxed"
+              x-text="JSON.stringify(fcSelected, null, 2)"></pre>
+          </div>
+
         </div>
       </div>
 
@@ -6840,6 +6848,24 @@
         <!-- Error -->
         <div x-show="nhError" class="flex-shrink-0 px-4 py-2 bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/20">
           <p class="text-xs text-red-600 dark:text-red-400" x-text="nhError"></p>
+        </div>
+
+        <!-- Protocol Notes banner (sticky, always visible) -->
+        <div class="flex-shrink-0 border-b border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/10 px-4 py-3">
+          <div class="flex items-start gap-3">
+            <span class="text-blue-500 dark:text-blue-400 text-base leading-none flex-shrink-0 mt-0.5">🔐</span>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1.5">Protocol Notes — Noise_XX_25519_AESGCM_SHA256</p>
+              <ul class="text-[11px] text-blue-700 dark:text-blue-300/80 space-y-1 leading-relaxed grid sm:grid-cols-2 gap-x-6">
+                <li>• <strong>Noise_XX</strong>: both sides authenticate static keys (mutual auth)</li>
+                <li>• Ephemeral keys regenerated each connection — provides forward secrecy</li>
+                <li>• <code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">noiseKey.pub</code> = companion long-term identity (sent in ClientFinish)</li>
+                <li>• Server cert chain rooted at hardcoded <code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">WACertPubKey</code> (Ed25519)</li>
+                <li>• Post-handshake frames: AES-256-GCM, monotonic counter IV (no reuse)</li>
+                <li>• Payloads are zlib-compressed before encryption</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <!-- Body: two-panel -->
@@ -6877,19 +6903,6 @@
                   </div>
                 </template>
               </div>
-            </div>
-
-            <!-- Protocol notes -->
-            <div class="mt-6 rounded-lg border border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] p-3">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-[#484f58] mb-2">Protocol Notes</p>
-              <ul class="text-[11px] text-gray-500 dark:text-[#8b949e] space-y-1.5 leading-relaxed">
-                <li>• WhatsApp uses <strong>Noise_XX</strong> — both parties authenticate their static keys</li>
-                <li>• Ephemeral keys are freshly generated per connection (forward secrecy)</li>
-                <li>• The companion device's Noise static key (<code class="bg-gray-200 dark:bg-[#21262d] px-1 rounded">noiseKey.pub</code>) acts as its long-term identity</li>
-                <li>• Server identity is pinned to a hardcoded root EdDSA key (<code class="bg-gray-200 dark:bg-[#21262d] px-1 rounded">WACertPubKey</code>)</li>
-                <li>• After split, frames are AES-256-GCM with a monotonic counter IV (never reused)</li>
-                <li>• All post-handshake nodes are zlib-compressed before encryption</li>
-              </ul>
             </div>
           </div>
 
@@ -6991,8 +7004,9 @@
       <div
         x-show="activeSection === 'signalsessions'"
         x-effect="if (activeSection === 'signalsessions') ssLoad()"
-        class="p-6 space-y-6"
+        class="flex flex-col h-full overflow-hidden"
       >
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
         <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -7143,7 +7157,8 @@
           </div>
         </div>
 
-      </div>
+      </div><!-- end scroll wrapper -->
+      </div><!-- end signalsessions section -->
 
       <!-- ══════════════════════════════════════════════════════════════════ -->
       <!-- Annotations                                                        -->
@@ -7612,11 +7627,11 @@
 
           <!-- ── Tab: Collections ── -->
           <div x-show="!asLoading && asTab==='collections'" class="p-4 space-y-3">
-            <p class="text-xs text-gray-500 dark:text-[#8b949e]">
-              App state collections track WhatsApp settings and contact data synced from the server.
-              Each collection has a monotonically increasing <strong>version index</strong> and a
-              Merkle tree <strong>hash</strong> that represents the current known state.
-            </p>
+            <div class="rounded-lg border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/10 p-3 text-[11px] text-indigo-700 dark:text-indigo-300/80 space-y-1 leading-relaxed">
+              <p><strong>App State Collections</strong> are WhatsApp's mechanism to keep settings and contacts in sync across all linked devices using a <strong>Merkle tree</strong> structure.</p>
+              <p>Each collection has a monotonically increasing <strong>version index</strong> (incremented on every change) and a <strong>state hash</strong> (SHA-256 of the current Merkle root). When a device reconnects it compares its local version/hash against the server — if they differ, it fetches and applies the delta patches (mutations).</p>
+              <p>Changes are encrypted with symmetric <strong>sync keys</strong> (see Sync Keys tab) before being sent to the server, so WhatsApp servers cannot read the content.</p>
+            </div>
 
             <template x-if="asFilteredCollections().length === 0 && !asLoading">
               <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
@@ -7642,15 +7657,15 @@
                   </div>
                   <div class="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <div class="text-[10px] uppercase text-gray-400 dark:text-[#484f58] font-medium mb-0.5">Version</div>
+                      <div class="text-[10px] uppercase text-gray-400 dark:text-[#484f58] font-medium mb-0.5" title="Monotonically increasing counter — incremented with every mutation applied to this collection">Version ↑</div>
                       <div class="font-mono text-gray-800 dark:text-[#e6edf3] font-semibold" x-text="c.version"></div>
                     </div>
                     <div class="min-w-0">
-                      <div class="text-[10px] uppercase text-gray-400 dark:text-[#484f58] font-medium mb-0.5">State Hash</div>
+                      <div class="text-[10px] uppercase text-gray-400 dark:text-[#484f58] font-medium mb-0.5" title="SHA-256 Merkle root of all mutations at this version. Must match the server's copy to be considered in-sync.">State Hash</div>
                       <div class="font-mono text-[10px] text-gray-600 dark:text-[#8b949e] truncate" :title="c.hash_hex" x-text="asHexShort(c.hash_hex)"></div>
                     </div>
                   </div>
-                  <div class="text-[10px] text-gray-400 dark:text-[#484f58] font-mono truncate" :title="c.jid" x-text="c.jid"></div>
+                  <div class="text-[10px] text-gray-400 dark:text-[#484f58] font-mono truncate" :title="'JID: ' + c.jid + ' — identifies which linked device this collection belongs to'" x-text="c.jid"></div>
                 </div>
               </template>
             </div>
@@ -7658,11 +7673,13 @@
 
           <!-- ── Tab: Sync Keys ── -->
           <div x-show="!asLoading && asTab==='synckeys'" class="p-4">
-            <p class="text-xs text-gray-500 dark:text-[#8b949e] mb-4">
-              Symmetric AES keys used to decrypt app state patches received from WhatsApp servers.
-              Keys are identified by a 4-byte <strong>key ID</strong> and carry a
-              <strong>fingerprint</strong> for verification. Raw key bytes are withheld.
-            </p>
+            <div class="rounded-lg border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/10 p-3 text-[11px] text-indigo-700 dark:text-indigo-300/80 space-y-1 leading-relaxed mb-4">
+              <p><strong>Sync Keys</strong> are symmetric AES-256 keys used to encrypt and decrypt the Merkle tree mutation patches that WhatsApp servers store on your behalf.</p>
+              <p><strong>Key ID</strong>: 4-byte identifier sent alongside each patch so the receiving device knows which key to use for decryption.</p>
+              <p><strong>Timestamp</strong>: When this key was generated. Keys rotate periodically — older keys are kept to decrypt historical patches.</p>
+              <p><strong>Fingerprint</strong>: HMAC-SHA256 of the key material, used to verify integrity after retrieval. Raw key bytes are never exposed in this UI.</p>
+              <p><strong>Data</strong>: Size of the serialized key blob stored in whatsapp.db (includes the key bytes and metadata).</p>
+            </div>
 
             <template x-if="asSyncKeys.length === 0 && !asLoading">
               <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
@@ -7701,12 +7718,12 @@
 
           <!-- ── Tab: Mutations ── -->
           <div x-show="!asLoading && asTab==='mutations'" class="p-4">
-            <p class="text-xs text-gray-500 dark:text-[#8b949e] mb-4">
-              Per-mutation HMAC integrity codes stored in the app state Merkle tree.
-              Each row represents one leaf in the tree: an <strong>index MAC</strong>
-              (path hash) and a <strong>value MAC</strong> (content HMAC), keyed to
-              a specific collection version.
-            </p>
+            <div class="rounded-lg border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/10 p-3 text-[11px] text-indigo-700 dark:text-indigo-300/80 space-y-1 leading-relaxed mb-4">
+              <p><strong>Mutations</strong> are the individual leaf nodes of the Merkle tree. Each represents one logical change (e.g. "star this message", "mute this chat", "add this contact") applied at a specific collection version.</p>
+              <p><strong>Version</strong>: The collection snapshot this mutation belongs to. Mutations at the same version were applied atomically.</p>
+              <p><strong>Index MAC</strong>: HMAC-SHA256 of the mutation's <em>path</em> in the tree — a deterministic key derived from the record type + identifier (e.g. chat JID). Allows the server to locate the leaf without knowing the plaintext key.</p>
+              <p><strong>Value MAC</strong>: HMAC-SHA256 of the encrypted <em>content</em> of the mutation. Used to verify that the stored value hasn't been tampered with. Both MACs are included in the Merkle root computation that produces the collection's state hash.</p>
+            </div>
 
             <!-- Loading -->
             <div x-show="asMutLoading" class="flex items-center justify-center py-12 text-gray-400 dark:text-[#484f58]">
@@ -7796,7 +7813,9 @@
           </p>
         </div>
 
-        <div class="flex-1 overflow-y-auto">
+        <!-- flex column: list (scrollable) + comparison panel (fixed bottom) -->
+        <div class="flex-1 overflow-hidden flex flex-col min-h-0">
+
           <!-- Loading -->
           <div x-show="mcLoading" class="flex items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
             <svg class="h-5 w-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -7806,149 +7825,157 @@
           </div>
 
           <template x-if="!mcLoading">
-            <div>
+            <div class="flex flex-col h-full min-h-0">
 
-              <!-- ── Session list (checkboxes) ── -->
-              <div x-show="mcTab==='sessions'" class="border-b border-gray-200 dark:border-[#30363d]">
-                <template x-if="mcFiltered().length === 0">
+              <!-- ── List area (scrollable) ── -->
+              <div class="flex-1 overflow-y-auto min-h-0">
+
+                <!-- Session list (checkboxes) -->
+                <div x-show="mcTab==='sessions'">
+                  <template x-if="mcFiltered().length === 0">
+                    <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
+                      <p class="text-sm">No sessions found</p>
+                    </div>
+                  </template>
+                  <div class="divide-y divide-gray-100 dark:divide-[#21262d]">
+                    <template x-for="s in mcFiltered()" :key="s.address">
+                      <label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
+                        :class="mcIsSelected(s.address) ? 'bg-blue-50/50 dark:bg-[#1c3a5e]/30' : ''">
+                        <input type="checkbox" :checked="mcIsSelected(s.address)"
+                          @change="mcToggle(s.address)"
+                          :disabled="!mcIsSelected(s.address) && mcSelected.length >= 6"
+                          class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 dark:border-[#30363d] dark:bg-[#0d1117] focus:ring-blue-500/40"/>
+                        <span class="text-sm font-mono text-gray-800 dark:text-[#e6edf3] flex-1 truncate" x-text="mcAddrShort(s.address)"></span>
+                        <span class="text-xs" :class="mcHealthClass(s)" x-text="mcHealthIcon(s)"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]" x-text="mcVersionLabel(s.version)"></span>
+                        <span class="text-[10px] text-gray-400 dark:text-[#484f58] w-16 text-right" x-text="s.raw_size_bytes + ' B'"></span>
+                      </label>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- SenderKey list (checkboxes) -->
+                <div x-show="mcTab==='senderkeys'">
+                  <template x-if="mcFiltered().length === 0">
+                    <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
+                      <p class="text-sm">No sender keys found</p>
+                    </div>
+                  </template>
+                  <div class="divide-y divide-gray-100 dark:divide-[#21262d]">
+                    <template x-for="k in mcFiltered()" :key="k.chat_id+'|'+k.sender_id">
+                      <label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
+                        :class="mcIsSelected(k.chat_id+'|'+k.sender_id) ? 'bg-blue-50/50 dark:bg-[#1c3a5e]/30' : ''">
+                        <input type="checkbox"
+                          :checked="mcIsSelected(k.chat_id+'|'+k.sender_id)"
+                          @change="mcToggle(k.chat_id+'|'+k.sender_id)"
+                          :disabled="!mcIsSelected(k.chat_id+'|'+k.sender_id) && mcSelected.length >= 6"
+                          class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 dark:border-[#30363d] dark:bg-[#0d1117] focus:ring-blue-500/40"/>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-xs font-mono text-gray-800 dark:text-[#e6edf3] truncate" x-text="k.chat_id"></div>
+                          <div class="text-[10px] text-gray-500 dark:text-[#8b949e] font-mono truncate" x-text="k.sender_id"></div>
+                        </div>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-mono" x-text="'iter ' + k.iteration"></span>
+                      </label>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- prompt to select 2+ -->
+                <template x-if="mcSelected.length < 2 && mcSessions.length > 0">
                   <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
-                    <p class="text-sm">No sessions found</p>
+                    <svg class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    <p class="text-sm">Select at least 2 sessions above to compare</p>
                   </div>
                 </template>
-                <div class="divide-y divide-gray-100 dark:divide-[#21262d]">
-                  <template x-for="s in mcFiltered()" :key="s.address">
-                    <label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
-                      :class="mcIsSelected(s.address) ? 'bg-blue-50/50 dark:bg-[#1c3a5e]/30' : ''">
-                      <input type="checkbox" :checked="mcIsSelected(s.address)"
-                        @change="mcToggle(s.address)"
-                        :disabled="!mcIsSelected(s.address) && mcSelected.length >= 6"
-                        class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 dark:border-[#30363d] dark:bg-[#0d1117] focus:ring-blue-500/40"/>
-                      <span class="text-sm font-mono text-gray-800 dark:text-[#e6edf3] flex-1 truncate" x-text="mcAddrShort(s.address)"></span>
-                      <span class="text-xs" :class="mcHealthClass(s)" x-text="mcHealthIcon(s)"></span>
-                      <span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]" x-text="mcVersionLabel(s.version)"></span>
-                      <span class="text-[10px] text-gray-400 dark:text-[#484f58] w-16 text-right" x-text="s.raw_size_bytes + ' B'"></span>
-                    </label>
-                  </template>
-                </div>
-              </div>
 
-              <!-- ── SenderKey list (checkboxes) ── -->
-              <div x-show="mcTab==='senderkeys'" class="border-b border-gray-200 dark:border-[#30363d]">
-                <template x-if="mcFiltered().length === 0">
-                  <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
-                    <p class="text-sm">No sender keys found</p>
-                  </div>
-                </template>
-                <div class="divide-y divide-gray-100 dark:divide-[#21262d]">
-                  <template x-for="k in mcFiltered()" :key="k.chat_id+'|'+k.sender_id">
-                    <label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
-                      :class="mcIsSelected(k.chat_id+'|'+k.sender_id) ? 'bg-blue-50/50 dark:bg-[#1c3a5e]/30' : ''">
-                      <input type="checkbox"
-                        :checked="mcIsSelected(k.chat_id+'|'+k.sender_id)"
-                        @change="mcToggle(k.chat_id+'|'+k.sender_id)"
-                        :disabled="!mcIsSelected(k.chat_id+'|'+k.sender_id) && mcSelected.length >= 6"
-                        class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 dark:border-[#30363d] dark:bg-[#0d1117] focus:ring-blue-500/40"/>
-                      <div class="flex-1 min-w-0">
-                        <div class="text-xs font-mono text-gray-800 dark:text-[#e6edf3] truncate" x-text="k.chat_id"></div>
-                        <div class="text-[10px] text-gray-500 dark:text-[#8b949e] font-mono truncate" x-text="k.sender_id"></div>
-                      </div>
-                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-mono" x-text="'iter ' + k.iteration"></span>
-                    </label>
-                  </template>
-                </div>
-              </div>
+              </div><!-- end scrollable list -->
 
-              <!-- ── Comparison table ── -->
+              <!-- ── Comparison panel (fixed bottom, appears when 2+ selected) ── -->
               <template x-if="mcSelected.length >= 2 && mcTab==='sessions'">
-                <div class="p-4">
-                  <div class="flex items-center gap-3 mb-3">
-                    <h3 class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9] uppercase tracking-wider">Comparison</h3>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full"
-                      :class="mcDiffCount(mcSelectedSessions(), mcSessionRows()) > 0
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'"
-                      x-text="mcDiffCount(mcSelectedSessions(), mcSessionRows()) + ' diff(s)'"></span>
-                  </div>
-                  <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
-                    <table class="min-w-full text-xs">
-                      <thead class="bg-gray-50 dark:bg-[#161b22]">
-                        <tr>
-                          <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider w-32">Property</th>
-                          <template x-for="(s, idx) in mcSelectedSessions()" :key="s.address">
-                            <th class="px-3 py-2 text-left text-[10px] font-mono"
-                              :class="idx===0 ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-gray-600 dark:text-[#8b949e]'"
-                              x-text="mcAddrShort(s.address)"></th>
-                          </template>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
-                        <template x-for="row in mcSessionRows()" :key="row.key">
+                <div class="flex-shrink-0 border-t-2 border-blue-400 dark:border-blue-700 bg-blue-50/30 dark:bg-[#1c3a5e]/10 overflow-y-auto" style="max-height:50%">
+                  <div class="p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                      <h3 class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9] uppercase tracking-wider">Comparison</h3>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded-full"
+                        :class="mcDiffCount(mcSelectedSessions(), mcSessionRows()) > 0
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'"
+                        x-text="mcDiffCount(mcSelectedSessions(), mcSessionRows()) + ' diff(s)'"></span>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+                      <table class="min-w-full text-xs">
+                        <thead class="bg-gray-50 dark:bg-[#161b22]">
                           <tr>
-                            <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500 dark:text-[#8b949e] whitespace-nowrap" x-text="row.label"></td>
-                            <template x-for="(s, idx) in mcSelectedSessions()" :key="s.address+row.key">
-                              <td class="px-3 py-2 font-mono"
-                                :class="mcIsDiff(mcSelectedSessions(), row.key, idx)
-                                  ? 'bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-400 font-semibold'
-                                  : 'text-gray-700 dark:text-[#c9d1d9]'"
-                                x-text="row.fmt(s[row.key])"></td>
+                            <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider w-32">Property</th>
+                            <template x-for="(s, idx) in mcSelectedSessions()" :key="s.address">
+                              <th class="px-3 py-2 text-left text-[10px] font-mono"
+                                :class="idx===0 ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-gray-600 dark:text-[#8b949e]'"
+                                x-text="mcAddrShort(s.address)"></th>
                             </template>
                           </tr>
-                        </template>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
+                          <template x-for="row in mcSessionRows()" :key="row.key">
+                            <tr>
+                              <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500 dark:text-[#8b949e] whitespace-nowrap" x-text="row.label"></td>
+                              <template x-for="(s, idx) in mcSelectedSessions()" :key="s.address+row.key">
+                                <td class="px-3 py-2 font-mono"
+                                  :class="mcIsDiff(mcSelectedSessions(), row.key, idx)
+                                    ? 'bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-400 font-semibold'
+                                    : 'text-gray-700 dark:text-[#c9d1d9]'"
+                                  x-text="row.fmt(s[row.key])"></td>
+                              </template>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </template>
 
-              <!-- ── SenderKey comparison table ── -->
               <template x-if="mcSelected.length >= 2 && mcTab==='senderkeys'">
-                <div class="p-4">
-                  <div class="flex items-center gap-3 mb-3">
-                    <h3 class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9] uppercase tracking-wider">Comparison</h3>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full"
-                      :class="mcDiffCount(mcSelectedSenderKeys(), mcSenderKeyRows()) > 0
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'"
-                      x-text="mcDiffCount(mcSelectedSenderKeys(), mcSenderKeyRows()) + ' diff(s)'"></span>
-                  </div>
-                  <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
-                    <table class="min-w-full text-xs">
-                      <thead class="bg-gray-50 dark:bg-[#161b22]">
-                        <tr>
-                          <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider w-32">Property</th>
-                          <template x-for="(k, idx) in mcSelectedSenderKeys()" :key="k.chat_id+k.sender_id">
-                            <th class="px-3 py-2 text-left text-[10px] font-mono truncate max-w-[120px]"
-                              :class="idx===0 ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-gray-600 dark:text-[#8b949e]'"
-                              x-text="(k.chat_id||'').split('@')[0]"></th>
-                          </template>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
-                        <template x-for="row in mcSenderKeyRows()" :key="row.key">
+                <div class="flex-shrink-0 border-t-2 border-blue-400 dark:border-blue-700 bg-blue-50/30 dark:bg-[#1c3a5e]/10 overflow-y-auto" style="max-height:50%">
+                  <div class="p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                      <h3 class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9] uppercase tracking-wider">Comparison</h3>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded-full"
+                        :class="mcDiffCount(mcSelectedSenderKeys(), mcSenderKeyRows()) > 0
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'"
+                        x-text="mcDiffCount(mcSelectedSenderKeys(), mcSenderKeyRows()) + ' diff(s)'"></span>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+                      <table class="min-w-full text-xs">
+                        <thead class="bg-gray-50 dark:bg-[#161b22]">
                           <tr>
-                            <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500 dark:text-[#8b949e] whitespace-nowrap" x-text="row.label"></td>
-                            <template x-for="(k, idx) in mcSelectedSenderKeys()" :key="k.chat_id+k.sender_id+row.key">
-                              <td class="px-3 py-2 font-mono"
-                                :class="mcIsDiff(mcSelectedSenderKeys(), row.key, idx)
-                                  ? 'bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-400 font-semibold'
-                                  : 'text-gray-700 dark:text-[#c9d1d9]'"
-                                x-text="row.fmt(k[row.key])"></td>
+                            <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider w-32">Property</th>
+                            <template x-for="(k, idx) in mcSelectedSenderKeys()" :key="k.chat_id+k.sender_id">
+                              <th class="px-3 py-2 text-left text-[10px] font-mono truncate max-w-[120px]"
+                                :class="idx===0 ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-gray-600 dark:text-[#8b949e]'"
+                                x-text="(k.chat_id||'').split('@')[0]"></th>
                             </template>
                           </tr>
-                        </template>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
+                          <template x-for="row in mcSenderKeyRows()" :key="row.key">
+                            <tr>
+                              <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500 dark:text-[#8b949e] whitespace-nowrap" x-text="row.label"></td>
+                              <template x-for="(k, idx) in mcSelectedSenderKeys()" :key="k.chat_id+k.sender_id+row.key">
+                                <td class="px-3 py-2 font-mono"
+                                  :class="mcIsDiff(mcSelectedSenderKeys(), row.key, idx)
+                                    ? 'bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-400 font-semibold'
+                                    : 'text-gray-700 dark:text-[#c9d1d9]'"
+                                  x-text="row.fmt(k[row.key])"></td>
+                              </template>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              </template>
-
-              <!-- prompt to select 2+ -->
-              <template x-if="mcSelected.length < 2 && !mcLoading && mcSessions.length > 0">
-                <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
-                  <svg class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                  </svg>
-                  <p class="text-sm">Select at least 2 sessions above to compare</p>
                 </div>
               </template>
 
