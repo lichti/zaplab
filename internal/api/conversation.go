@@ -124,17 +124,18 @@ func getConversation(e *core.RequestEvent) error {
 	}
 
 	type msgOut struct {
-		ID       string `json:"id"`
-		MsgID    string `json:"msgID"`
-		Chat     string `json:"chat"`
-		Sender   string `json:"sender"`
-		IsFromMe bool   `json:"is_from_me"`
-		MsgType  string `json:"type"`
-		Text     string `json:"text"`
-		Caption  string `json:"caption"`
-		FileURL  string `json:"file_url"`
-		ThumbURL string `json:"thumb_url"`
-		Created  string `json:"created"`
+		ID          string `json:"id"`
+		MsgID       string `json:"msgID"`
+		Chat        string `json:"chat"`
+		Sender      string `json:"sender"`
+		IsFromMe    bool   `json:"is_from_me"`
+		MsgType     string `json:"type"`
+		Text        string `json:"text"`
+		Caption     string `json:"caption"`
+		FileURL     string `json:"file_url"`
+		ThumbURL    string `json:"thumb_url"`
+		ReactTarget string `json:"react_target,omitempty"` // for reactions: msgID of the reacted-to message
+		Created     string `json:"created"`
 	}
 
 	messages := make([]msgOut, 0, len(rows))
@@ -162,6 +163,15 @@ func getConversation(e *core.RequestEvent) error {
 			out.MsgType, out.Text, out.Caption, skip = detectMsgType(msg)
 			if skip {
 				continue
+			}
+			// For reactions, extract the target message ID so the frontend
+			// can render the emoji as a chip on the reacted-to bubble.
+			if out.MsgType == "reaction" {
+				if react, ok := msg["reactionMessage"].(map[string]any); ok {
+					if key, ok := react["key"].(map[string]any); ok {
+						out.ReactTarget, _ = key["ID"].(string)
+					}
+				}
 			}
 		}
 		if row.File != "" {
@@ -203,13 +213,10 @@ func detectMsgType(msg map[string]any) (msgType, text, caption string, skip bool
 			if edited, ok := pm["editedMessage"].(map[string]any); ok {
 				mt, t, c, _ := detectMsgType(edited)
 				if mt != "unknown" {
-					if mt == "text" {
-						t = "(editado) " + t
-					}
-					return mt, t, c, false
+					return "edited_" + mt, t, c, false
 				}
 			}
-			return "text", "(editado)", "", false
+			return "edited_text", "(editado)", "", false
 		}
 		// Other protocol types (historySyncNotification, appStateSync, etc.) — skip
 		return "", "", "", true

@@ -8380,6 +8380,12 @@
                 <!-- Chat header -->
                 <div class="flex-shrink-0 px-4 py-2 border-b border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] flex items-center gap-2">
                   <span class="text-xs font-semibold text-gray-800 dark:text-[#c9d1d9] flex-1 truncate" x-text="cvDisplayName(cvSelectedChat)"></span>
+                  <!-- Sort order toggle -->
+                  <button @click="cvToggleOrder()"
+                    class="px-2 py-0.5 text-[10px] rounded border border-gray-300 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]"
+                    :title="cvOrderAsc ? 'Showing old → new' : 'Showing new → old'">
+                    <span x-text="cvOrderAsc ? '↑ old→new' : '↓ new→old'"></span>
+                  </button>
                   <button x-show="cvHasMore" @click="cvLoadMore()" :disabled="cvMsgLoading"
                     class="px-2 py-0.5 text-[10px] rounded border border-gray-300 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] disabled:opacity-50">
                     Load older
@@ -8391,28 +8397,46 @@
                   <template x-if="cvMsgLoading && cvMessages.length === 0">
                     <p class="text-xs text-gray-400 text-center py-4">Loading…</p>
                   </template>
-                  <template x-for="msg in cvMessages" :key="msg.id">
+                  <template x-for="msg in cvDisplayMessages()" :key="msg.id">
                     <div class="flex" :class="msg.is_from_me ? 'justify-end' : 'justify-start'">
-                      <div @click="cvSelectedMsg = msg" class="max-w-[70%] cursor-pointer group">
-                        <div class="rounded-xl px-3 py-2 text-xs shadow-sm"
-                          :class="msg.is_from_me
-                            ? 'bg-green-500 dark:bg-green-700 text-white rounded-br-sm'
-                            : 'bg-white dark:bg-[#21262d] text-gray-800 dark:text-[#c9d1d9] rounded-bl-sm border border-gray-200 dark:border-[#30363d]'">
-                          <!-- Sender (only for received group messages) -->
-                          <p x-show="!msg.is_from_me" class="text-[10px] font-semibold mb-0.5"
-                            :class="msg.is_from_me ? 'text-green-100' : 'text-blue-500 dark:text-blue-400'"
+                      <div @click="cvSelectedMsg = msg" class="max-w-[75%] cursor-pointer group">
+                        <!-- Bubble -->
+                        <div :class="cvBubbleClass(msg)">
+                          <!-- Sender name (received messages only) -->
+                          <p x-show="!msg.is_from_me" class="text-[10px] font-semibold mb-0.5 text-blue-500 dark:text-blue-400"
                             x-text="cvDisplayName(msg.sender)"></p>
-                          <!-- Media type icon -->
-                          <span x-show="msg.type !== 'text' && msg.type !== 'unknown' && msg.type !== 'reaction'"
-                            class="text-base mr-1" x-text="cvMsgIcon(msg.type)"></span>
+                          <!-- Deleted label -->
+                          <template x-if="msg.type === 'deleted'">
+                            <span class="italic opacity-70">🗑 mensagem apagada</span>
+                          </template>
+                          <!-- Edited badge -->
+                          <template x-if="msg.type && msg.type.startsWith('edited_')">
+                            <span class="inline-block text-[9px] font-medium opacity-70 mr-1">✏️ editado</span>
+                          </template>
                           <!-- Image preview -->
-                          <img x-show="msg.type === 'image' && msg.thumb_url"
-                            :src="msg.thumb_url" class="max-w-full rounded mb-1 max-h-32 object-cover" />
-                          <!-- Text content -->
-                          <span x-text="cvMsgLabel(msg)" class="break-words"></span>
-                          <!-- Time -->
-                          <span class="block text-right text-[9px] mt-0.5 opacity-70" x-text="cvFormatTime(msg.created)"></span>
+                          <template x-if="(msg.type === 'image' || (msg.type && msg.type.startsWith('edited_image'))) && msg.thumb_url">
+                            <img :src="msg.thumb_url" class="max-w-full rounded mb-1 max-h-40 object-cover block" />
+                          </template>
+                          <!-- Media icon for non-text types -->
+                          <template x-if="msg.type !== 'text' && msg.type !== 'deleted' && !(msg.type && msg.type.startsWith('edited_text'))">
+                            <span class="text-base mr-1" x-text="cvMsgIcon(msg.type)"></span>
+                          </template>
+                          <!-- Main text / caption -->
+                          <span x-show="cvMsgLabel(msg)" x-text="cvMsgLabel(msg)" class="break-words whitespace-pre-wrap"></span>
+                          <!-- Timestamp -->
+                          <span class="block text-right text-[9px] mt-0.5 opacity-60" x-text="cvFormatTime(msg.created)"></span>
                         </div>
+                        <!-- Reaction chips (shown below the bubble) -->
+                        <template x-if="cvReactions[msg.msgID] && cvReactions[msg.msgID].length > 0">
+                          <div class="flex flex-wrap gap-0.5 mt-0.5"
+                            :class="msg.is_from_me ? 'justify-end' : 'justify-start'">
+                            <template x-for="(r, ri) in cvReactions[msg.msgID]" :key="ri">
+                              <span class="text-sm bg-white dark:bg-[#21262d] border border-gray-200 dark:border-[#30363d] rounded-full px-1.5 py-0.5 shadow-sm cursor-default"
+                                :title="cvDisplayName(r.sender)"
+                                x-text="r.emoji"></span>
+                            </template>
+                          </div>
+                        </template>
                       </div>
                     </div>
                   </template>
