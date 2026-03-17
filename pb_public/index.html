@@ -46,6 +46,8 @@
   <script src="js/sections/protoschema.js"></script>
   <script src="js/sections/framecapture.js"></script>
   <script src="js/sections/noisehandshake.js"></script>
+  <script src="js/sections/signalsessions.js"></script>
+  <script src="js/sections/annotations.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -592,6 +594,40 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Noise Handshake</span>
+        </a>
+
+        <!-- Signal Sessions -->
+        <a
+          href="#/signalsessions"
+          @click.prevent="setSection('signalsessions')"
+          :title="sidebarExpanded ? '' : 'Signal Sessions'"
+          aria-label="Signal Session Visualizer"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'signalsessions'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Signal Sessions</span>
+        </a>
+
+        <!-- Annotations -->
+        <a
+          href="#/annotations"
+          @click.prevent="setSection('annotations')"
+          :title="sidebarExpanded ? '' : 'Annotations'"
+          aria-label="Event Annotations"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'annotations'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Annotations</span>
         </a>
 
         <!-- Send Message -->
@@ -1818,17 +1854,29 @@
                     class="font-mono text-gray-400 dark:text-[#8b949e] truncate"
                     x-text="'ID: ' + eb.selected.msgID"
                   ></span>
-                  <button
-                    @click="ebCopyJSON()"
-                    class="ml-auto flex items-center gap-1 transition-colors
-                           text-gray-400 hover:text-blue-500
-                           dark:text-[#8b949e] dark:hover:text-[#58a6ff]"
-                  >
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/>
-                    </svg>
-                    <span x-text="ebCopied ? 'Copied!' : 'Copy JSON'"></span>
-                  </button>
+                  <div class="ml-auto flex items-center gap-3">
+                    <button
+                      @click="anOpenNew(eb.selected.msgID || eb.selected.id, eb.selected.type, eb.selected.raw?.Info?.Sender || '')"
+                      class="flex items-center gap-1 transition-colors text-gray-400 hover:text-purple-500 dark:text-[#8b949e] dark:hover:text-purple-400"
+                      title="Add annotation to this event"
+                    >
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                      </svg>
+                      Annotate
+                    </button>
+                    <button
+                      @click="ebCopyJSON()"
+                      class="flex items-center gap-1 transition-colors
+                             text-gray-400 hover:text-blue-500
+                             dark:text-[#8b949e] dark:hover:text-[#58a6ff]"
+                    >
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/>
+                      </svg>
+                      <span x-text="ebCopied ? 'Copied!' : 'Copy JSON'"></span>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Scrollable body -->
@@ -6841,6 +6889,387 @@
               </div>
             </div>
 
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════ -->
+      <!-- Signal Session Visualizer                                         -->
+      <!-- ══════════════════════════════════════════════════════════════════ -->
+      <div
+        x-show="activeSection === 'signalsessions'"
+        x-effect="if (activeSection === 'signalsessions') ssLoad()"
+        class="p-6 space-y-6"
+      >
+        <!-- Header -->
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-[#e6edf3]">Signal Session Visualizer</h2>
+            <p class="text-xs text-gray-500 dark:text-[#8b949e] mt-0.5">
+              Decoded Double Ratchet session states and group SenderKey records from whatsapp.db
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              x-model="ssFilter"
+              type="text"
+              placeholder="Filter by JID…"
+              class="text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400 w-48"
+            />
+            <button
+              @click="ssRefresh()"
+              :disabled="ssLoading"
+              class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-700 dark:text-[#c9d1d9] hover:bg-gray-50 dark:hover:bg-[#30363d] disabled:opacity-50 transition-colors"
+            >
+              <svg class="h-3 w-3" :class="ssLoading && 'animate-spin'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div x-show="ssError" class="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-3 py-2" x-text="ssError"></div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 border-b border-gray-200 dark:border-[#30363d]">
+          <button
+            @click="ssActiveTab = 'sessions'"
+            :class="ssActiveTab === 'sessions'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-[#58a6ff]'
+              : 'text-gray-500 dark:text-[#8b949e] hover:text-gray-700 dark:hover:text-[#c9d1d9]'"
+            class="px-4 py-2 text-xs font-medium -mb-px transition-colors"
+          >
+            Individual Sessions
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]" x-text="ssSessions.length"></span>
+          </button>
+          <button
+            @click="ssActiveTab = 'senderkeys'"
+            :class="ssActiveTab === 'senderkeys'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-[#58a6ff]'
+              : 'text-gray-500 dark:text-[#8b949e] hover:text-gray-700 dark:hover:text-[#c9d1d9]'"
+            class="px-4 py-2 text-xs font-medium -mb-px transition-colors"
+          >
+            Group Sender Keys
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]" x-text="ssSenderKeys.length"></span>
+          </button>
+        </div>
+
+        <!-- Individual Sessions tab -->
+        <div x-show="ssActiveTab === 'sessions'">
+          <div x-show="ssLoading && ssSessions.length === 0" class="text-center py-10 text-xs text-gray-400 dark:text-[#8b949e]">Loading sessions…</div>
+          <div x-show="!ssLoading && ssSessions.length === 0 && !ssError" class="text-center py-10 text-xs text-gray-400 dark:text-[#8b949e]">No sessions found. Connect WhatsApp and exchange messages to establish sessions.</div>
+
+          <div x-show="ssFilteredSessions().length > 0" class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+            <table class="min-w-full text-xs divide-y divide-gray-200 dark:divide-[#30363d]">
+              <thead class="bg-gray-50 dark:bg-[#161b22]">
+                <tr>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Status</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Address</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Version</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Send Count</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Recv Chains</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Prev Counter</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Archived</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Remote Identity</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Raw (bytes)</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-[#0d1117] divide-y divide-gray-100 dark:divide-[#21262d]">
+                <template x-for="s in ssFilteredSessions()" :key="s.address">
+                  <tr class="hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors" @click="ssSelected = (ssSelected === s.address ? null : s.address)" :class="ssSelected === s.address ? 'bg-blue-50 dark:bg-[#1c3a5e]/40' : ''">
+                    <td class="px-3 py-2">
+                      <span :class="ssSessionHealthColor(s)" class="font-bold" x-text="ssSessionHealthIcon(s)"></span>
+                    </td>
+                    <td class="px-3 py-2 font-mono text-gray-800 dark:text-[#c9d1d9]" x-text="s.address"></td>
+                    <td class="px-3 py-2 text-gray-600 dark:text-[#8b949e]" x-text="ssVersionLabel(s.version)"></td>
+                    <td class="px-3 py-2 text-right font-mono text-gray-700 dark:text-[#c9d1d9]" x-text="s.has_sender_chain ? s.sender_counter : '—'"></td>
+                    <td class="px-3 py-2 text-right font-mono text-gray-700 dark:text-[#c9d1d9]" x-text="s.receiver_chains"></td>
+                    <td class="px-3 py-2 text-right font-mono text-gray-700 dark:text-[#c9d1d9]" x-text="s.previous_counter"></td>
+                    <td class="px-3 py-2 text-right font-mono text-gray-500 dark:text-[#8b949e]" x-text="s.previous_states"></td>
+                    <td class="px-3 py-2 font-mono text-gray-500 dark:text-[#8b949e]" x-text="ssKeyShort(s.remote_identity)"></td>
+                    <td class="px-3 py-2 text-right text-gray-500 dark:text-[#8b949e]" x-text="s.raw_size_bytes"></td>
+                  </tr>
+                  <!-- Expanded error row -->
+                  <tr x-show="s.decode_error && ssSelected === s.address" class="bg-red-50 dark:bg-red-900/20">
+                    <td colspan="9" class="px-4 py-2 text-xs text-red-600 dark:text-red-400">
+                      Decode error: <span x-text="s.decode_error" class="font-mono"></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-[#8b949e] mt-2">
+            <span><span class="text-green-500 font-bold">✓</span> Active session with sender chain</span>
+            <span><span class="text-yellow-500 font-bold">⚠</span> Session exists but no sender chain yet</span>
+            <span><span class="text-red-500 font-bold">✗</span> Session blob could not be decoded</span>
+          </div>
+        </div>
+
+        <!-- Sender Keys tab -->
+        <div x-show="ssActiveTab === 'senderkeys'">
+          <div x-show="ssLoading && ssSenderKeys.length === 0" class="text-center py-10 text-xs text-gray-400 dark:text-[#8b949e]">Loading sender keys…</div>
+          <div x-show="!ssLoading && ssSenderKeys.length === 0 && !ssError" class="text-center py-10 text-xs text-gray-400 dark:text-[#8b949e]">No sender keys. Join a group and receive messages to populate this table.</div>
+
+          <div x-show="ssFilteredSenderKeys().length > 0" class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+            <table class="min-w-full text-xs divide-y divide-gray-200 dark:divide-[#30363d]">
+              <thead class="bg-gray-50 dark:bg-[#161b22]">
+                <tr>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Status</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Group (Chat ID)</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Sender</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Key ID</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Iteration</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Signing Key</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-[#8b949e] uppercase tracking-wider">Raw (bytes)</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-[#0d1117] divide-y divide-gray-100 dark:divide-[#21262d]">
+                <template x-for="k in ssFilteredSenderKeys()" :key="k.chat_id + k.sender_id">
+                  <tr class="hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors">
+                    <td class="px-3 py-2">
+                      <span :class="ssSenderKeyHealthColor(k)" class="font-bold" x-text="k.decode_error ? '✗' : '✓'"></span>
+                    </td>
+                    <td class="px-3 py-2 font-mono text-gray-800 dark:text-[#c9d1d9]" x-text="k.chat_id"></td>
+                    <td class="px-3 py-2 font-mono text-gray-700 dark:text-[#c9d1d9]" x-text="k.sender_id"></td>
+                    <td class="px-3 py-2 text-right font-mono text-gray-700 dark:text-[#c9d1d9]" x-text="k.key_id"></td>
+                    <td class="px-3 py-2 text-right font-mono text-gray-700 dark:text-[#c9d1d9]" x-text="k.iteration"></td>
+                    <td class="px-3 py-2 font-mono text-gray-500 dark:text-[#8b949e]" x-text="ssKeyShort(k.signing_key)"></td>
+                    <td class="px-3 py-2 text-right text-gray-500 dark:text-[#8b949e]" x-text="k.raw_size_bytes"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-xs text-gray-500 dark:text-[#8b949e] mt-2">
+            Iteration = number of messages sent in this group session by that sender. A new distribution replaces the previous entry.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════ -->
+      <!-- Annotations                                                        -->
+      <!-- ══════════════════════════════════════════════════════════════════ -->
+      <div
+        x-show="activeSection === 'annotations'"
+        x-effect="if (activeSection === 'annotations') anLoad()"
+        class="p-6 space-y-6"
+      >
+        <!-- Header -->
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-[#e6edf3]">Event Annotations</h2>
+            <p class="text-xs text-gray-500 dark:text-[#8b949e] mt-0.5">
+              Attach research notes and tags to WhatsApp protocol events
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Realtime status -->
+            <span class="text-xs px-2 py-1 rounded-full font-medium"
+              :class="anConnStatus === 'connected'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                : anConnStatus === 'connecting'
+                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700/30 dark:text-gray-400'"
+              x-text="anConnStatus === 'connected' ? 'Live' : anConnStatus === 'connecting' ? 'Connecting…' : 'Offline'"
+            ></span>
+            <button
+              @click="anOpenNew()"
+              class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+            >
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              New
+            </button>
+            <button
+              @click="anRefresh()"
+              :disabled="anLoading"
+              class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-700 dark:text-[#c9d1d9] hover:bg-gray-50 dark:hover:bg-[#30363d] disabled:opacity-50 transition-colors"
+            >
+              <svg class="h-3 w-3" :class="anLoading && 'animate-spin'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-2">
+          <input
+            x-model="anFilterEvt"
+            @change="anRefresh()"
+            type="text"
+            placeholder="Filter by event ID…"
+            class="text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400 w-48"
+          />
+          <input
+            x-model="anFilterJID"
+            @change="anRefresh()"
+            type="text"
+            placeholder="Filter by JID…"
+            class="text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400 w-48"
+          />
+        </div>
+
+        <!-- Error -->
+        <div x-show="anError" class="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-3 py-2" x-text="anError"></div>
+
+        <!-- Empty state -->
+        <div x-show="!anLoading && anItems.length === 0 && !anError" class="text-center py-12 text-xs text-gray-400 dark:text-[#8b949e]">
+          No annotations yet. Use the <strong>New</strong> button or annotate events directly from the Event Browser.
+        </div>
+
+        <!-- Annotation cards -->
+        <div class="space-y-3">
+          <template x-for="ann in anItems" :key="ann.id">
+            <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-4 py-3 space-y-2">
+              <!-- Top row -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap min-w-0">
+                  <template x-if="ann.event_type">
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-medium flex-shrink-0" x-text="ann.event_type"></span>
+                  </template>
+                  <template x-if="ann.event_id">
+                    <span class="font-mono text-xs text-gray-500 dark:text-[#8b949e] truncate" x-text="ann.event_id"></span>
+                  </template>
+                  <template x-if="ann.jid">
+                    <span class="font-mono text-xs text-gray-400 dark:text-[#6e7681] truncate" x-text="ann.jid"></span>
+                  </template>
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    @click="anOpenEdit(ann)"
+                    class="p-1 text-gray-400 hover:text-blue-500 dark:text-[#6e7681] dark:hover:text-[#58a6ff] transition-colors"
+                    title="Edit annotation"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  <button
+                    @click="anDelete(ann.id)"
+                    class="p-1 text-gray-400 hover:text-red-500 dark:text-[#6e7681] dark:hover:text-red-400 transition-colors"
+                    title="Delete annotation"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <!-- Note -->
+              <p class="text-sm text-gray-800 dark:text-[#c9d1d9] whitespace-pre-wrap leading-relaxed" x-text="ann.note"></p>
+              <!-- Tags + time -->
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex flex-wrap gap-1">
+                  <template x-for="tag in ann.tags" :key="tag">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="anTagColor(tag)" x-text="tag"></span>
+                  </template>
+                </div>
+                <span class="text-xs text-gray-400 dark:text-[#6e7681]" x-text="anFormatTime(ann.created)"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Pagination -->
+        <div x-show="anTotal > anPerPage" class="flex items-center gap-2 justify-center text-xs text-gray-500 dark:text-[#8b949e]">
+          <button
+            @click="anPage--; anRefresh()"
+            :disabled="anPage <= 1"
+            class="px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors"
+          >←</button>
+          <span x-text="`Page ${anPage} · ${anTotal} total`"></span>
+          <button
+            @click="anPage++; anRefresh()"
+            :disabled="anItems.length < anPerPage"
+            class="px-2 py-1 rounded border border-gray-300 dark:border-[#30363d] disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors"
+          >→</button>
+        </div>
+
+      </div>
+
+      <!-- ── Annotation Editor Modal (shared, used by Annotations + Event Browser) ── -->
+      <div
+        x-show="anEditOpen"
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 p-4"
+        @click.self="anCloseEdit()"
+      >
+        <div class="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-[#e6edf3]" x-text="anEditID ? 'Edit Annotation' : 'New Annotation'"></h3>
+            <button @click="anCloseEdit()" class="text-gray-400 hover:text-gray-600 dark:text-[#6e7681] dark:hover:text-[#c9d1d9]">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <!-- Context fields (read-only when editing) -->
+          <template x-if="!anEditID">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-[#8b949e] mb-1">Event ID</label>
+                <input x-model="anEditEventID" type="text" placeholder="optional"
+                  class="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-[#8b949e] mb-1">JID</label>
+                <input x-model="anEditJID" type="text" placeholder="optional"
+                  class="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+              </div>
+            </div>
+          </template>
+          <template x-if="anEditID && (anEditEventID || anEditJID)">
+            <div class="text-xs text-gray-500 dark:text-[#8b949e] space-y-0.5">
+              <template x-if="anEditEventID"><div>Event: <span class="font-mono" x-text="anEditEventID"></span></div></template>
+              <template x-if="anEditJID"><div>JID: <span class="font-mono" x-text="anEditJID"></span></div></template>
+            </div>
+          </template>
+
+          <!-- Note -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-[#8b949e] mb-1">Note <span class="text-red-400">*</span></label>
+            <textarea
+              x-model="anEditNote"
+              rows="4"
+              placeholder="Research note, observation, or finding…"
+              class="w-full text-xs px-2.5 py-2 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400 resize-y font-mono"
+            ></textarea>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-[#8b949e] mb-1">Tags <span class="text-gray-400">(comma-separated)</span></label>
+            <input x-model="anEditTags" type="text" placeholder="e.g. signal, ratchet, handshake"
+              class="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+          </div>
+
+          <!-- Error -->
+          <div x-show="anEditError" class="text-xs text-red-500 dark:text-red-400" x-text="anEditError"></div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-2 pt-1">
+            <button @click="anCloseEdit()"
+              class="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 dark:border-[#30363d] text-gray-700 dark:text-[#c9d1d9] hover:bg-gray-50 dark:hover:bg-[#21262d] transition-colors">
+              Cancel
+            </button>
+            <button @click="anSave()" :disabled="anEditSaving"
+              class="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors">
+              <span x-text="anEditSaving ? 'Saving…' : (anEditID ? 'Update' : 'Create')"></span>
+            </button>
           </div>
         </div>
       </div>
