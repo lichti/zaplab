@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Signal Session Visualizer** — new dashboard section that decodes all Signal Protocol Double Ratchet sessions and group SenderKey records stored in `whatsapp.db`.
+  - **Individual sessions** tab: decodes every row in `whatsmeow_sessions`; shows address, session version (v2/v3/v4), sender chain counter, receiver chain count, previous counter, archived state count, remote identity public key (hex), and raw blob size.
+  - **Group sender keys** tab: decodes every row in `whatsmeow_sender_keys`; shows chat ID, sender ID, key ID, chain iteration (messages sent), signing key public (hex), and raw blob size.
+  - Health indicator per row: ✓ active / ⚠ no sender chain / ✗ decode error.
+  - JID filter for both tabs.
+  - `GET /zaplab/api/signal/sessions` — list all decoded session states.
+  - `GET /zaplab/api/signal/senderkeys` — list all decoded sender key states.
+- **Event Annotations** — new section for attaching research notes and tags to any WhatsApp protocol event.
+  - New PocketBase `annotations` collection: `event_id`, `event_type`, `jid`, `note`, `tags` (JSON array), autodate `created`/`updated`; indexed by `event_id` and `jid`.
+  - Full CRUD API: `GET /zaplab/api/annotations`, `POST /zaplab/api/annotations`, `PATCH /zaplab/api/annotations/{id}`, `DELETE /zaplab/api/annotations/{id}`.
+  - Annotation list page: filterable by event ID or JID, paginated, tag chips with per-tag color, realtime subscription (PocketBase), inline edit/delete.
+  - Modal editor: context fields (event ID, JID auto-filled when opened from Event Browser), multi-line note, comma-separated tags input.
+  - **Event Browser integration**: each event detail header now shows an **Annotate** button that opens the modal with event ID, type, and sender JID pre-filled.
 - **Frame Capture** — real-time log stream browser backed by a custom `waLog.Logger` wrapper (`CapturingLogger`) that intercepts every log call from whatsmeow (Client, Client/Socket, Client/Send, Client/Recv, Database sub-loggers).
   - All levels buffered to an in-memory ring buffer (2 000 entries, thread-safe).
   - INFO/WARN/ERROR entries also persisted to a new PocketBase `frames` collection for historical queries.
