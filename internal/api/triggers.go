@@ -117,16 +117,16 @@ func extractMessageText(m map[string]any) string {
 	if !ok {
 		return ""
 	}
-	if s := extractString(msg, "Conversation"); s != "" {
+	if s := extractString(msg, "conversation"); s != "" {
 		return s
 	}
-	if s := extractString(msg, "ExtendedTextMessage", "Text"); s != "" {
+	if s := extractString(msg, "extendedTextMessage", "text"); s != "" {
 		return s
 	}
-	if s := extractString(msg, "ImageMessage", "Caption"); s != "" {
+	if s := extractString(msg, "imageMessage", "caption"); s != "" {
 		return s
 	}
-	if s := extractString(msg, "VideoMessage", "Caption"); s != "" {
+	if s := extractString(msg, "videoMessage", "caption"); s != "" {
 		return s
 	}
 	return ""

@@ -42,11 +42,11 @@ func getSearch(e *core.RequestEvent) error {
 	params := map[string]any{"like": like, "q": q}
 
 	where = append(where, `(
-		json_extract(raw, '$.Message.Conversation') LIKE {:like}
-		OR json_extract(raw, '$.Message.ExtendedTextMessage.Text') LIKE {:like}
-		OR json_extract(raw, '$.Message.ImageMessage.Caption') LIKE {:like}
-		OR json_extract(raw, '$.Message.VideoMessage.Caption') LIKE {:like}
-		OR json_extract(raw, '$.Message.DocumentMessage.Caption') LIKE {:like}
+		json_extract(raw, '$.Message.conversation') LIKE {:like}
+		OR json_extract(raw, '$.Message.extendedTextMessage.text') LIKE {:like}
+		OR json_extract(raw, '$.Message.imageMessage.caption') LIKE {:like}
+		OR json_extract(raw, '$.Message.videoMessage.caption') LIKE {:like}
+		OR json_extract(raw, '$.Message.documentMessage.caption') LIKE {:like}
 		OR msgID = {:q}
 	)`)
 
@@ -79,11 +79,11 @@ func getSearch(e *core.RequestEvent) error {
 		       COALESCE(json_extract(raw, '$.Info.Chat'), '')   AS chat,
 		       COALESCE(json_extract(raw, '$.Info.Sender'), '') AS sender,
 		       COALESCE(
-		         json_extract(raw, '$.Message.Conversation'),
-		         json_extract(raw, '$.Message.ExtendedTextMessage.Text'),
-		         json_extract(raw, '$.Message.ImageMessage.Caption'),
-		         json_extract(raw, '$.Message.VideoMessage.Caption'),
-		         json_extract(raw, '$.Message.DocumentMessage.Caption'),
+		         json_extract(raw, '$.Message.conversation'),
+		         json_extract(raw, '$.Message.extendedTextMessage.text'),
+		         json_extract(raw, '$.Message.imageMessage.caption'),
+		         json_extract(raw, '$.Message.videoMessage.caption'),
+		         json_extract(raw, '$.Message.documentMessage.caption'),
 		         ''
 		       ) AS text_preview,
 		       created

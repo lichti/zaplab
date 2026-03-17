@@ -113,15 +113,15 @@ function conversationSection() {
 
     cvFormatTime(created) {
       if (!created) return '';
-      return new Date(created.replace(' ', 'T') + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return new Date(created.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     },
     cvFormatDate(created) {
       if (!created) return '';
-      return new Date(created.replace(' ', 'T') + 'Z').toLocaleDateString();
+      return new Date(created.replace(' ', 'T')).toLocaleDateString();
     },
     cvFormatLastMsg(ts) {
       if (!ts) return '';
-      const d = new Date(ts.replace(' ', 'T') + 'Z');
+      const d = new Date(ts.replace(' ', 'T'));
       const now = new Date();
       if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return d.toLocaleDateString();
