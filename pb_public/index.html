@@ -50,6 +50,8 @@
   <script src="js/sections/annotations.js"></script>
   <script src="js/sections/stats.js"></script>
   <script src="js/sections/appstate.js"></script>
+  <script src="js/sections/sessioncomparator.js"></script>
+  <script src="js/sections/networkgraph.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -664,6 +666,40 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">App State</span>
+        </a>
+
+        <!-- Session Comparator -->
+        <a
+          href="#/sessioncomparator"
+          @click.prevent="setSection('sessioncomparator')"
+          :title="sidebarExpanded ? '' : 'Session Comparator'"
+          aria-label="Multi-Session Comparator"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'sessioncomparator'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Session Compare</span>
+        </a>
+
+        <!-- Network Graph -->
+        <a
+          href="#/networkgraph"
+          @click.prevent="setSection('networkgraph')"
+          :title="sidebarExpanded ? '' : 'Network Graph'"
+          aria-label="Network Graph"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'networkgraph'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Network Graph</span>
         </a>
 
         <!-- Send Message -->
@@ -7796,6 +7832,346 @@
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <!-- ── Section: Multi-Session Comparator ────────────────────────────── -->
+      <div
+        x-show="activeSection === 'sessioncomparator'"
+        x-effect="if (activeSection === 'sessioncomparator' && !mcSessions.length && !mcLoading) mcLoad()"
+        class="flex flex-col h-full overflow-hidden"
+      >
+
+        <!-- Header -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Signal Session Comparator</h2>
+
+            <!-- Session / SenderKey tab -->
+            <div class="flex rounded-md border border-gray-200 dark:border-[#30363d] overflow-hidden text-xs">
+              <button @click="mcTab='sessions'"   class="px-3 py-1.5 transition-colors"
+                :class="mcTab==='sessions'   ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'">Sessions</button>
+              <button @click="mcTab='senderkeys'" class="px-3 py-1.5 border-l border-gray-200 dark:border-[#30363d] transition-colors"
+                :class="mcTab==='senderkeys' ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'">Sender Keys</button>
+            </div>
+
+            <!-- Filter -->
+            <input x-model="mcFilter" type="search" placeholder="Filter JID…"
+              class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 w-44"/>
+
+            <!-- Clear selection -->
+            <button x-show="mcSelected.length > 0" @click="mcClearSelected()"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+              Clear (<span x-text="mcSelected.length"></span>)
+            </button>
+
+            <!-- Refresh -->
+            <button @click="mcLoad()" :disabled="mcLoading"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors disabled:opacity-50">
+              <svg class="h-3.5 w-3.5" :class="mcLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+          <div x-show="mcError" class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono" x-text="mcError"></div>
+          <p x-show="mcTab==='sessions'" class="mt-1.5 text-[10px] text-gray-400 dark:text-[#484f58]">
+            Select up to 6 sessions (checkbox) — comparison table appears below. Differences from the first selected are highlighted in amber.
+          </p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
+          <!-- Loading -->
+          <div x-show="mcLoading" class="flex items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
+            <svg class="h-5 w-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span class="text-sm">Loading sessions…</span>
+          </div>
+
+          <template x-if="!mcLoading">
+            <div>
+
+              <!-- ── Session list (checkboxes) ── -->
+              <div x-show="mcTab==='sessions'" class="border-b border-gray-200 dark:border-[#30363d]">
+                <template x-if="mcFiltered().length === 0">
+                  <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
+                    <p class="text-sm">No sessions found</p>
+                  </div>
+                </template>
+                <div class="divide-y divide-gray-100 dark:divide-[#21262d]">
+                  <template x-for="s in mcFiltered()" :key="s.address">
+                    <label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
+                      :class="mcIsSelected(s.address) ? 'bg-blue-50/50 dark:bg-[#1c3a5e]/30' : ''">
+                      <input type="checkbox" :checked="mcIsSelected(s.address)"
+                        @change="mcToggle(s.address)"
+                        :disabled="!mcIsSelected(s.address) && mcSelected.length >= 6"
+                        class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 dark:border-[#30363d] dark:bg-[#0d1117] focus:ring-blue-500/40"/>
+                      <span class="text-sm font-mono text-gray-800 dark:text-[#e6edf3] flex-1 truncate" x-text="mcAddrShort(s.address)"></span>
+                      <span class="text-xs" :class="mcHealthClass(s)" x-text="mcHealthIcon(s)"></span>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]" x-text="mcVersionLabel(s.version)"></span>
+                      <span class="text-[10px] text-gray-400 dark:text-[#484f58] w-16 text-right" x-text="s.raw_size_bytes + ' B'"></span>
+                    </label>
+                  </template>
+                </div>
+              </div>
+
+              <!-- ── SenderKey list (checkboxes) ── -->
+              <div x-show="mcTab==='senderkeys'" class="border-b border-gray-200 dark:border-[#30363d]">
+                <template x-if="mcFiltered().length === 0">
+                  <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
+                    <p class="text-sm">No sender keys found</p>
+                  </div>
+                </template>
+                <div class="divide-y divide-gray-100 dark:divide-[#21262d]">
+                  <template x-for="k in mcFiltered()" :key="k.chat_id+'|'+k.sender_id">
+                    <label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#161b22] transition-colors"
+                      :class="mcIsSelected(k.chat_id+'|'+k.sender_id) ? 'bg-blue-50/50 dark:bg-[#1c3a5e]/30' : ''">
+                      <input type="checkbox"
+                        :checked="mcIsSelected(k.chat_id+'|'+k.sender_id)"
+                        @change="mcToggle(k.chat_id+'|'+k.sender_id)"
+                        :disabled="!mcIsSelected(k.chat_id+'|'+k.sender_id) && mcSelected.length >= 6"
+                        class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 dark:border-[#30363d] dark:bg-[#0d1117] focus:ring-blue-500/40"/>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-xs font-mono text-gray-800 dark:text-[#e6edf3] truncate" x-text="k.chat_id"></div>
+                        <div class="text-[10px] text-gray-500 dark:text-[#8b949e] font-mono truncate" x-text="k.sender_id"></div>
+                      </div>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-mono" x-text="'iter ' + k.iteration"></span>
+                    </label>
+                  </template>
+                </div>
+              </div>
+
+              <!-- ── Comparison table ── -->
+              <template x-if="mcSelected.length >= 2 && mcTab==='sessions'">
+                <div class="p-4">
+                  <div class="flex items-center gap-3 mb-3">
+                    <h3 class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9] uppercase tracking-wider">Comparison</h3>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full"
+                      :class="mcDiffCount(mcSelectedSessions(), mcSessionRows()) > 0
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'"
+                      x-text="mcDiffCount(mcSelectedSessions(), mcSessionRows()) + ' diff(s)'"></span>
+                  </div>
+                  <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+                    <table class="min-w-full text-xs">
+                      <thead class="bg-gray-50 dark:bg-[#161b22]">
+                        <tr>
+                          <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider w-32">Property</th>
+                          <template x-for="(s, idx) in mcSelectedSessions()" :key="s.address">
+                            <th class="px-3 py-2 text-left text-[10px] font-mono"
+                              :class="idx===0 ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-gray-600 dark:text-[#8b949e]'"
+                              x-text="mcAddrShort(s.address)"></th>
+                          </template>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
+                        <template x-for="row in mcSessionRows()" :key="row.key">
+                          <tr>
+                            <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500 dark:text-[#8b949e] whitespace-nowrap" x-text="row.label"></td>
+                            <template x-for="(s, idx) in mcSelectedSessions()" :key="s.address+row.key">
+                              <td class="px-3 py-2 font-mono"
+                                :class="mcIsDiff(mcSelectedSessions(), row.key, idx)
+                                  ? 'bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-400 font-semibold'
+                                  : 'text-gray-700 dark:text-[#c9d1d9]'"
+                                x-text="row.fmt(s[row.key])"></td>
+                            </template>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── SenderKey comparison table ── -->
+              <template x-if="mcSelected.length >= 2 && mcTab==='senderkeys'">
+                <div class="p-4">
+                  <div class="flex items-center gap-3 mb-3">
+                    <h3 class="text-xs font-semibold text-gray-700 dark:text-[#c9d1d9] uppercase tracking-wider">Comparison</h3>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full"
+                      :class="mcDiffCount(mcSelectedSenderKeys(), mcSenderKeyRows()) > 0
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'"
+                      x-text="mcDiffCount(mcSelectedSenderKeys(), mcSenderKeyRows()) + ' diff(s)'"></span>
+                  </div>
+                  <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#30363d]">
+                    <table class="min-w-full text-xs">
+                      <thead class="bg-gray-50 dark:bg-[#161b22]">
+                        <tr>
+                          <th class="px-3 py-2 text-left text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] tracking-wider w-32">Property</th>
+                          <template x-for="(k, idx) in mcSelectedSenderKeys()" :key="k.chat_id+k.sender_id">
+                            <th class="px-3 py-2 text-left text-[10px] font-mono truncate max-w-[120px]"
+                              :class="idx===0 ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-gray-600 dark:text-[#8b949e]'"
+                              x-text="(k.chat_id||'').split('@')[0]"></th>
+                          </template>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100 dark:divide-[#21262d] bg-white dark:bg-[#0d1117]">
+                        <template x-for="row in mcSenderKeyRows()" :key="row.key">
+                          <tr>
+                            <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500 dark:text-[#8b949e] whitespace-nowrap" x-text="row.label"></td>
+                            <template x-for="(k, idx) in mcSelectedSenderKeys()" :key="k.chat_id+k.sender_id+row.key">
+                              <td class="px-3 py-2 font-mono"
+                                :class="mcIsDiff(mcSelectedSenderKeys(), row.key, idx)
+                                  ? 'bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-400 font-semibold'
+                                  : 'text-gray-700 dark:text-[#c9d1d9]'"
+                                x-text="row.fmt(k[row.key])"></td>
+                            </template>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template>
+
+              <!-- prompt to select 2+ -->
+              <template x-if="mcSelected.length < 2 && !mcLoading && mcSessions.length > 0">
+                <div class="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-[#484f58]">
+                  <svg class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                  </svg>
+                  <p class="text-sm">Select at least 2 sessions above to compare</p>
+                </div>
+              </template>
+
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ── Section: Network Graph ─────────────────────────────────────────── -->
+      <div
+        x-show="activeSection === 'networkgraph'"
+        x-effect="if (activeSection === 'networkgraph' && !ngNodes.length && !ngLoading) ngLoad()"
+        class="flex flex-col h-full overflow-hidden"
+      >
+
+        <!-- Header -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Network Graph</h2>
+
+            <!-- Period selector -->
+            <div class="flex rounded-md border border-gray-200 dark:border-[#30363d] overflow-hidden text-xs">
+              <template x-for="p in ngPeriodOpts" :key="p">
+                <button @click="ngPeriod=p; ngLoad()" class="px-2.5 py-1.5 transition-colors border-l first:border-l-0 border-gray-200 dark:border-[#30363d]"
+                  :class="ngPeriod===p ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'"
+                  x-text="ngPeriodLabel(p)"></button>
+              </template>
+            </div>
+
+            <!-- Stats chips -->
+            <span class="text-[10px] px-2 py-1 rounded-full bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]">
+              <span x-text="ngStats.total_nodes"></span> nodes
+            </span>
+            <span class="text-[10px] px-2 py-1 rounded-full bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]">
+              <span x-text="ngStats.total_edges"></span> edges
+            </span>
+            <span class="text-[10px] px-2 py-1 rounded-full bg-gray-100 dark:bg-[#21262d] text-gray-600 dark:text-[#8b949e]">
+              <span x-text="ngStats.total_messages"></span> msgs
+            </span>
+
+            <!-- Stop / Resume sim -->
+            <button @click="ngAnimating ? ngStopSim() : ngResumeSim()"
+              class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors"
+              x-text="ngAnimating ? 'Pause' : 'Resume'"></button>
+
+            <!-- Refresh -->
+            <button @click="ngLoad()" :disabled="ngLoading"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors disabled:opacity-50">
+              <svg class="h-3.5 w-3.5" :class="ngLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+          <div x-show="ngError" class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono" x-text="ngError"></div>
+        </div>
+
+        <!-- Body: canvas + info panel -->
+        <div class="flex-1 flex overflow-hidden">
+
+          <!-- Canvas -->
+          <div class="flex-1 relative overflow-hidden">
+            <div x-show="ngLoading" class="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-[#0d1117]/60 z-10">
+              <svg class="h-6 w-6 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </div>
+
+            <template x-if="!ngLoading && ngNodes.length === 0 && !ngError">
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 dark:text-[#484f58]">
+                <svg class="h-10 w-10 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+                <p class="text-sm">No messages found for this period</p>
+              </div>
+            </template>
+
+            <canvas
+              x-ref="ngCanvas"
+              :width="ngW"
+              :height="ngH"
+              class="w-full h-full cursor-grab active:cursor-grabbing"
+              :class="ngDragging ? 'cursor-grabbing' : 'cursor-grab'"
+              @mousedown="ngOnMouseDown($event)"
+              @mousemove="ngOnMouseMove($event)"
+              @mouseup="ngOnMouseUp()"
+              @mouseleave="ngOnMouseLeave()"
+            ></canvas>
+          </div>
+
+          <!-- Info panel -->
+          <div class="w-52 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] overflow-y-auto flex flex-col">
+
+            <!-- Legend -->
+            <div class="p-3 border-b border-gray-200 dark:border-[#30363d]">
+              <p class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] mb-2">Legend</p>
+              <div class="space-y-1.5">
+                <template x-for="[type, label] in [['self','Device (self)'],['contact','Contact'],['group','Group'],['broadcast','Broadcast']]" :key="type">
+                  <div class="flex items-center gap-2">
+                    <span class="h-3 w-3 rounded-full flex-shrink-0" :class="ngTypeColor(type)"></span>
+                    <span class="text-[10px] text-gray-600 dark:text-[#8b949e]" x-text="label"></span>
+                  </div>
+                </template>
+              </div>
+              <p class="text-[10px] text-gray-400 dark:text-[#484f58] mt-2">Edge thickness = message count. Drag nodes to reposition.</p>
+            </div>
+
+            <!-- Selected node detail -->
+            <div x-show="ngSelected" class="p-3 flex-1">
+              <p class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] mb-2">Selected node</p>
+              <template x-if="ngSelected">
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2">
+                    <span class="h-3 w-3 rounded-full flex-shrink-0" :class="ngTypeColor(ngSelected.node_type)"></span>
+                    <span class="text-[10px] font-semibold text-gray-800 dark:text-[#e6edf3] capitalize" x-text="ngSelected.node_type"></span>
+                  </div>
+                  <p class="text-[10px] font-mono text-gray-600 dark:text-[#8b949e] break-all" x-text="ngSelected.label"></p>
+                  <p class="text-[10px] font-mono text-gray-400 dark:text-[#484f58] break-all" x-text="ngSelected.id"></p>
+                  <div class="text-[10px] text-gray-600 dark:text-[#8b949e]">
+                    <span class="font-semibold" x-text="ngSelected.msg_count"></span> messages
+                  </div>
+                  <div x-show="ngNodeEdges(ngSelected).length > 0">
+                    <p class="text-[10px] uppercase font-semibold text-gray-400 dark:text-[#484f58] mb-1">Connections (<span x-text="ngNodeEdges(ngSelected).length"></span>)</p>
+                    <div class="space-y-0.5 max-h-48 overflow-y-auto">
+                      <template x-for="ed in ngNodeEdges(ngSelected)" :key="ed.source+ed.target">
+                        <div class="flex items-center gap-1.5 text-[10px]">
+                          <span class="flex-1 font-mono text-gray-600 dark:text-[#8b949e] truncate" x-text="ngEdgeLabel(ed, ngSelected.id)"></span>
+                          <span class="text-gray-400 dark:text-[#484f58]" x-text="ed.weight + ' msg'"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <div x-show="!ngSelected" class="p-3 flex-1 flex items-center justify-center">
+              <p class="text-[10px] text-gray-400 dark:text-[#484f58] text-center">Click a node to see details</p>
+            </div>
+
+          </div>
         </div>
       </div>
 
