@@ -42,6 +42,8 @@
   <script src="js/sections/simulation.js"></script>
   <script src="js/sections/webhook.js"></script>
   <script src="js/sections/settings.js"></script>
+  <script src="js/sections/protocoltimeline.js"></script>
+  <script src="js/sections/protoschema.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -520,6 +522,40 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">DB Explorer</span>
+        </a>
+
+        <!-- Protocol Timeline -->
+        <a
+          href="#/protocoltimeline"
+          @click.prevent="setSection('protocoltimeline')"
+          :title="sidebarExpanded ? '' : 'Protocol Timeline'"
+          aria-label="Protocol Timeline"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'protocoltimeline'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Protocol Timeline</span>
+        </a>
+
+        <!-- Proto Schema Browser -->
+        <a
+          href="#/protoschema"
+          @click.prevent="setSection('protoschema')"
+          :title="sidebarExpanded ? '' : 'Proto Schema'"
+          aria-label="Proto Schema Browser"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection === 'protoschema'
+            ? 'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            : 'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'"
+        >
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Proto Schema</span>
         </a>
 
         <!-- Send Message -->
@@ -5967,6 +6003,508 @@
             Settings are persisted in <code class="bg-gray-100 dark:bg-[#21262d] px-1 rounded">config.json</code> in your data directory.
           </div>
 
+        </div>
+      </div>
+
+      <!-- ── Section: Protocol Timeline ──────────────────────────────── -->
+      <div
+        x-show="activeSection === 'protocoltimeline'"
+        x-effect="if (activeSection === 'protocoltimeline') { ptLoad(); ptSubscribe(); }"
+        class="flex flex-col h-full overflow-hidden"
+      >
+
+        <!-- Header -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d]
+                    bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] whitespace-nowrap">Protocol Timeline</h2>
+              <!-- Connection badge -->
+              <span
+                class="text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide"
+                :class="{
+                  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': ptConnStatus === 'connected',
+                  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400': ptConnStatus === 'connecting',
+                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': ptConnStatus === 'disconnected',
+                }"
+                x-text="ptConnStatus"
+              ></span>
+              <span class="text-[10px] text-gray-400 dark:text-[#484f58]" x-text="`${ptFilteredEvents().length} / ${ptEvents.length} events`"></span>
+            </div>
+
+            <!-- Type filter -->
+            <select
+              x-model="ptTypeFilter"
+              class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d]
+                     bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9]
+                     focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+            >
+              <option value="">All types</option>
+              <template x-for="t in ptDistinctTypes()" :key="t">
+                <option :value="t" x-text="t"></option>
+              </template>
+            </select>
+
+            <!-- Search -->
+            <input
+              x-model="ptFilter"
+              type="search"
+              placeholder="Search events…"
+              class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d]
+                     bg-white dark:bg-[#0d1117] text-gray-700 dark:text-[#c9d1d9] placeholder-gray-400
+                     focus:outline-none focus:ring-1 focus:ring-blue-500/40 w-40"
+            />
+
+            <!-- Pause / Resume -->
+            <button
+              @click="ptPaused = !ptPaused"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border transition-colors"
+              :class="ptPaused
+                ? 'border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+                : 'border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path x-show="!ptPaused" stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path x-show="ptPaused" stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span x-text="ptPaused ? 'Paused' : 'Pause'"></span>
+            </button>
+
+            <!-- Clear -->
+            <button
+              @click="ptClearEvents()"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d]
+                     text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex flex-1 overflow-hidden">
+
+          <!-- Timeline list -->
+          <div class="flex-1 overflow-y-auto px-4 py-4"
+               :class="ptSelected ? 'hidden md:block md:w-1/2 lg:w-3/5' : 'w-full'">
+
+            <!-- Loading -->
+            <div x-show="ptLoading" class="flex items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
+              <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Loading events…
+            </div>
+
+            <!-- Empty state -->
+            <div x-show="!ptLoading && ptFilteredEvents().length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-[#484f58]">
+              <svg class="h-10 w-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              <p class="text-sm">No events yet</p>
+              <p class="text-xs mt-1 opacity-60">Events will appear in real-time as the WhatsApp client processes them</p>
+            </div>
+
+            <!-- Timeline entries -->
+            <div x-show="!ptLoading && ptFilteredEvents().length > 0" class="relative">
+              <!-- Vertical line -->
+              <div class="absolute left-[19px] top-0 bottom-0 w-px bg-gray-200 dark:bg-[#30363d]"></div>
+
+              <div class="space-y-1">
+                <template x-for="ev in ptFilteredEvents()" :key="ev.id">
+                  <div
+                    class="relative flex gap-3 group cursor-pointer"
+                    @click="ptSelectEvent(ev)"
+                  >
+                    <!-- Dot -->
+                    <div class="flex-shrink-0 w-10 flex justify-center pt-2">
+                      <div
+                        class="w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#0d1117] z-10 transition-transform group-hover:scale-125"
+                        :class="ptColorClasses(ptTypeConfig(ev.type).color).dot + (ev._isNew ? ' animate-ping' : '')"
+                      ></div>
+                    </div>
+
+                    <!-- Card -->
+                    <div
+                      class="flex-1 pb-1 min-w-0"
+                      :class="ptSelected?.id === ev.id ? 'opacity-60' : ''"
+                    >
+                      <div
+                        class="rounded-lg border px-3 py-2 transition-colors"
+                        :class="ptSelected?.id === ev.id
+                          ? 'border-blue-300 bg-blue-50 dark:border-[#1c3a5e] dark:bg-[#1c3a5e]/20'
+                          : 'border-gray-100 dark:border-[#21262d] bg-white dark:bg-[#161b22] group-hover:border-gray-200 dark:group-hover:border-[#30363d]'"
+                      >
+                        <div class="flex items-center gap-2 min-w-0">
+                          <!-- Type badge -->
+                          <span
+                            class="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide"
+                            :class="ptColorClasses(ptTypeConfig(ev.type).color).badge"
+                            x-text="ptTypeConfig(ev.type).label || ev.type"
+                          ></span>
+                          <!-- Summary -->
+                          <span class="text-xs text-gray-600 dark:text-[#8b949e] truncate flex-1" x-text="ptSummary(ev)"></span>
+                          <!-- Time -->
+                          <span class="flex-shrink-0 text-[10px] text-gray-400 dark:text-[#484f58] font-mono" x-text="ptFormatTime(ev.created)"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail panel -->
+          <div
+            x-show="ptSelected"
+            class="w-full md:w-1/2 lg:w-2/5 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d]
+                   bg-white dark:bg-[#161b22] flex flex-col overflow-hidden"
+          >
+            <!-- Detail header -->
+            <div class="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117]">
+              <span
+                class="text-[10px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide"
+                :class="ptColorClasses(ptTypeConfig(ptSelected?.type).color).badge"
+                x-text="ptTypeConfig(ptSelected?.type).label || ptSelected?.type"
+              ></span>
+              <span class="flex-1 text-xs font-mono text-gray-400 dark:text-[#484f58]" x-text="ptFormatTime(ptSelected?.created)"></span>
+              <button
+                @click="ptCopyJSON()"
+                class="text-xs px-2 py-1 rounded border transition-colors"
+                :class="ptCopied
+                  ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400'
+                  : 'border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'"
+                x-text="ptCopied ? 'Copied!' : 'Copy'"
+              ></button>
+              <button
+                @click="ptSelected = null"
+                class="text-gray-400 dark:text-[#484f58] hover:text-gray-700 dark:hover:text-[#c9d1d9] transition-colors"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <!-- Detail body: JSON -->
+            <div class="flex-1 overflow-y-auto p-4">
+              <pre class="text-[11px] font-mono text-gray-700 dark:text-[#c9d1d9] whitespace-pre-wrap break-all leading-relaxed"
+                   x-text="JSON.stringify(ptSelected, (k,v) => k === '_isNew' ? undefined : v, 2)"
+              ></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section: Proto Schema Browser ─────────────────────────────── -->
+      <div
+        x-show="activeSection === 'protoschema'"
+        x-effect="if (activeSection === 'protoschema') psLoad()"
+        class="flex flex-col h-full overflow-hidden"
+      >
+
+        <!-- Header -->
+        <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d]
+                    bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-[#8b949e] flex-1">Proto Schema Browser</h2>
+
+            <!-- Stats -->
+            <template x-if="psSchema">
+              <div class="flex items-center gap-3">
+                <span class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                  <span class="font-semibold text-purple-600 dark:text-purple-400" x-text="psSchema.stats.messages"></span> messages
+                </span>
+                <span class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                  <span class="font-semibold text-pink-600 dark:text-pink-400" x-text="psSchema.stats.enums"></span> enums
+                </span>
+                <span class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                  <span class="font-semibold text-blue-600 dark:text-blue-400" x-text="psSchema.stats.packages"></span> packages
+                </span>
+              </div>
+            </template>
+
+            <!-- Reload -->
+            <button
+              @click="psReload()"
+              :disabled="psLoading"
+              class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d]
+                     text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="h-3.5 w-3.5" :class="psLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Reload
+            </button>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div x-show="psError" class="flex-shrink-0 px-4 py-2 bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/20">
+          <p class="text-xs text-red-600 dark:text-red-400" x-text="psError"></p>
+        </div>
+
+        <!-- Loading spinner -->
+        <div x-show="psLoading && !psSchema" class="flex-1 flex items-center justify-center text-gray-400 dark:text-[#484f58]">
+          <svg class="animate-spin h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span class="text-sm">Loading proto schema…</span>
+        </div>
+
+        <!-- Main content: sidebar + detail -->
+        <div x-show="psSchema" class="flex flex-1 overflow-hidden">
+
+          <!-- Left sidebar: package + type list -->
+          <div class="flex-shrink-0 w-72 border-r border-gray-200 dark:border-[#30363d] flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0d1117]">
+
+            <!-- Search + package filter -->
+            <div class="flex-shrink-0 p-2 border-b border-gray-200 dark:border-[#30363d] space-y-1.5">
+              <input
+                x-model="psSearch"
+                type="search"
+                placeholder="Search types…"
+                class="w-full text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-[#30363d]
+                       bg-white dark:bg-[#161b22] text-gray-700 dark:text-[#c9d1d9] placeholder-gray-400
+                       focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+              />
+              <select
+                x-model="psPackageFilter"
+                class="w-full text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-[#30363d]
+                       bg-white dark:bg-[#161b22] text-gray-700 dark:text-[#c9d1d9]
+                       focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+              >
+                <option value="">All packages</option>
+                <template x-for="pkg in psPackages()" :key="pkg">
+                  <option :value="pkg" x-text="pkg"></option>
+                </template>
+              </select>
+            </div>
+
+            <!-- Type list -->
+            <div class="flex-1 overflow-y-auto">
+              <!-- Messages -->
+              <div x-show="psFilteredMessages().length > 0">
+                <div class="sticky top-0 px-3 py-1.5 bg-gray-100 dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d]">
+                  <span class="text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">Messages</span>
+                  <span class="text-[10px] text-gray-400 dark:text-[#484f58] ml-1" x-text="`(${psFilteredMessages().length})`"></span>
+                </div>
+                <template x-for="msg in psFilteredMessages()" :key="msg.full_name">
+                  <button
+                    @click="psSelectMessage(msg)"
+                    class="w-full text-left px-3 py-1.5 text-xs transition-colors border-b border-gray-100 dark:border-[#21262d]"
+                    :class="psSelected?.full_name === msg.full_name && psSelectedKind === 'message'
+                      ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+                      : 'text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'"
+                  >
+                    <span class="font-mono" x-text="psShortName(msg.full_name)"></span>
+                    <span class="text-[10px] text-gray-400 dark:text-[#484f58] ml-1" x-text="`(${(msg.fields || []).length}f)`"></span>
+                  </button>
+                </template>
+              </div>
+
+              <!-- Enums -->
+              <div x-show="psFilteredEnums().length > 0">
+                <div class="sticky top-0 px-3 py-1.5 bg-gray-100 dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d]">
+                  <span class="text-[10px] font-bold uppercase tracking-widest text-pink-600 dark:text-pink-400">Enums</span>
+                  <span class="text-[10px] text-gray-400 dark:text-[#484f58] ml-1" x-text="`(${psFilteredEnums().length})`"></span>
+                </div>
+                <template x-for="en in psFilteredEnums()" :key="en.full_name">
+                  <button
+                    @click="psSelectEnum(en)"
+                    class="w-full text-left px-3 py-1.5 text-xs transition-colors border-b border-gray-100 dark:border-[#21262d]"
+                    :class="psSelected?.full_name === en.full_name && psSelectedKind === 'enum'
+                      ? 'bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400'
+                      : 'text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'"
+                  >
+                    <span class="font-mono" x-text="psShortName(en.full_name)"></span>
+                    <span class="text-[10px] text-gray-400 dark:text-[#484f58] ml-1" x-text="`(${(en.values || []).length}v)`"></span>
+                  </button>
+                </template>
+              </div>
+
+              <!-- Empty state -->
+              <div x-show="psFilteredMessages().length === 0 && psFilteredEnums().length === 0"
+                   class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-[#484f58] px-4 text-center">
+                <p class="text-xs">No types match your search</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: detail panel -->
+          <div class="flex-1 overflow-hidden flex flex-col">
+
+            <!-- Empty state -->
+            <div x-show="!psSelected" class="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-[#484f58]">
+              <svg class="h-12 w-12 mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+              </svg>
+              <p class="text-sm">Select a message or enum type</p>
+              <p class="text-xs mt-1 opacity-60">Browse the complete WhatsApp protobuf schema</p>
+            </div>
+
+            <!-- Detail view -->
+            <div x-show="psSelected" class="flex-1 overflow-hidden flex flex-col">
+
+              <!-- Detail header with breadcrumb -->
+              <div class="flex-shrink-0 border-b border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] px-4 py-3">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <!-- Back button if nav stack > 1 -->
+                  <button
+                    x-show="psNavStack.length > 1"
+                    @click="psNavBack()"
+                    class="flex items-center gap-1 text-xs text-blue-600 dark:text-[#58a6ff] hover:underline"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back
+                  </button>
+                  <span x-show="psNavStack.length > 1" class="text-gray-300 dark:text-[#484f58]">/</span>
+
+                  <!-- Package badge -->
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-[#30363d] text-gray-600 dark:text-[#8b949e] font-mono"
+                        x-text="psSelected?.package"></span>
+
+                  <!-- Kind badge -->
+                  <span
+                    class="text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase"
+                    :class="psSelectedKind === 'message'
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                      : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'"
+                    x-text="psSelectedKind"
+                  ></span>
+
+                  <!-- Full name -->
+                  <span class="text-sm font-mono font-semibold text-gray-800 dark:text-[#c9d1d9]"
+                        x-text="psShortName(psSelected?.full_name || '')"></span>
+                </div>
+
+                <!-- Sub-info: nested / enums / oneofs -->
+                <div x-show="psSelectedKind === 'message'" class="flex flex-wrap gap-3 mt-2">
+                  <span x-show="(psSelected?.fields || []).length > 0" class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                    <span class="font-semibold text-purple-600 dark:text-purple-400" x-text="(psSelected?.fields || []).length"></span> fields
+                  </span>
+                  <span x-show="(psSelected?.oneofs || []).length > 0" class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                    <span class="font-semibold text-yellow-600 dark:text-yellow-400" x-text="(psSelected?.oneofs || []).length"></span> oneofs
+                  </span>
+                  <span x-show="(psSelected?.nested || []).length > 0" class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                    <span class="font-semibold text-blue-600 dark:text-blue-400" x-text="(psSelected?.nested || []).length"></span> nested
+                  </span>
+                  <span x-show="(psSelected?.enums || []).length > 0" class="text-[10px] text-gray-400 dark:text-[#484f58]">
+                    <span class="font-semibold text-pink-600 dark:text-pink-400" x-text="(psSelected?.enums || []).length"></span> enums
+                  </span>
+                </div>
+              </div>
+
+              <!-- Detail body -->
+              <div class="flex-1 overflow-y-auto p-4 space-y-6">
+
+                <!-- Message: fields table -->
+                <div x-show="psSelectedKind === 'message' && (psSelected?.fields || []).length > 0">
+                  <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-[#484f58] mb-2">Fields</h3>
+                  <div class="rounded-lg border border-gray-200 dark:border-[#30363d] overflow-hidden">
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="bg-gray-50 dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d]">
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58] w-10">#</th>
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58]">Name</th>
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58]">Type</th>
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58]">Label</th>
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58]">OneOf</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="f in (psSelected?.fields || [])" :key="f.number">
+                          <tr class="border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#21262d]/50 transition-colors">
+                            <td class="px-3 py-2 font-mono text-gray-400 dark:text-[#484f58]" x-text="f.number"></td>
+                            <td class="px-3 py-2 font-mono font-medium text-gray-800 dark:text-[#c9d1d9]" x-text="f.name"></td>
+                            <td class="px-3 py-2 font-mono">
+                              <span
+                                :class="psFieldTypeColor(f)"
+                                x-text="psFieldTypeLabel(f)"
+                                @click="psIsNavigable(f) && psNavigateTo(f.type_ref, f.type === 'enum' ? 'enum' : 'message')"
+                              ></span>
+                            </td>
+                            <td class="px-3 py-2 text-gray-500 dark:text-[#8b949e]" x-text="f.label"></td>
+                            <td class="px-3 py-2 text-gray-400 dark:text-[#484f58] font-mono text-[10px]" x-text="f.oneof || ''"></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Message: oneofs -->
+                <div x-show="psSelectedKind === 'message' && (psSelected?.oneofs || []).length > 0">
+                  <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-[#484f58] mb-2">OneOf Groups</h3>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="oo in (psSelected?.oneofs || [])" :key="oo">
+                      <span class="text-xs font-mono px-2 py-1 rounded bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800" x-text="oo"></span>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Message: nested messages -->
+                <div x-show="psSelectedKind === 'message' && (psSelected?.nested || []).length > 0">
+                  <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-[#484f58] mb-2">Nested Messages</h3>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="n in (psSelected?.nested || [])" :key="n">
+                      <button
+                        @click="psNavigateTo(n, 'message')"
+                        class="text-xs font-mono px-2 py-1 rounded bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                        x-text="psShortName(n)"
+                      ></button>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Message: nested enums -->
+                <div x-show="psSelectedKind === 'message' && (psSelected?.enums || []).length > 0">
+                  <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-[#484f58] mb-2">Enums</h3>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="en in (psSelected?.enums || [])" :key="en">
+                      <button
+                        @click="psNavigateTo(en, 'enum')"
+                        class="text-xs font-mono px-2 py-1 rounded bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400 border border-pink-200 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors"
+                        x-text="psShortName(en)"
+                      ></button>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Enum: values table -->
+                <div x-show="psSelectedKind === 'enum' && (psSelected?.values || []).length > 0">
+                  <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-[#484f58] mb-2">Values</h3>
+                  <div class="rounded-lg border border-gray-200 dark:border-[#30363d] overflow-hidden">
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="bg-gray-50 dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d]">
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58] w-16">Number</th>
+                          <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-[#484f58]">Name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="v in (psSelected?.values || [])" :key="v.number">
+                          <tr class="border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#21262d]/50 transition-colors">
+                            <td class="px-3 py-2 font-mono text-pink-600 dark:text-pink-400" x-text="v.number"></td>
+                            <td class="px-3 py-2 font-mono text-gray-800 dark:text-[#c9d1d9]" x-text="v.name"></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
