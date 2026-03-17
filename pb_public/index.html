@@ -7387,8 +7387,9 @@
       <div
         x-show="activeSection === 'stats'"
         x-effect="if (activeSection === 'stats' && !stSummary && !stLoading) stLoad()"
-        class="p-6 space-y-6"
+        class="flex flex-col h-full overflow-hidden"
       >
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
         <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -7554,7 +7555,8 @@
           </div>
         </template>
 
-      </div>
+      </div><!-- end scroll wrapper -->
+      </div><!-- end stats section -->
 
       <!-- ── Section: App State Inspector ─────────────────────────────────── -->
       <div
