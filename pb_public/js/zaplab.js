@@ -34,6 +34,7 @@ function zaplab() {
     signalSessionsSection(),
     annotationsSection(),
     statsSection(),
+    appStateSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -115,6 +116,7 @@ function zaplab() {
         this.initSignalSessions();
         this.initAnnotations();
         this.initStats();
+        this.initAppState();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;

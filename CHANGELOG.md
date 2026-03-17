@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **App State Inspector** — new dashboard section that exposes the three whatsmeow app state SQLite tables for protocol research.
+  - **Collections tab**: reads `whatsmeow_app_state_version`; shows every known collection (`critical`, `regular`, `critical_unblock_to_primary`, `critical_block`, `regular_low`) with its current version index, Merkle-tree state hash, and a plain-English description; filterable by name or JID.
+  - **Sync Keys tab**: reads `whatsmeow_app_state_sync_keys`; shows key ID (hex), creation timestamp, fingerprint (hex), and key size in bytes for every app state decryption key; raw key bytes are withheld.
+  - **Mutations tab**: reads `whatsmeow_app_state_mutation_macs`; shows the per-leaf HMAC integrity codes (index MAC + value MAC) for any selected collection, ordered by version descending; configurable row limit.
+  - Three new backend endpoints: `GET /zaplab/api/appstate/collections`, `GET /zaplab/api/appstate/synckeys`, `GET /zaplab/api/appstate/mutations?collection=<name>`.
+- **PCAP Export** — export captured frame log entries as a standard libpcap (`.pcap`) file for analysis in Wireshark or tcpdump.
+  - New endpoint `GET /zaplab/api/frames/pcap?module=&level=&limit=` queries the `frames` PocketBase collection and writes a valid PCAP binary with a global header (link type `LINKTYPE_ETHERNET`, microsecond timestamps).
+  - Each frame log entry is wrapped in a synthetic Ethernet/IPv4/UDP packet (`127.0.0.1:443 → 127.0.0.2:12345`) with the log entry as JSON in the UDP payload, preserving the original timestamp.
+  - **Export PCAP button** added to the Frame Capture toolbar, respecting the active module/level/search filters.
 - **Advanced Stats & Heatmap** — new dedicated Stats section with activity analytics.
   - **Activity heatmap**: GitHub-style 7×24 grid (day-of-week × hour-of-day) showing message density; 5-level green colour scale; peak hour label; period selector (7d / 30d / 90d / 1y / all time).
   - **Daily sparkline**: SVG bar chart of message volume per day, with min/max/avg labels; fills gaps automatically.
