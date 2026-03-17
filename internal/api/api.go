@@ -130,6 +130,17 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/frames/ring", getFramesRing).Bind(auth)
 	e.Router.GET("/zaplab/api/frames/modules", getFramesModules).Bind(auth)
 	e.Router.GET("/zaplab/api/wa/keys", getDeviceKeys).Bind(auth)
+
+	// Signal session visualizer
+	e.Router.GET("/zaplab/api/signal/sessions", getSignalSessions).Bind(auth)
+	e.Router.GET("/zaplab/api/signal/senderkeys", getSignalSenderKeys).Bind(auth)
+
+	// Annotations
+	e.Router.GET("/zaplab/api/annotations", getAnnotations).Bind(auth)
+	e.Router.POST("/zaplab/api/annotations", postAnnotation).Bind(auth)
+	e.Router.PATCH("/zaplab/api/annotations/{id}", patchAnnotation).Bind(auth)
+	e.Router.DELETE("/zaplab/api/annotations/{id}", deleteAnnotation).Bind(auth)
+
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil

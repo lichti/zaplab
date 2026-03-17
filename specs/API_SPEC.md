@@ -1745,3 +1745,136 @@ Response:
   "push_name": "My Device"
 }
 ```
+
+---
+
+## Signal Session Visualizer
+
+All require auth.
+
+### List decoded Signal sessions
+
+```
+GET /zaplab/api/signal/sessions
+```
+
+Queries `whatsmeow_sessions` from the whatsapp.db and decodes each blob using `record.NewSessionFromBytes` + `store.SignalProtobufSerializer`.
+
+Response:
+```json
+{
+  "sessions": [
+    {
+      "address": "15551234567.0:1",
+      "version": 3,
+      "has_sender_chain": true,
+      "sender_counter": 42,
+      "receiver_chains": 2,
+      "previous_counter": 38,
+      "remote_identity": "a1b2c3d4...",
+      "local_identity": "e5f6a7b8...",
+      "previous_states": 0,
+      "raw_size_bytes": 512
+    }
+  ],
+  "total": 1
+}
+```
+
+Returns `503` if DB Explorer not initialised.
+
+### List decoded group SenderKey states
+
+```
+GET /zaplab/api/signal/senderkeys
+```
+
+Queries `whatsmeow_sender_keys` and decodes each blob using `groupRecord.NewSenderKeyFromBytes`.
+
+Response:
+```json
+{
+  "sender_keys": [
+    {
+      "chat_id": "123456789-1234567890@g.us",
+      "sender_id": "15551234567.0:1",
+      "key_id": 1,
+      "iteration": 15,
+      "signing_key": "a1b2c3d4...",
+      "raw_size_bytes": 128
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+## Annotations
+
+All require auth.
+
+### List annotations
+
+```
+GET /zaplab/api/annotations?event_id=&jid=&page=1&per_page=50
+```
+
+Query params: `event_id` (exact match), `jid` (exact match), `page`, `per_page` (max 200).
+
+Response:
+```json
+{
+  "items": [
+    {
+      "id": "abc123",
+      "event_id": "MSGID123",
+      "event_type": "Message",
+      "jid": "15551234567@s.whatsapp.net",
+      "note": "Interesting padding behaviour observed here.",
+      "tags": ["signal", "padding"],
+      "created": "2026-03-16 12:00:00.000Z",
+      "updated": "2026-03-16 12:00:00.000Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 50
+}
+```
+
+### Create annotation
+
+```
+POST /zaplab/api/annotations
+Content-Type: application/json
+
+{
+  "event_id": "MSGID123",
+  "event_type": "Message",
+  "jid": "15551234567@s.whatsapp.net",
+  "note": "Research note",
+  "tags": ["signal", "padding"]
+}
+```
+
+`note` is required. Returns the created annotation object.
+
+### Update annotation
+
+```
+PATCH /zaplab/api/annotations/{id}
+Content-Type: application/json
+
+{ "note": "Updated note", "tags": ["signal"] }
+```
+
+Both fields are optional. Returns the updated annotation object.
+
+### Delete annotation
+
+```
+DELETE /zaplab/api/annotations/{id}
+```
+
+Response: `{ "message": "annotation deleted" }`
