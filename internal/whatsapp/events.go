@@ -22,6 +22,9 @@ import (
 var historySyncID int32
 var startupTime = time.Now().Unix()
 
+// reconnecting is 1 while a reconnectWithBackoff goroutine is active.
+var reconnecting int32
+
 func handler(rawEvt interface{}) {
 	evtType := getTypeOf(rawEvt)
 
@@ -364,12 +367,22 @@ func recoverAndNotify(evt *events.Message, targetID string, protocolType waE2E.P
 }
 
 // reconnectWithBackoff retries client.Connect with exponential backoff (5s, 10s, 20s … up to 5min).
+// Only one goroutine runs at a time; concurrent calls return immediately.
 func reconnectWithBackoff(reason string) {
+	if !atomic.CompareAndSwapInt32(&reconnecting, 0, 1) {
+		return
+	}
+	defer atomic.StoreInt32(&reconnecting, 0)
+
 	const maxDelay = 5 * time.Minute
 	delay := 5 * time.Second
 	for attempt := 1; ; attempt++ {
 		logger.Infof("Reconnecting after %s attempt=%d delay=%v", reason, attempt, delay)
 		time.Sleep(delay)
+		if client.IsConnected() {
+			logger.Infof("Already connected, stopping reconnect loop reason=%s attempt=%d", reason, attempt)
+			return
+		}
 		if err := client.Connect(); err != nil {
 			logger.Errorf("Reconnect failed reason=%s attempt=%d error=%v", reason, attempt, err)
 			delay = time.Duration(math.Min(float64(delay*2), float64(maxDelay)))
