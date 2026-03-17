@@ -16,6 +16,32 @@ import (
 //
 // GET /zaplab/api/conversation?chat=<jid>&limit=100&before=<RFC3339>
 //   Returns messages for a specific chat as parsed bubbles.
+//
+// Event types that carry message content:
+//   type='Message'               — text, reaction, protocolMessage (edit/delete)
+//   type='Message.ImageMessage'  — images with downloaded file
+//   type='Message.VideoMessage'  — videos
+//   type='Message.AudioMessage'  — audio / voice notes
+//   type='Message.DocumentMessage' — documents
+//   type='Message.StickerMessage'  — stickers
+//   type='Message.LocationMessage' — location pins
+
+// contentFilter is appended to WHERE to exclude key-exchange and sync-only events.
+// It keeps: all typed media variants (type != 'Message') plus meaningful Message subtypes.
+const contentFilter = `AND (
+    type != 'Message'
+    OR json_extract(raw, '$.Message.conversation')           IS NOT NULL
+    OR json_extract(raw, '$.Message.extendedTextMessage')    IS NOT NULL
+    OR json_extract(raw, '$.Message.reactionMessage')        IS NOT NULL
+    OR json_extract(raw, '$.Message.protocolMessage.type')   = 0
+    OR json_extract(raw, '$.Message.protocolMessage.type')   = 14
+    OR json_extract(raw, '$.Message.imageMessage')           IS NOT NULL
+    OR json_extract(raw, '$.Message.videoMessage')           IS NOT NULL
+    OR json_extract(raw, '$.Message.audioMessage')           IS NOT NULL
+    OR json_extract(raw, '$.Message.documentMessage')        IS NOT NULL
+    OR json_extract(raw, '$.Message.stickerMessage')         IS NOT NULL
+    OR json_extract(raw, '$.Message.locationMessage')        IS NOT NULL
+)`
 
 func getConversationChats(e *core.RequestEvent) error {
 	limit, _ := strconv.Atoi(e.Request.URL.Query().Get("limit"))
@@ -34,8 +60,9 @@ func getConversationChats(e *core.RequestEvent) error {
 		       COUNT(*)                          AS msg_count,
 		       MAX(created)                      AS last_msg
 		FROM events
-		WHERE type = 'Message'
+		WHERE type LIKE 'Message%'
 		  AND json_extract(raw, '$.Info.Chat') IS NOT NULL
+		  ` + contentFilter + `
 		GROUP BY chat
 		ORDER BY last_msg DESC
 		LIMIT {:limit}`).
@@ -80,8 +107,9 @@ func getConversation(e *core.RequestEvent) error {
 	var rows []rawRow
 	sqlStr := `SELECT id, raw, msgID, COALESCE(file, '') AS file, created
 		FROM events
-		WHERE type = 'Message'
+		WHERE type LIKE 'Message%'
 		  AND json_extract(raw, '$.Info.Chat') = {:chat}
+		  ` + contentFilter + `
 		  ` + beforeClause + `
 		ORDER BY created DESC
 		LIMIT {:limit}`
@@ -129,7 +157,11 @@ func getConversation(e *core.RequestEvent) error {
 			out.IsFromMe, _ = info["IsFromMe"].(bool)
 		}
 		if msg != nil {
-			out.MsgType, out.Text, out.Caption = detectMsgType(msg)
+			var skip bool
+			out.MsgType, out.Text, out.Caption, skip = detectMsgType(msg)
+			if skip {
+				continue
+			}
 		}
 		if row.File != "" {
 			out.FileURL = "/api/files/events/" + row.ID + "/" + row.File
@@ -147,41 +179,76 @@ func getConversation(e *core.RequestEvent) error {
 	})
 }
 
-// detectMsgType returns (msgType, text, caption) from a parsed Message map.
+// detectMsgType returns (msgType, text, caption, skip) from a parsed Message map.
 // Proto-generated Go structs use camelCase json tags (e.g. "conversation", "imageMessage").
-func detectMsgType(msg map[string]any) (msgType, text, caption string) {
+// skip=true means this event has no displayable content (key exchange, sync, etc.).
+func detectMsgType(msg map[string]any) (msgType, text, caption string, skip bool) {
+	// Plain text
 	if v, ok := msg["conversation"].(string); ok && v != "" {
-		return "text", v, ""
+		return "text", v, "", false
 	}
+	// Rich text / links
 	if ext, ok := msg["extendedTextMessage"].(map[string]any); ok {
 		t, _ := ext["text"].(string)
-		return "text", t, ""
+		return "text", t, "", false
 	}
-	if img, ok := msg["imageMessage"].(map[string]any); ok {
-		cap, _ := img["caption"].(string)
-		return "image", "", cap
+	// Edited / deleted (protocolMessage)
+	if pm, ok := msg["protocolMessage"].(map[string]any); ok {
+		pmType, _ := pm["type"].(float64)
+		switch int(pmType) {
+		case 0: // REVOKE
+			return "deleted", "[mensagem apagada]", "", false
+		case 14: // MESSAGE_EDIT — editedMessage carries the new content
+			if edited, ok := pm["editedMessage"].(map[string]any); ok {
+				mt, t, c, _ := detectMsgType(edited)
+				if mt != "unknown" {
+					if mt == "text" {
+						t = "(editado) " + t
+					}
+					return mt, t, c, false
+				}
+			}
+			return "text", "(editado)", "", false
+		}
+		// Other protocol types (historySyncNotification, appStateSync, etc.) — skip
+		return "", "", "", true
 	}
-	if vid, ok := msg["videoMessage"].(map[string]any); ok {
-		cap, _ := vid["caption"].(string)
-		return "video", "", cap
-	}
-	if _, ok := msg["audioMessage"]; ok {
-		return "audio", "", ""
-	}
-	if doc, ok := msg["documentMessage"].(map[string]any); ok {
-		cap, _ := doc["caption"].(string)
-		return "document", "", cap
-	}
-	if _, ok := msg["stickerMessage"]; ok {
-		return "sticker", "", ""
-	}
-	if loc, ok := msg["locationMessage"].(map[string]any); ok {
-		name, _ := loc["name"].(string)
-		return "location", name, ""
-	}
+	// Reaction
 	if react, ok := msg["reactionMessage"].(map[string]any); ok {
 		emoji, _ := react["text"].(string)
-		return "reaction", emoji, ""
+		return "reaction", emoji, "", false
 	}
-	return "unknown", "", ""
+	// Image
+	if img, ok := msg["imageMessage"].(map[string]any); ok {
+		cap, _ := img["caption"].(string)
+		return "image", "", cap, false
+	}
+	// Video
+	if vid, ok := msg["videoMessage"].(map[string]any); ok {
+		cap, _ := vid["caption"].(string)
+		return "video", "", cap, false
+	}
+	// Audio / voice note
+	if _, ok := msg["audioMessage"]; ok {
+		return "audio", "", "", false
+	}
+	// Document
+	if doc, ok := msg["documentMessage"].(map[string]any); ok {
+		name, _ := doc["fileName"].(string)
+		if name == "" {
+			name, _ = doc["title"].(string)
+		}
+		return "document", "", name, false
+	}
+	// Sticker
+	if _, ok := msg["stickerMessage"]; ok {
+		return "sticker", "", "", false
+	}
+	// Location
+	if loc, ok := msg["locationMessage"].(map[string]any); ok {
+		name, _ := loc["name"].(string)
+		return "location", name, "", false
+	}
+	// senderKeyDistributionMessage-only — skip
+	return "unknown", "", "", true
 }

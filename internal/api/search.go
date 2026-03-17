@@ -54,7 +54,7 @@ func getSearch(e *core.RequestEvent) error {
 		where = append(where, "type = {:type}")
 		params["type"] = typeFilter
 	} else {
-		where = append(where, "type LIKE '%Message%'")
+		where = append(where, "type LIKE 'Message%'")
 	}
 
 	if chatFilter != "" {

@@ -13,8 +13,22 @@ import (
 //
 // GET /zaplab/api/media/gallery?type=image|video|audio|document|sticker&chat=...&limit=50&offset=0
 //
-// Returns events that have a file attachment (file != ''), with media metadata
-// extracted via json_extract. Thumbnail URLs are constructed for PocketBase file serving.
+// Media events are stored with a dedicated type column:
+//   type='Message.ImageMessage'    — images
+//   type='Message.VideoMessage'    — videos
+//   type='Message.AudioMessage'    — audio / voice notes
+//   type='Message.DocumentMessage' — documents
+//   type='Message.StickerMessage'  — stickers
+//
+// All media events that have a downloaded file (file != '') are returned.
+
+var mediaTypes = []string{
+	"Message.ImageMessage",
+	"Message.VideoMessage",
+	"Message.AudioMessage",
+	"Message.DocumentMessage",
+	"Message.StickerMessage",
+}
 
 func getMediaGallery(e *core.RequestEvent) error {
 	typeFilter := e.Request.URL.Query().Get("type")
@@ -32,19 +46,18 @@ func getMediaGallery(e *core.RequestEvent) error {
 	params := map[string]any{"limit": limit, "offset": offset}
 	var extraWhere []string
 
-	// Media type filter maps to the presence of specific message sub-objects.
-	// Proto-generated Go structs use camelCase json tags.
+	// Filter by specific media type using the event type column directly
 	switch typeFilter {
 	case "image":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.imageMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "type = 'Message.ImageMessage'")
 	case "video":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.videoMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "type = 'Message.VideoMessage'")
 	case "audio":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.audioMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "type = 'Message.AudioMessage'")
 	case "document":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.documentMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "type = 'Message.DocumentMessage'")
 	case "sticker":
-		extraWhere = append(extraWhere, "json_extract(raw, '$.Message.stickerMessage') IS NOT NULL")
+		extraWhere = append(extraWhere, "type = 'Message.StickerMessage'")
 	}
 
 	if chatFilter != "" {
@@ -57,17 +70,20 @@ func getMediaGallery(e *core.RequestEvent) error {
 		extraSQL = "AND " + strings.Join(extraWhere, " AND ")
 	}
 
+	// Build the type IN list for the base WHERE
+	typeList := fmt.Sprintf("'%s'", strings.Join(mediaTypes, "','"))
+
 	sqlStr := fmt.Sprintf(`
 		SELECT id, msgID,
-		       COALESCE(json_extract(raw, '$.Info.Chat'), '')     AS chat,
-		       COALESCE(json_extract(raw, '$.Info.Sender'), '')   AS sender,
-		       COALESCE(json_extract(raw, '$.Info.IsFromMe'), 0)  AS is_from_me,
-		       CASE
-		         WHEN json_extract(raw, '$.Message.imageMessage')    IS NOT NULL THEN 'image'
-		         WHEN json_extract(raw, '$.Message.videoMessage')    IS NOT NULL THEN 'video'
-		         WHEN json_extract(raw, '$.Message.audioMessage')    IS NOT NULL THEN 'audio'
-		         WHEN json_extract(raw, '$.Message.documentMessage') IS NOT NULL THEN 'document'
-		         WHEN json_extract(raw, '$.Message.stickerMessage')  IS NOT NULL THEN 'sticker'
+		       COALESCE(json_extract(raw, '$.Info.Chat'), '')    AS chat,
+		       COALESCE(json_extract(raw, '$.Info.Sender'), '')  AS sender,
+		       COALESCE(json_extract(raw, '$.Info.IsFromMe'), 0) AS is_from_me,
+		       CASE type
+		         WHEN 'Message.ImageMessage'    THEN 'image'
+		         WHEN 'Message.VideoMessage'    THEN 'video'
+		         WHEN 'Message.AudioMessage'    THEN 'audio'
+		         WHEN 'Message.DocumentMessage' THEN 'document'
+		         WHEN 'Message.StickerMessage'  THEN 'sticker'
 		         ELSE 'unknown'
 		       END AS media_type,
 		       COALESCE(
@@ -75,16 +91,17 @@ func getMediaGallery(e *core.RequestEvent) error {
 		         json_extract(raw, '$.Message.videoMessage.caption'),
 		         json_extract(raw, '$.Message.documentMessage.caption'),
 		         json_extract(raw, '$.Message.documentMessage.fileName'),
+		         json_extract(raw, '$.Message.documentMessage.title'),
 		         ''
 		       ) AS caption,
 		       file,
 		       created
 		FROM events
-		WHERE type = 'Message'
+		WHERE type IN (%s)
 		  AND file != ''
 		  %s
 		ORDER BY created DESC
-		LIMIT {:limit} OFFSET {:offset}`, extraSQL)
+		LIMIT {:limit} OFFSET {:offset}`, typeList, extraSQL)
 
 	type itemRow struct {
 		ID        string `db:"id"         json:"id"`
@@ -108,20 +125,18 @@ func getMediaGallery(e *core.RequestEvent) error {
 		rows = []itemRow{}
 	}
 
-	// Build file URLs
+	// Build file URLs — thumbnails only for image and sticker
 	for i := range rows {
 		if rows[i].File != "" {
 			rows[i].FileURL = "/api/files/events/" + rows[i].ID + "/" + rows[i].File
 			if rows[i].MediaType == "image" || rows[i].MediaType == "sticker" {
 				rows[i].ThumbURL = rows[i].FileURL + "?thumb=300x300"
-			} else {
-				rows[i].ThumbURL = ""
 			}
 		}
 	}
 
-	// Count total
-	countSQL := fmt.Sprintf(`SELECT COUNT(*) AS cnt FROM events WHERE type='Message' AND file!='' %s`, extraSQL)
+	// Count total matching rows
+	countSQL := fmt.Sprintf(`SELECT COUNT(*) AS cnt FROM events WHERE type IN (%s) AND file != '' %s`, typeList, extraSQL)
 	type countRow struct {
 		Count int `db:"cnt"`
 	}
