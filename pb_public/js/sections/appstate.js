@@ -89,12 +89,12 @@ function appStateSection() {
 
     asCollectionDesc(name) {
       return {
-        critical:                    'Privacy settings, PIN, security configuration',
-        regular:                     'Contacts, starred messages, chats, labels',
-        critical_unblock_to_primary: 'Secondary critical settings → primary device',
-        critical_block:              'Blocked contacts and spam reports',
-        regular_low:                 'Low-priority preferences',
-      }[name] || 'App state collection';
+        critical:                    'Privacy settings, disappearing messages timer, PIN, 2FA config. Synced with highest priority — changes here affect all linked devices immediately.',
+        regular:                     'Contacts (stars, names), starred messages, chat archive/mute/pin state, labels. The most active collection; updated on almost every user action.',
+        critical_unblock_to_primary: 'Critical settings that must flow from a secondary device back to the primary (e.g. unblocking a contact initiated from a linked device).',
+        critical_block:              'Blocked contacts list and spam reports. Kept separate so blocking changes propagate quickly without touching the broader critical collection.',
+        regular_low:                 'Low-priority UI preferences (e.g. wallpaper, chat background, notification overrides). Deferred sync — may lag behind the other collections.',
+      }[name] || 'Custom or unknown app state collection. May be introduced by a newer WhatsApp version.';
     },
 
     asCollectionBadgeClass(name) {
