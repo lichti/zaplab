@@ -8409,8 +8409,18 @@
                           <template x-if="msg.type === 'image' && msg.thumb_url">
                             <img :src="msg.thumb_url" class="max-w-full rounded mb-1 max-h-40 object-cover block" />
                           </template>
-                          <!-- Media icon -->
-                          <template x-if="cvMsgIcon(msg.type)">
+                          <!-- Audio player -->
+                          <template x-if="msg.type === 'audio' && msg.file_url">
+                            <audio controls :src="msg.file_url" @click.stop
+                              class="w-full max-w-xs block mb-1" style="height:32px"></audio>
+                          </template>
+                          <!-- Video player -->
+                          <template x-if="msg.type === 'video' && msg.file_url">
+                            <video controls :src="msg.file_url" @click.stop
+                              class="max-w-full rounded mb-1 max-h-48 block bg-black"></video>
+                          </template>
+                          <!-- Media icon (for types without inline player) -->
+                          <template x-if="cvMsgIcon(msg.type) && msg.type !== 'audio' && msg.type !== 'video'">
                             <span class="text-base mr-1" x-text="cvMsgIcon(msg.type)"></span>
                           </template>
                           <!-- Main text / caption -->
@@ -8474,6 +8484,12 @@
                   <p class="text-[10px] text-gray-500 dark:text-[#8b949e]"><span class="font-semibold">Time:</span> <span x-text="cvSelectedMsg.created"></span></p>
                   <p class="text-[10px] text-gray-500 dark:text-[#8b949e]"><span class="font-semibold">Type:</span> <span x-text="cvSelectedMsg.type"></span></p>
                   <p class="text-[10px] font-mono text-gray-400 dark:text-[#484f58] break-all"><span class="font-semibold font-sans">msgID:</span> <span x-text="cvSelectedMsg.msgID"></span></p>
+                  <template x-if="cvSelectedMsg.type === 'audio' && cvSelectedMsg.file_url">
+                    <audio controls :src="cvSelectedMsg.file_url" class="w-full mt-1" style="height:32px"></audio>
+                  </template>
+                  <template x-if="cvSelectedMsg.type === 'video' && cvSelectedMsg.file_url">
+                    <video controls :src="cvSelectedMsg.file_url" class="w-full rounded mt-1 max-h-40 bg-black"></video>
+                  </template>
                   <template x-if="cvSelectedMsg.file_url">
                     <a :href="cvSelectedMsg.file_url" target="_blank"
                       class="block text-[10px] text-blue-500 hover:underline mt-1">⬇ Download file</a>
