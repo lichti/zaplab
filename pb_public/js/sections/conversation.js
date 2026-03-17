@@ -1,5 +1,6 @@
 // Conversation View
 // GET /zaplab/api/conversation/chats  — chat list
+// GET /zaplab/api/conversation/names  — {jid: displayName} map
 // GET /zaplab/api/conversation?chat=...&limit=...&before=...  — messages
 function conversationSection() {
   return {
@@ -15,6 +16,7 @@ function conversationSection() {
     cvHasMore:       false,
     cvNextBefore:    null,
     cvSelectedMsg:   null,  // raw event drawer
+    cvNames:         {},    // {jid: displayName}
 
     // ── init ──
     initConversation() {
@@ -27,19 +29,18 @@ function conversationSection() {
       });
     },
 
-    // ── load chat list ──
+    // ── load chat list + names ──
     async cvLoadChats() {
       if (this.cvChatsLoading) return;
       this.cvChatsLoading = true;
       this.cvChatsError   = '';
       try {
-        const res = await fetch('/zaplab/api/conversation/chats?limit=200', { headers: this.apiHeaders() });
-        if (res.ok) {
-          const d = await res.json();
-          this.cvChats = d.chats || [];
-        } else {
-          this.cvChatsError = `HTTP ${res.status}`;
-        }
+        const [chatsRes, namesRes] = await Promise.all([
+          fetch('/zaplab/api/conversation/chats?limit=200', { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/conversation/names',           { headers: this.apiHeaders() }),
+        ]);
+        if (chatsRes.ok) this.cvChats = (await chatsRes.json()).chats || [];
+        if (namesRes.ok) this.cvNames = (await namesRes.json()).names || {};
       } catch (err) {
         this.cvChatsError = err.message || 'Load failed';
       } finally {
@@ -97,7 +98,17 @@ function conversationSection() {
     cvFilteredChats() {
       if (!this.cvChatFilter) return this.cvChats;
       const f = this.cvChatFilter.toLowerCase();
-      return this.cvChats.filter(c => c.chat.toLowerCase().includes(f));
+      return this.cvChats.filter(c => {
+        const name = (this.cvNames[c.chat] || '').toLowerCase();
+        return name.includes(f) || c.chat.toLowerCase().includes(f);
+      });
+    },
+
+    // Returns the best display name for a JID.
+    // Priority: cvNames lookup → stripped JID
+    cvDisplayName(jid) {
+      if (!jid) return '?';
+      return this.cvNames[jid] || this.cvShortJID(jid);
     },
 
     cvMsgIcon(type) {
@@ -141,7 +152,8 @@ function conversationSection() {
     },
     cvShortJID(jid) {
       if (!jid) return '?';
-      return jid.split('@')[0];
+      // Strip :device suffix and @domain
+      return jid.replace(/:\d+@/, '@').split('@')[0];
     },
   };
 }

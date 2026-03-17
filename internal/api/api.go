@@ -180,6 +180,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 
 	// Conversation view
 	e.Router.GET("/zaplab/api/conversation/chats", getConversationChats).Bind(auth)
+	e.Router.GET("/zaplab/api/conversation/names", getConversationNames).Bind(auth)
 	e.Router.GET("/zaplab/api/conversation", getConversation).Bind(auth)
 
 	// Media gallery
