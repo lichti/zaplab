@@ -8405,28 +8405,41 @@
                           <!-- Sender name (received messages only) -->
                           <p x-show="!msg.is_from_me" class="text-[10px] font-semibold mb-0.5 text-blue-500 dark:text-blue-400"
                             x-text="cvDisplayName(msg.sender)"></p>
-                          <!-- Deleted label -->
-                          <template x-if="msg.type === 'deleted'">
-                            <span class="italic opacity-70">🗑 mensagem apagada</span>
-                          </template>
-                          <!-- Edited badge -->
-                          <template x-if="msg.type && msg.type.startsWith('edited_')">
-                            <span class="inline-block text-[9px] font-medium opacity-70 mr-1">✏️ editado</span>
-                          </template>
                           <!-- Image preview -->
-                          <template x-if="(msg.type === 'image' || (msg.type && msg.type.startsWith('edited_image'))) && msg.thumb_url">
+                          <template x-if="msg.type === 'image' && msg.thumb_url">
                             <img :src="msg.thumb_url" class="max-w-full rounded mb-1 max-h-40 object-cover block" />
                           </template>
-                          <!-- Media icon for non-text types -->
-                          <template x-if="msg.type !== 'text' && msg.type !== 'deleted' && !(msg.type && msg.type.startsWith('edited_text'))">
+                          <!-- Media icon -->
+                          <template x-if="cvMsgIcon(msg.type)">
                             <span class="text-base mr-1" x-text="cvMsgIcon(msg.type)"></span>
                           </template>
                           <!-- Main text / caption -->
                           <span x-show="cvMsgLabel(msg)" x-text="cvMsgLabel(msg)" class="break-words whitespace-pre-wrap"></span>
                           <!-- Timestamp -->
                           <span class="block text-right text-[9px] mt-0.5 opacity-60" x-text="cvFormatTime(msg.created)"></span>
+
+                          <!-- ── Edit/Delete annotation sub-bubble ── -->
+                          <template x-if="cvAnnotation(msg)">
+                            <div :class="cvAnnotationClass(cvAnnotation(msg), msg.is_from_me)">
+                              <!-- Deleted -->
+                              <template x-if="cvAnnotation(msg).type === 'deleted'">
+                                <span>🗑 apagada em <span x-text="cvFormatTime(cvAnnotation(msg).created)"></span></span>
+                              </template>
+                              <!-- Edited -->
+                              <template x-if="cvAnnotation(msg).type && cvAnnotation(msg).type.startsWith('edited_')">
+                                <div>
+                                  <span class="font-semibold opacity-70">✏️ editada para:</span>
+                                  <p class="mt-0.5 break-words whitespace-pre-wrap"
+                                    x-text="cvAnnotation(msg).text"></p>
+                                  <span class="block text-right opacity-50"
+                                    x-text="cvFormatTime(cvAnnotation(msg).created)"></span>
+                                </div>
+                              </template>
+                            </div>
+                          </template>
                         </div>
-                        <!-- Reaction chips (shown below the bubble) -->
+
+                        <!-- Reaction chips (below the bubble) -->
                         <template x-if="cvReactions[msg.msgID] && cvReactions[msg.msgID].length > 0">
                           <div class="flex flex-wrap gap-0.5 mt-0.5"
                             :class="msg.is_from_me ? 'justify-end' : 'justify-start'">
