@@ -101,14 +101,27 @@ function conversationSection() {
     },
 
     cvMsgIcon(type) {
-      const icons = { image: '🖼', video: '▶', audio: '🎵', document: '📄', sticker: '🔖', location: '📍', reaction: '❤', text: '', unknown: '?' };
-      return icons[type] || '?';
+      const icons = {
+        text: '', image: '🖼', video: '▶', audio: '🎵',
+        document: '📄', sticker: '🔖', location: '📍',
+        reaction: '💬', deleted: '🗑', unknown: '?',
+      };
+      if (type && type.startsWith('edited_')) return '✏️';
+      return icons[type] ?? '?';
     },
 
     cvMsgLabel(msg) {
-      if (msg.text) return msg.text.substring(0, 120);
-      if (msg.caption) return msg.caption.substring(0, 120);
-      return this.cvMsgIcon(msg.type) + ' ' + (msg.type || 'message');
+      if (msg.type === 'deleted') return '🗑 mensagem apagada';
+      if (msg.type === 'reaction') return msg.text || '❤️';
+      if (msg.type === 'audio')    return '🎵 áudio';
+      if (msg.type === 'sticker')  return '🔖 figurinha';
+      if (msg.text)    return msg.text.substring(0, 120);
+      if (msg.caption) return (this.cvMsgIcon(msg.type) + ' ' + msg.caption).substring(0, 120);
+      if (msg.type === 'image')    return '🖼 imagem';
+      if (msg.type === 'video')    return '▶ vídeo';
+      if (msg.type === 'document') return '📄 documento';
+      if (msg.type === 'location') return '📍 localização';
+      return '?';
     },
 
     cvFormatTime(created) {
