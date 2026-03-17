@@ -9596,15 +9596,17 @@
 
           <!-- IQ tab filters -->
           <div x-show="fiq.tab==='iq'" class="flex items-center gap-2 flex-wrap">
-            <select x-model="fiq.iqDirection"
+            <select x-model="fiq.iqLevel"
               class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
-              <option value="">All directions</option>
-              <option value="in">Inbound</option>
-              <option value="out">Outbound</option>
+              <option value="">All levels</option>
+              <option value="debug">debug</option>
+              <option value="info">info</option>
+              <option value="warn">warn</option>
+              <option value="error">error</option>
             </select>
             <select x-model="fiq.iqType"
               class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
-              <option value="">All types</option>
+              <option value="">All IQ types</option>
               <option value="get">get</option>
               <option value="set">set</option>
               <option value="result">result</option>
@@ -9618,14 +9620,16 @@
 
           <!-- Binary tab filters -->
           <div x-show="fiq.tab==='binary'" class="flex items-center gap-2 flex-wrap">
-            <select x-model="fiq.binDirection"
+            <select x-model="fiq.binLevel"
               class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
-              <option value="">All directions</option>
-              <option value="in">Inbound</option>
-              <option value="out">Outbound</option>
+              <option value="">All levels</option>
+              <option value="debug">debug</option>
+              <option value="info">info</option>
+              <option value="warn">warn</option>
+              <option value="error">error</option>
             </select>
-            <input x-model="fiq.binModule" placeholder="Module filter..."
-              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] dark:text-gray-200 w-32">
+            <input x-model="fiq.binModule" placeholder="Module (e.g. Noise, Socket)..."
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] dark:text-gray-200 w-40">
             <button @click="loadBinaryFrames()" :disabled="fiq.loading"
               class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
               <span x-text="fiq.loading ? 'Loading…' : 'Search'"></span>
@@ -9642,8 +9646,8 @@
                   <tr class="text-left text-gray-400 dark:text-[#8b949e] border-b border-gray-200 dark:border-[#21262d]">
                     <th class="pb-2 pr-4">Time</th>
                     <th class="pb-2 pr-4">Module</th>
-                    <th class="pb-2 pr-4">Dir</th>
-                    <th class="pb-2">Raw (preview)</th>
+                    <th class="pb-2 pr-4">Level</th>
+                    <th class="pb-2">Message (preview)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -9653,13 +9657,13 @@
                       <td class="py-1.5 pr-4 text-gray-400 font-mono whitespace-nowrap" x-text="fr.created"></td>
                       <td class="py-1.5 pr-4 font-mono" x-text="fr.module"></td>
                       <td class="py-1.5 pr-4">
-                        <span :class="fiqDirectionBadge(fr.direction)" class="px-1.5 py-0.5 rounded text-[10px] font-medium" x-text="fr.direction"></span>
+                        <span :class="fiqLevelBadge(fr.level)" class="px-1.5 py-0.5 rounded text-[10px] font-medium" x-text="fr.level"></span>
                       </td>
-                      <td class="py-1.5 font-mono text-[10px] max-w-xs truncate text-gray-400" x-text="(fr.raw||'').substring(0,120)"></td>
+                      <td class="py-1.5 font-mono text-[10px] max-w-xs truncate text-gray-400" x-text="(fr.msg||'').substring(0,120)"></td>
                     </tr>
                     <tr x-show="fiq.expanded===fr.id" class="bg-gray-50 dark:bg-[#161b22]">
                       <td colspan="4" class="py-2 px-3">
-                        <pre class="text-[10px] whitespace-pre-wrap break-all text-gray-600 dark:text-gray-300 max-h-64 overflow-y-auto" x-text="fr.raw"></pre>
+                        <pre class="text-[10px] whitespace-pre-wrap break-all text-gray-600 dark:text-gray-300 max-h-64 overflow-y-auto" x-text="fr.msg"></pre>
                       </td>
                     </tr>
                   </template>
