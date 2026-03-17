@@ -8,35 +8,36 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// getFramesIQ returns frames that contain IQ stanzas (raw contains <iq).
-// GET /zaplab/api/frames/iq?direction=&iqtype=&limit=200
+// getFramesIQ returns frames that contain IQ stanzas (msg contains <iq).
+// GET /zaplab/api/frames/iq?level=&iqtype=&limit=200
 func getFramesIQ(e *core.RequestEvent) error {
 	q := e.Request.URL.Query()
-	direction := q.Get("direction") // in / out / ""
-	iqType := q.Get("iqtype")       // get / set / result / error / ""
+	level := q.Get("level")   // debug / info / warn / error / ""
+	iqType := q.Get("iqtype") // get / set / result / error / ""
 	limit := 200
 
 	type frameRow struct {
-		ID        string `db:"id"        json:"id"`
-		Module    string `db:"module"    json:"module"`
-		Direction string `db:"direction" json:"direction"`
-		Raw       string `db:"raw"       json:"raw"`
-		Created   string `db:"created"   json:"created"`
+		ID      string `db:"id"      json:"id"`
+		Module  string `db:"module"  json:"module"`
+		Level   string `db:"level"   json:"level"`
+		Seq     string `db:"seq"     json:"seq"`
+		Msg     string `db:"msg"     json:"msg"`
+		Created string `db:"created" json:"created"`
 	}
 
 	var exprs []dbx.Expression
-	exprs = append(exprs, dbx.NewExp("raw LIKE {:iq}", dbx.Params{"iq": "%<iq%"}))
+	exprs = append(exprs, dbx.NewExp("msg LIKE {:iq}", dbx.Params{"iq": "%<iq%"}))
 
-	if direction != "" {
-		exprs = append(exprs, dbx.HashExp{"direction": strings.ToLower(direction)})
+	if level != "" {
+		exprs = append(exprs, dbx.HashExp{"level": strings.ToLower(level)})
 	}
 	if iqType != "" {
 		t := strings.ToLower(iqType)
-		exprs = append(exprs, dbx.NewExp("raw LIKE {:iqt}", dbx.Params{"iqt": "%type=\"" + t + "\"%"}))
+		exprs = append(exprs, dbx.NewExp("msg LIKE {:iqt}", dbx.Params{"iqt": "%type=\"" + t + "\"%"}))
 	}
 
 	var rows []frameRow
-	err := pb.DB().Select("id", "module", "direction", "raw", "created").
+	err := pb.DB().Select("id", "module", "level", "seq", "msg", "created").
 		From("frames").
 		Where(dbx.And(exprs...)).
 		OrderBy("created DESC").
@@ -51,36 +52,37 @@ func getFramesIQ(e *core.RequestEvent) error {
 	return e.JSON(http.StatusOK, map[string]any{"frames": rows, "total": len(rows)})
 }
 
-// getFramesBinary returns raw binary frames (Noise/Socket modules).
-// GET /zaplab/api/frames/binary?direction=&module=&limit=200
+// getFramesBinary returns frames from Noise/Socket modules (binary protocol layer).
+// GET /zaplab/api/frames/binary?level=&module=&limit=200
 func getFramesBinary(e *core.RequestEvent) error {
 	q := e.Request.URL.Query()
-	direction := q.Get("direction")
+	level := q.Get("level")
 	module := q.Get("module")
 	limit := 200
 
 	type frameRow struct {
-		ID        string `db:"id"        json:"id"`
-		Module    string `db:"module"    json:"module"`
-		Direction string `db:"direction" json:"direction"`
-		Raw       string `db:"raw"       json:"raw"`
-		Size      int64  `db:"size"      json:"size"`
-		Created   string `db:"created"   json:"created"`
+		ID      string `db:"id"      json:"id"`
+		Module  string `db:"module"  json:"module"`
+		Level   string `db:"level"   json:"level"`
+		Seq     string `db:"seq"     json:"seq"`
+		Msg     string `db:"msg"     json:"msg"`
+		Size    int64  `db:"size"    json:"size"`
+		Created string `db:"created" json:"created"`
 	}
 
 	var exprs []dbx.Expression
 	exprs = append(exprs, dbx.NewExp("module IN ('Noise','Socket','noise','socket')"))
 
-	if direction != "" {
-		exprs = append(exprs, dbx.HashExp{"direction": strings.ToLower(direction)})
+	if level != "" {
+		exprs = append(exprs, dbx.HashExp{"level": strings.ToLower(level)})
 	}
 	if module != "" {
 		exprs = append(exprs, dbx.HashExp{"module": module})
 	}
 
 	var rows []frameRow
-	err := pb.DB().Select("id", "module", "direction", "raw",
-		"COALESCE(LENGTH(raw),0) as size", "created").
+	err := pb.DB().Select("id", "module", "level", "seq",
+		"msg", "COALESCE(LENGTH(msg),0) as size", "created").
 		From("frames").
 		Where(dbx.And(exprs...)).
 		OrderBy("created DESC").
