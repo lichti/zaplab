@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Plugin System / Scripting Engine** — JavaScript sandbox for automating WhatsApp interactions directly from the browser.
+  - **Backend**: new `scripts` PocketBase collection (`name`, `description`, `code`, `enabled`, `timeout_secs`, last-run metadata); 6 REST endpoints: `GET /zaplab/api/scripts`, `POST /zaplab/api/scripts`, `PATCH /zaplab/api/scripts/{id}`, `DELETE /zaplab/api/scripts/{id}`, `POST /zaplab/api/scripts/{id}/run`, `POST /zaplab/api/scripts/run` (ad-hoc).
+  - **Sandbox** — goja JavaScript engine (`github.com/dop251/goja`) with configurable per-script timeout; exposes: `console.log/error/warn`, `wa.sendText(jid, text)`, `wa.status()`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`.
+  - **Frontend**: Scripting section with a three-panel layout — sidebar script list (status icon + last-run indicator), code editor (`<textarea>` with monospace font), output panel (stdout, exit status, duration in ms).
+  - **Ad-hoc console** — run JavaScript snippets immediately without saving (useful for quick exploration).
+  - Script CRUD: create, edit, enable/disable, set timeout, save, delete — all without leaving the UI.
+  - Last-run metadata (`status`, `output`, `error`, `duration_ms`) stored back to PocketBase after each execution.
+  - New migration `1742700000_create_scripts.go`.
 - **Multi-Session Comparator** — side-by-side comparison of up to 6 Signal Protocol sessions or group SenderKey records.
   - Sessions tab: checkbox selection from the full session list; comparison table with properties as rows and sessions as columns; differences relative to the first selected session highlighted in amber; diff count badge (0 diffs = green, N > 0 = amber).
   - Sender Keys tab: same UX for group SenderKey records (key ID, iteration, signing key, decode error).

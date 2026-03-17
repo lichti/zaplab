@@ -159,6 +159,14 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	// Network graph
 	e.Router.GET("/zaplab/api/network/graph", getNetworkGraph).Bind(auth)
 
+	// Scripts (plugin system)
+	e.Router.GET("/zaplab/api/scripts", getScripts).Bind(auth)
+	e.Router.POST("/zaplab/api/scripts", postScript).Bind(auth)
+	e.Router.PATCH("/zaplab/api/scripts/{id}", patchScript).Bind(auth)
+	e.Router.DELETE("/zaplab/api/scripts/{id}", deleteScript).Bind(auth)
+	e.Router.POST("/zaplab/api/scripts/{id}/run", postScriptRun).Bind(auth)
+	e.Router.POST("/zaplab/api/scripts/run", postScriptRunAdhoc).Bind(auth)
+
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil
