@@ -62,6 +62,12 @@
   <script src="js/sections/export.js"></script>
   <script src="js/sections/cronscheduler.js"></script>
   <script src="js/sections/dbsandbox.js"></script>
+  <script src="js/sections/connstability.js"></script>
+  <script src="js/sections/scriptsio.js"></script>
+  <script src="js/sections/wahealth.js"></script>
+  <script src="js/sections/framesiq.js"></script>
+  <script src="js/sections/groupmembership.js"></script>
+  <script src="js/sections/auditlog.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -708,6 +714,28 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">DB Sandbox</span>
         </a>
 
+        <!-- WA Health -->
+        <a href="#/wa-health" @click.prevent="setSection('wa-health')" :title="sidebarExpanded ? '' : 'WA Health'" aria-label="WA Health"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='wa-health'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">WA Health</span>
+        </a>
+
+        <!-- IQ / Binary Frames -->
+        <a href="#/frames-iq" @click.prevent="setSection('frames-iq')" :title="sidebarExpanded ? '' : 'Frame Analyzers'" aria-label="Frame Analyzers"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='frames-iq'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Frame Analyzers</span>
+        </a>
+
         <!-- ── Group: Actions ── -->
         <div class="mt-3 mb-0.5" :class="sidebarExpanded ? 'px-2' : 'border-t border-gray-100 dark:border-[#21262d] mx-1'">
           <span x-show="sidebarExpanded" class="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#484f58]">Actions</span>
@@ -790,6 +818,28 @@
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Groups</span>
         </a>
 
+        <!-- Group Membership -->
+        <a href="#/group-membership" @click.prevent="setSection('group-membership')" :title="sidebarExpanded ? '' : 'Group Membership'" aria-label="Group Membership"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='group-membership'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Group Membership</span>
+        </a>
+
+        <!-- Conn Stability -->
+        <a href="#/conn-stability" @click.prevent="setSection('conn-stability')" :title="sidebarExpanded ? '' : 'Conn Stability'" aria-label="Conn Stability"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='conn-stability'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Conn Stability</span>
+        </a>
+
         <!-- Media Decrypt -->
         <a href="#/media" @click.prevent="setSection('media')" :title="sidebarExpanded ? '' : 'Media Decrypt'" aria-label="Media Decrypt"
           class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
@@ -837,6 +887,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Cron Scheduler</span>
+        </a>
+
+        <!-- Audit Log -->
+        <a href="#/audit-log" @click.prevent="setSection('audit-log')" :title="sidebarExpanded ? '' : 'Audit Log'" aria-label="Audit Log"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='audit-log'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Audit Log</span>
         </a>
 
         <!-- Webhooks -->
@@ -8200,6 +8261,20 @@
               class="px-2 py-1 text-xs rounded border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50">
               + New Script
             </button>
+            <button @click="exportScripts()"
+              class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9] hover:bg-gray-50 dark:hover:bg-[#30363d]">
+              Export JSON
+            </button>
+            <label class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-gray-600 dark:text-[#c9d1d9] hover:bg-gray-50 dark:hover:bg-[#30363d] cursor-pointer">
+              Import JSON
+              <input type="file" accept=".json" class="hidden" @change="importScripts($event.target)">
+            </label>
+          </div>
+          <div x-show="sioToast" class="mt-1 flex items-center gap-2">
+            <span x-text="sioToast?.message" :class="sioToast?.ok ? 'text-green-500' : 'text-red-500'" class="text-xs"></span>
+            <template x-if="sioImportResult">
+              <span class="text-xs text-gray-400" x-text="`(created: ${sioImportResult.created}, updated: ${sioImportResult.updated})`"></span>
+            </template>
           </div>
           <p x-show="scError" x-text="scError" class="mt-1 text-xs text-red-500 dark:text-red-400"></p>
         </div>
@@ -9338,6 +9413,390 @@
             Enter a SQL query and press Run (or ⌘↵)
           </div>
 
+        </div>
+      </div>
+
+      <!-- ── Section: Connection Stability ─────────────────────────────── -->
+      <div x-show="activeSection === 'conn-stability'" class="h-full flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#21262d] flex-shrink-0">
+          <h2 class="text-base font-semibold">Connection Stability</h2>
+          <div class="flex items-center gap-2">
+            <select x-model.number="conn.days" @change="loadConnData()"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="1">Last 1 day</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+            </select>
+            <button @click="loadConnData()" :disabled="conn.loading"
+              class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+              <span x-text="conn.loading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <!-- Toast -->
+          <div x-show="conn.toast" x-text="conn.toast?.message"
+            :class="conn.toast?.ok ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'"
+            class="text-xs px-3 py-2 rounded"></div>
+          <!-- Stats -->
+          <template x-if="conn.stats">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="bg-gray-50 dark:bg-[#161b22] rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-green-500" x-text="connStatCount('connected')"></div>
+                <div class="text-xs text-gray-400 mt-1">Connected</div>
+              </div>
+              <div class="bg-gray-50 dark:bg-[#161b22] rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-red-500" x-text="connStatCount('disconnected')"></div>
+                <div class="text-xs text-gray-400 mt-1">Disconnected</div>
+              </div>
+              <div class="bg-gray-50 dark:bg-[#161b22] rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-blue-500" x-text="connStatCount('reconnected')"></div>
+                <div class="text-xs text-gray-400 mt-1">Reconnected</div>
+              </div>
+              <div class="bg-gray-50 dark:bg-[#161b22] rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-purple-500" x-text="connUptimePct()"></div>
+                <div class="text-xs text-gray-400 mt-1">Connect Rate</div>
+              </div>
+            </div>
+          </template>
+          <!-- Events list -->
+          <template x-if="conn.events">
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="text-left text-gray-400 dark:text-[#8b949e] border-b border-gray-200 dark:border-[#21262d]">
+                    <th class="pb-2 pr-4">Time</th>
+                    <th class="pb-2 pr-4">Event</th>
+                    <th class="pb-2 pr-4">Reason</th>
+                    <th class="pb-2">JID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="ev in (conn.events.events || [])" :key="ev.id">
+                    <tr class="border-b border-gray-100 dark:border-[#21262d]">
+                      <td class="py-1.5 pr-4 text-gray-400 font-mono" x-text="ev.created"></td>
+                      <td class="py-1.5 pr-4">
+                        <span :class="connEventBadge(ev.event_type)" class="px-1.5 py-0.5 rounded text-[10px] font-medium" x-text="ev.event_type"></span>
+                      </td>
+                      <td class="py-1.5 pr-4 text-gray-400 max-w-xs truncate" x-text="ev.reason"></td>
+                      <td class="py-1.5 text-gray-400 font-mono text-[10px]" x-text="ev.jid"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <div x-show="!conn.events?.events?.length" class="text-center text-xs text-gray-400 py-8">No events found</div>
+            </div>
+          </template>
+          <div x-show="!conn.events && !conn.loading" class="text-center text-xs text-gray-400 py-8">Click Refresh to load data</div>
+        </div>
+      </div>
+
+      <!-- ── Section: WA Health ─────────────────────────────────────────── -->
+      <div x-show="activeSection === 'wa-health'" class="h-full flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#21262d] flex-shrink-0">
+          <h2 class="text-base font-semibold">WA Health</h2>
+          <div class="flex gap-2">
+            <button @click="wah.tab='prekeys'; loadWAPrekeys()"
+              :class="wah.tab==='prekeys' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#21262d] dark:text-gray-300'"
+              class="px-3 py-1.5 text-xs rounded">Pre-Keys</button>
+            <button @click="wah.tab='secrets'; loadWASecrets()"
+              :class="wah.tab==='secrets' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#21262d] dark:text-gray-300'"
+              class="px-3 py-1.5 text-xs rounded">Msg Secrets</button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <div x-show="wah.toast" x-text="wah.toast?.message"
+            :class="wah.toast?.ok ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'"
+            class="text-xs px-3 py-2 rounded"></div>
+
+          <!-- Pre-keys tab -->
+          <div x-show="wah.tab==='prekeys'">
+            <template x-if="wah.prekeys">
+              <div class="space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="bg-gray-50 dark:bg-[#161b22] rounded p-3 text-center">
+                    <div class="text-xl font-bold" x-text="wah.prekeys.total"></div>
+                    <div class="text-xs text-gray-400">Total</div>
+                  </div>
+                  <div class="bg-gray-50 dark:bg-[#161b22] rounded p-3 text-center">
+                    <div class="text-xl font-bold text-green-500" x-text="wah.prekeys.uploaded"></div>
+                    <div class="text-xs text-gray-400">Uploaded</div>
+                  </div>
+                  <div class="bg-gray-50 dark:bg-[#161b22] rounded p-3 text-center">
+                    <div class="text-xl font-bold text-yellow-500" x-text="wah.prekeys.pending"></div>
+                    <div class="text-xs text-gray-400">Pending</div>
+                  </div>
+                </div>
+                <div class="h-2 bg-gray-200 dark:bg-[#30363d] rounded overflow-hidden">
+                  <div class="h-full bg-green-500 rounded transition-all"
+                    :style="'width:' + wahPrekeyBar(wah.prekeys.uploaded, wah.prekeys.total) + '%'"></div>
+                </div>
+                <div class="text-xs text-gray-400" x-text="'Columns: ' + (wah.prekeys.columns || []).join(', ')"></div>
+              </div>
+            </template>
+            <div x-show="!wah.prekeys && !wah.loading" class="text-center text-xs text-gray-400 py-8">Loading pre-keys...</div>
+          </div>
+
+          <!-- Secrets tab -->
+          <div x-show="wah.tab==='secrets'">
+            <div class="flex items-center gap-2 mb-3">
+              <input x-model="wah.secretsFilter" @keydown.enter="loadWASecrets()" placeholder="Filter by JID..."
+                class="flex-1 text-xs rounded px-2 py-1.5 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] dark:text-gray-200">
+              <button @click="wah.secretsOffset=0; loadWASecrets()" :disabled="wah.loading"
+                class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">Search</button>
+            </div>
+            <template x-if="wah.secrets">
+              <div>
+                <div class="text-xs text-gray-400 mb-2" x-text="`${wah.secrets.total} total · showing ${(wah.secrets.secrets||[]).length}`"></div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="text-left text-gray-400 dark:text-[#8b949e] border-b border-gray-200 dark:border-[#21262d]">
+                        <template x-for="col in (wah.secrets.columns || [])" :key="col">
+                          <th class="pb-2 pr-4 font-medium" x-text="col"></th>
+                        </template>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="(row, idx) in (wah.secrets.secrets || [])" :key="idx">
+                        <tr class="border-b border-gray-100 dark:border-[#21262d]">
+                          <template x-for="col in (wah.secrets.columns || [])" :key="col">
+                            <td class="py-1.5 pr-4 font-mono max-w-[160px] truncate" :title="String(row[col]||'')" x-text="String(row[col]||'')"></td>
+                          </template>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="wah.loading" class="text-center text-xs text-gray-400 py-8">Loading…</div>
+        </div>
+      </div>
+
+      <!-- ── Section: Frame Analyzers ───────────────────────────────────── -->
+      <div x-show="activeSection === 'frames-iq'" class="h-full flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#21262d] flex-shrink-0">
+          <h2 class="text-base font-semibold">Frame Analyzers</h2>
+          <div class="flex gap-2">
+            <button @click="fiq.tab='iq'; loadIQFrames()"
+              :class="fiq.tab==='iq' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#21262d] dark:text-gray-300'"
+              class="px-3 py-1.5 text-xs rounded">IQ Nodes</button>
+            <button @click="fiq.tab='binary'; loadBinaryFrames()"
+              :class="fiq.tab==='binary' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-[#21262d] dark:text-gray-300'"
+              class="px-3 py-1.5 text-xs rounded">Binary Frames</button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div x-show="fiq.toast" x-text="fiq.toast?.message"
+            :class="fiq.toast?.ok ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'"
+            class="text-xs px-3 py-2 rounded"></div>
+
+          <!-- IQ tab filters -->
+          <div x-show="fiq.tab==='iq'" class="flex items-center gap-2 flex-wrap">
+            <select x-model="fiq.iqDirection"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="">All directions</option>
+              <option value="in">Inbound</option>
+              <option value="out">Outbound</option>
+            </select>
+            <select x-model="fiq.iqType"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="">All types</option>
+              <option value="get">get</option>
+              <option value="set">set</option>
+              <option value="result">result</option>
+              <option value="error">error</option>
+            </select>
+            <button @click="loadIQFrames()" :disabled="fiq.loading"
+              class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+              <span x-text="fiq.loading ? 'Loading…' : 'Search'"></span>
+            </button>
+          </div>
+
+          <!-- Binary tab filters -->
+          <div x-show="fiq.tab==='binary'" class="flex items-center gap-2 flex-wrap">
+            <select x-model="fiq.binDirection"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="">All directions</option>
+              <option value="in">Inbound</option>
+              <option value="out">Outbound</option>
+            </select>
+            <input x-model="fiq.binModule" placeholder="Module filter..."
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] dark:text-gray-200 w-32">
+            <button @click="loadBinaryFrames()" :disabled="fiq.loading"
+              class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+              <span x-text="fiq.loading ? 'Loading…' : 'Search'"></span>
+            </button>
+          </div>
+
+          <!-- Results table (shared) -->
+          <template x-if="(fiq.tab==='iq' && fiq.iqFrames) || (fiq.tab==='binary' && fiq.binFrames)">
+            <div class="overflow-x-auto">
+              <div class="text-xs text-gray-400 mb-2"
+                x-text="((fiq.tab==='iq' ? fiq.iqFrames : fiq.binFrames)?.total || 0) + ' frame(s)'"></div>
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="text-left text-gray-400 dark:text-[#8b949e] border-b border-gray-200 dark:border-[#21262d]">
+                    <th class="pb-2 pr-4">Time</th>
+                    <th class="pb-2 pr-4">Module</th>
+                    <th class="pb-2 pr-4">Dir</th>
+                    <th class="pb-2">Raw (preview)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="fr in ((fiq.tab==='iq' ? fiq.iqFrames : fiq.binFrames)?.frames || [])" :key="fr.id">
+                    <tr class="border-b border-gray-100 dark:border-[#21262d] cursor-pointer hover:bg-gray-50 dark:hover:bg-[#21262d]"
+                      @click="fiqToggleExpand(fr.id)">
+                      <td class="py-1.5 pr-4 text-gray-400 font-mono whitespace-nowrap" x-text="fr.created"></td>
+                      <td class="py-1.5 pr-4 font-mono" x-text="fr.module"></td>
+                      <td class="py-1.5 pr-4">
+                        <span :class="fiqDirectionBadge(fr.direction)" class="px-1.5 py-0.5 rounded text-[10px] font-medium" x-text="fr.direction"></span>
+                      </td>
+                      <td class="py-1.5 font-mono text-[10px] max-w-xs truncate text-gray-400" x-text="(fr.raw||'').substring(0,120)"></td>
+                    </tr>
+                    <tr x-show="fiq.expanded===fr.id" class="bg-gray-50 dark:bg-[#161b22]">
+                      <td colspan="4" class="py-2 px-3">
+                        <pre class="text-[10px] whitespace-pre-wrap break-all text-gray-600 dark:text-gray-300 max-h-64 overflow-y-auto" x-text="fr.raw"></pre>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </template>
+          <div x-show="fiq.loading" class="text-center text-xs text-gray-400 py-8">Loading…</div>
+        </div>
+      </div>
+
+      <!-- ── Section: Group Membership ──────────────────────────────────── -->
+      <div x-show="activeSection === 'group-membership'" class="h-full flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#21262d] flex-shrink-0">
+          <h2 class="text-base font-semibold">Group Membership Tracker</h2>
+          <div class="flex items-center gap-2">
+            <select x-model="gmt.action" @change="gmt.jidFilter=''; loadGroupMembership()"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="">All actions</option>
+              <option value="join">join</option>
+              <option value="leave">leave</option>
+              <option value="promote">promote</option>
+              <option value="demote">demote</option>
+            </select>
+            <button @click="gmt.jidFilter=''; loadGroupMembership()" :disabled="gmt.loading"
+              class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+              <span x-text="gmt.loading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div x-show="gmt.toast" x-text="gmt.toast?.message"
+            :class="gmt.toast?.ok ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'"
+            class="text-xs px-3 py-2 rounded"></div>
+          <div class="flex items-center gap-2">
+            <input x-model="gmt.jidFilter" placeholder="Filter by group JID, name, or member JID..."
+              class="flex-1 text-xs rounded px-2 py-1.5 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] dark:text-gray-200">
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-left text-gray-400 dark:text-[#8b949e] border-b border-gray-200 dark:border-[#21262d]">
+                  <th class="pb-2 pr-4">Time</th>
+                  <th class="pb-2 pr-4">Action</th>
+                  <th class="pb-2 pr-4">Group</th>
+                  <th class="pb-2 pr-4">Member</th>
+                  <th class="pb-2">Actor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="row in gmtFiltered()" :key="row.id">
+                  <tr class="border-b border-gray-100 dark:border-[#21262d]">
+                    <td class="py-1.5 pr-4 text-gray-400 font-mono whitespace-nowrap" x-text="row.created"></td>
+                    <td class="py-1.5 pr-4">
+                      <span :class="gmtActionBadge(row.action)" class="px-1.5 py-0.5 rounded text-[10px] font-medium" x-text="row.action"></span>
+                    </td>
+                    <td class="py-1.5 pr-4 font-mono text-[10px]">
+                      <div x-text="row.group_name || ''"></div>
+                      <div class="text-gray-400" x-text="row.group_jid"></div>
+                    </td>
+                    <td class="py-1.5 pr-4 font-mono text-[10px] text-gray-400" x-text="row.member_jid"></td>
+                    <td class="py-1.5 font-mono text-[10px] text-gray-400" x-text="row.actor_jid"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <div x-show="!gmtFiltered().length && !gmt.loading" class="text-center text-xs text-gray-400 py-8">No membership changes recorded yet</div>
+          </div>
+          <div x-show="gmt.loading" class="text-center text-xs text-gray-400 py-8">Loading…</div>
+        </div>
+      </div>
+
+      <!-- ── Section: Audit Log ─────────────────────────────────────────── -->
+      <div x-show="activeSection === 'audit-log'" class="h-full flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#21262d] flex-shrink-0">
+          <h2 class="text-base font-semibold">Audit Log</h2>
+          <div class="flex items-center gap-2">
+            <select x-model.number="alog.days" @change="loadAuditLog()"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="1">Last 1 day</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+            </select>
+            <select x-model="alog.method" @change="loadAuditLog()"
+              class="text-xs rounded px-2 py-1 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#161b22] dark:text-gray-200">
+              <option value="">All methods</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+            <button @click="loadAuditLog()" :disabled="alog.loading"
+              class="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+              <span x-text="alog.loading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div x-show="alog.toast" x-text="alog.toast?.message"
+            :class="alog.toast?.ok ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'"
+            class="text-xs px-3 py-2 rounded"></div>
+          <div class="flex items-center gap-2">
+            <input x-model="alog.pathFilter" @keydown.enter="loadAuditLog()" placeholder="Filter by path..."
+              class="flex-1 text-xs rounded px-2 py-1.5 border border-gray-300 dark:border-[#30363d] bg-white dark:bg-[#0d1117] dark:text-gray-200">
+          </div>
+          <template x-if="alog.entries">
+            <div class="overflow-x-auto">
+              <div class="text-xs text-gray-400 mb-2" x-text="(alog.entries.total || 0) + ' entries'"></div>
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="text-left text-gray-400 dark:text-[#8b949e] border-b border-gray-200 dark:border-[#21262d]">
+                    <th class="pb-2 pr-4">Time</th>
+                    <th class="pb-2 pr-4">Method</th>
+                    <th class="pb-2 pr-4">Path</th>
+                    <th class="pb-2 pr-4">IP</th>
+                    <th class="pb-2">Body (preview)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="entry in (alog.entries.entries || [])" :key="entry.id">
+                    <tr class="border-b border-gray-100 dark:border-[#21262d]">
+                      <td class="py-1.5 pr-4 text-gray-400 font-mono whitespace-nowrap" x-text="entry.created"></td>
+                      <td class="py-1.5 pr-4">
+                        <span :class="alogMethodBadge(entry.method)" class="px-1.5 py-0.5 rounded text-[10px] font-medium" x-text="entry.method"></span>
+                      </td>
+                      <td class="py-1.5 pr-4 font-mono text-[10px]" x-text="alogPathShort(entry.path)"></td>
+                      <td class="py-1.5 pr-4 text-gray-400 text-[10px]" x-text="entry.remote_ip"></td>
+                      <td class="py-1.5 font-mono text-[10px] text-gray-400 max-w-xs truncate" :title="entry.request_body" x-text="(entry.request_body||'').substring(0,80)"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <div x-show="!alog.entries?.entries?.length" class="text-center text-xs text-gray-400 py-8">No audit entries yet</div>
+            </div>
+          </template>
+          <div x-show="!alog.entries && !alog.loading" class="text-center text-xs text-gray-400 py-8">Click Refresh to load entries</div>
+          <div x-show="alog.loading" class="text-center text-xs text-gray-400 py-8">Loading…</div>
         </div>
       </div>
 

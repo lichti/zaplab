@@ -47,6 +47,12 @@ function zaplab() {
     receiptsSection(),
     exportSection(),
     dbSandboxSection(),
+    connStabilitySection(),
+    scriptsIOSection(),
+    waHealthSection(),
+    framesIQSection(),
+    groupMembershipSection(),
+    auditLogSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -141,6 +147,11 @@ function zaplab() {
         this.initReceipts();
         this.initExport();
         this.initDBSandbox();
+        this.initConnStability();
+        this.initWAHealth();
+        this.initFramesIQ();
+        this.initGroupMembership();
+        this.initAuditLog();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;
