@@ -1607,3 +1607,65 @@ Body:
 ```
 DELETE /zaplab/api/db/backups/{name}
 ```
+
+---
+
+## Proto Schema Browser
+
+All endpoints require **🔒 Auth**.
+
+### Get full schema
+
+```
+GET /zaplab/api/proto/schema
+```
+
+Returns the complete protobuf schema of all WhatsApp proto types registered in the binary. Schema is built once at first call and cached for the process lifetime (`sync.Once`).
+
+Response:
+```json
+{
+  "messages": [
+    {
+      "full_name": "waE2E.Message",
+      "package": "waE2E",
+      "fields": [
+        { "number": 1, "name": "conversation", "type": "string", "label": "optional", "type_ref": "", "oneof": "" },
+        { "number": 2, "name": "senderKeyDistributionMessage", "type": "message", "label": "optional", "type_ref": "waE2E.SenderKeyDistributionMessage", "oneof": "message" }
+      ],
+      "oneofs": ["message"],
+      "nested": ["waE2E.Message.DeviceSentMessage"],
+      "enums": ["waE2E.Message.MediaType"]
+    }
+  ],
+  "enums": [
+    {
+      "full_name": "waE2E.Message.MediaType",
+      "package": "waE2E",
+      "values": [
+        { "name": "UNKNOWN_MEDIA", "number": 0 },
+        { "name": "IMAGE", "number": 1 }
+      ]
+    }
+  ],
+  "packages": ["armadilloutil", "waAdv", "waCommon", "waE2E", "..."],
+  "stats": { "messages": 412, "enums": 289, "packages": 56 }
+}
+```
+
+### Get single message type
+
+```
+GET /zaplab/api/proto/message?name=<FullName>
+```
+
+Returns detail for a single message descriptor. Useful for nested types that are not listed at the top level of the full schema response (they appear as references in `nested` arrays).
+
+Query param: `name` — the full proto name, e.g. `waE2E.Message.DeviceSentMessage`
+
+Response: same shape as a single element of the `messages` array above.
+
+Error (not found):
+```json
+{ "error": "message type not found" }
+```

@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Protocol Timeline** — new dashboard section with a vertical chronological timeline of all WhatsApp protocol events.
+  - Color-coded event type badges (Message, Receipt, Presence, HistorySync, AppStateSync, Connected, Disconnected, QR, PairSuccess, CallOffer, GroupInfo, etc.).
+  - Per-event human-readable summary extracted from protocol fields (sender JID, message preview, sync type, disconnect reason, etc.).
+  - Real-time updates via PocketBase `events` collection subscription; pause/resume toggle.
+  - Filter by event type (dropdown) and free-text search across type and JSON payload.
+  - Expandable JSON detail side panel with one-click copy.
+  - Limits to last 200 events in memory; thread-safe realtime append.
+- **Proto Schema Browser** — new dashboard section exposing the full WhatsApp protobuf schema at runtime.
+  - Backend (`GET /zaplab/api/proto/schema`): enumerates all registered proto types via `protoregistry.GlobalTypes` after blank-importing all 56 whatsmeow proto packages at startup.
+  - `GET /zaplab/api/proto/message?name=<FullName>`: fetch detail for a single message type (supports nested types not in the top-level index).
+  - Frontend: two-panel layout — left sidebar with package filter, search, and scrollable message/enum list; right detail panel with fields table (number, name, type, label, oneof group), nested message navigation (click any `message` or `enum` field type to drill in), breadcrumb back-navigation, nested-message and nested-enum reference chips.
+  - Schema is computed once at startup and cached with `sync.Once` for zero-overhead subsequent calls.
+  - Full stats: total messages, enums, and packages shown in the header.
 - **DB Explorer** — new section in the dashboard to browse, edit, and restore all 12 internal whatsmeow SQLite tables (`whatsmeow_device`, `whatsmeow_identity_keys`, `whatsmeow_pre_keys`, `whatsmeow_sessions`, `whatsmeow_sender_keys`, `whatsmeow_app_state_sync_keys`, `whatsmeow_app_state_version`, `whatsmeow_app_state_mutation_macs`, `whatsmeow_contacts`, `whatsmeow_chat_settings`, `whatsmeow_message_secrets`, `whatsmeow_privacy_tokens`).
   - **Read**: paginated table view with free-text filter; column-level protocol documentation (hover tooltips) explaining each field in Signal, Noise, and WhatsApp protocol context; binary BLOB values displayed as lowercase hex strings.
   - **Write**: edit any cell inline (hex blobs decoded back to bytes automatically); delete rows with confirmation. **Automatic backup (`VACUUM INTO`) is created before every write**.

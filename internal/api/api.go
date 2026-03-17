@@ -124,6 +124,8 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/db/backups", getDBBackups).Bind(auth)
 	e.Router.POST("/zaplab/api/db/restore", postDBRestore).Bind(auth)
 	e.Router.DELETE("/zaplab/api/db/backups/{name}", deleteDBBackup).Bind(auth)
+	e.Router.GET("/zaplab/api/proto/schema", getProtoSchema).Bind(auth)
+	e.Router.GET("/zaplab/api/proto/message", getProtoMessage).Bind(auth)
 	e.Router.GET("/zaplab/tools/{path...}", apis.Static(staticFS, false))
 
 	return nil
