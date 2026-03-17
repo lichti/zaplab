@@ -37,11 +37,15 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 		pb.Logger().Warn("DB Explorer init failed", "error", err)
 	}
 	InitTriggerDispatch()
-	InitCronScheduler()
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
 func RegisterRoutes(e *core.ServeEvent) error {
+	// InitCronScheduler is called here (not in Init) because pb.DB() is nil
+	// during the OnBootstrap hook — it only becomes available after Bootstrap
+	// completes and the OnServe hook fires.
+	InitCronScheduler()
+
 	auth := requireAuth()
 
 	// Redirects
