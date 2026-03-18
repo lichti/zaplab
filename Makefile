@@ -39,11 +39,12 @@ deps-download:
 	$(GO) mod download
 
 ## css: generate Tailwind CSS (JIT, minified) → pb_public/css/tailwind.css
+## Requires Node.js: npm install (run once after cloning)
 css:
 	node_modules/.bin/tailwindcss -i tailwind.input.css -o pb_public/css/tailwind.css --minify
 
-## build: fmt + vet + compile → bin/zaplab_<OS>_<ARCH>
-build: vet deps-download
+## build: css + fmt + vet + compile → bin/zaplab_<OS>_<ARCH>
+build: css vet deps-download
 	mkdir -p $(BIN_DIR)
 	$(GO) build -ldflags "-X main.Version=$(FULL_VERSION)" -o $(BINARY) .
 
