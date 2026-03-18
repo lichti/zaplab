@@ -25,7 +25,11 @@ function contactOverviewSection() {
     coActiveTab:    'overview', // overview | presence | groups
 
     // ── init ──
-    initContactOverview() {},
+    initContactOverview() {
+      this.$watch(() => Alpine.store('nav').coJID, jid => {
+        if (jid) { this.coSelectContact(jid); Alpine.store('nav').coJID = ''; }
+      });
+    },
 
     // ── contact list ─────────────────────────────────────────────────────────
     async coLoadContacts() {
@@ -34,8 +38,8 @@ function contactOverviewSection() {
       this.coListError   = '';
       try {
         const [chatsRes, namesRes] = await Promise.all([
-          fetch('/zaplab/api/conversation/chats?limit=500', { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/conversation/names',           { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/conversation/chats?limit=500', { headers: apiHeaders() }),
+          fetch('/zaplab/api/conversation/names',           { headers: apiHeaders() }),
         ]);
         const chatsData = chatsRes.ok ? await chatsRes.json() : {};
         const namesData = namesRes.ok ? await namesRes.json() : {};
@@ -79,7 +83,7 @@ function contactOverviewSection() {
         const jid = encodeURIComponent(this.coJID);
         const res = await fetch(
           `/zaplab/api/contacts/${jid}/overview?period=${this.coPeriod}`,
-          { headers: this.apiHeaders() }
+          { headers: apiHeaders() }
         );
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
@@ -100,7 +104,7 @@ function contactOverviewSection() {
       this.coProfileLoading = true;
       try {
         const jid = encodeURIComponent(this.coJID);
-        const res = await fetch(`/zaplab/api/contacts/${jid}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/contacts/${jid}`, { headers: apiHeaders() });
         if (res.ok) this.coProfile = await res.json();
       } catch (_) {}
       this.coProfileLoading = false;
@@ -195,18 +199,18 @@ function contactOverviewSection() {
     // ── navigation ────────────────────────────────────────────────────────────
     coOpenConversation() {
       if (!this.coJID) return;
-      this.cvSelectChat(this.coJID);
-      this.setSection('conversation');
+      Alpine.store('nav').cvSelectedChat = this.coJID;
+      setSection('conversation');
     },
     coOpenSearch() {
       if (!this.coJID) return;
-      this.srQuery = '';
-      this.srChat  = this.coJID;
-      this.setSection('search');
+      Alpine.store('nav').srQuery = '';
+      Alpine.store('nav').srChat  = this.coJID;
+      setSection('search');
     },
     coOpenNetworkGraph() {
       if (!this.coJID) return;
-      this.setSection('networkgraph');
+      setSection('networkgraph');
     },
   };
 }

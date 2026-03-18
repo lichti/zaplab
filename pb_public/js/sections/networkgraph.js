@@ -46,7 +46,11 @@ function networkGraphSection() {
     ngHovered:   null,
 
     // ── init ──
-    initNetworkGraph() {},
+    initNetworkGraph() {
+      this.$watch('activeSection', val => {
+        if (val !== 'networkgraph') this.ngStopSim();
+      });
+    },
 
     // ── load ──
     async ngLoad() {
@@ -68,7 +72,7 @@ function networkGraphSection() {
         if (!this.ngIncludeGroups) params.set('include_groups', 'false');
         const res = await fetch(
           `/zaplab/api/network/graph?${params}`,
-          { headers: this.apiHeaders() }
+          { headers: apiHeaders() }
         );
         if (!res.ok) {
           const d = await res.json();

@@ -34,7 +34,7 @@ function gallerySection() {
         const params = new URLSearchParams({ limit: this.glLimit, offset: this.glOffset });
         if (this.glTypeFilter) params.set('type', this.glTypeFilter);
         if (this.glChatFilter) params.set('chat', this.glChatFilter);
-        const res = await fetch('/zaplab/api/media/gallery?' + params, { headers: this.apiHeaders() });
+        const res = await fetch('/zaplab/api/media/gallery?' + params, { headers: apiHeaders() });
         if (res.ok) {
           const d = await res.json();
           this.glItems = d.items || [];

@@ -24,8 +24,8 @@ function sessionComparatorSection() {
       this.mcError   = '';
       try {
         const [sesRes, skRes] = await Promise.all([
-          fetch('/zaplab/api/signal/sessions',   { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/signal/senderkeys', { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/signal/sessions',   { headers: apiHeaders() }),
+          fetch('/zaplab/api/signal/senderkeys', { headers: apiHeaders() }),
         ]);
         if (sesRes.ok) { const d = await sesRes.json(); this.mcSessions   = d.sessions   || []; }
         else           { this.mcError = `Sessions: ${sesRes.status}`; }

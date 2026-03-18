@@ -167,3 +167,16 @@ function zaplab() {
   );
 }
 
+// Alpine store for cross-section navigation.
+// Sections use Alpine.store('nav').X to pass state to each other
+// without needing access to the parent zaplab() scope.
+document.addEventListener('alpine:init', () => {
+  Alpine.store('nav', {
+    cvSelectedChat: '',
+    srChat:         '',
+    srQuery:        '',
+    coJID:          '',
+    gmtJID:         '',
+  });
+});
+

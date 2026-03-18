@@ -20,8 +20,8 @@ function signalSessionsSection() {
       this.ssError = '';
       try {
         const [sessRes, skRes] = await Promise.all([
-          fetch('/zaplab/api/signal/sessions',   { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/signal/senderkeys', { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/signal/sessions',   { headers: apiHeaders() }),
+          fetch('/zaplab/api/signal/senderkeys', { headers: apiHeaders() }),
         ]);
         if (sessRes.ok) {
           const d = await sessRes.json();

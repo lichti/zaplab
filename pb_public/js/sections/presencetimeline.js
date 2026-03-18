@@ -22,7 +22,7 @@ function presenceTimelineSection() {
       try {
         const p = new URLSearchParams({ days: this.ptDays, limit: 500 });
         if (this.ptJid.trim()) p.set('jid', this.ptJid.trim());
-        const res = await fetch(`/zaplab/api/presence/timeline?${p}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/presence/timeline?${p}`, { headers: apiHeaders() });
         if (!res.ok) { const t = await res.text(); throw new Error(t); }
         const data    = await res.json();
         this.ptRows    = data.events  || [];

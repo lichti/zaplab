@@ -146,7 +146,7 @@ function msgHistorySection() {
       this.mhChainLoading = true;
       try {
         const res = await fetch(`/zaplab/api/stats/editchain?msgid=${encodeURIComponent(origId)}`,
-          { headers: this.apiHeaders() });
+          { headers: apiHeaders() });
         if (res.ok) {
           const data = await res.json();
           this.mhChain = data.chain || [];

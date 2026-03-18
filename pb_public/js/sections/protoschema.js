@@ -23,7 +23,7 @@ function protoSchemaSection() {
       this.psError = '';
       try {
         const res = await fetch('/zaplab/api/proto/schema', {
-          headers: this.apiHeaders(),
+          headers: apiHeaders(),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         this.psSchema = await res.json();
@@ -111,7 +111,7 @@ function protoSchemaSection() {
       // Not found locally — try fetching via API (for nested types not in top-level lists)
       try {
         const res = await fetch(`/zaplab/api/proto/message?name=${encodeURIComponent(typeRef)}`, {
-          headers: this.apiHeaders(),
+          headers: apiHeaders(),
         });
         if (res.ok) {
           const msg = await res.json();
@@ -135,7 +135,7 @@ function protoSchemaSection() {
         // try API
         try {
           const res = await fetch(`/zaplab/api/proto/message?name=${encodeURIComponent(prev.name)}`, {
-            headers: this.apiHeaders(),
+            headers: apiHeaders(),
           });
           if (res.ok) { this.psSelected = await res.json(); this.psSelectedKind = 'message'; }
         } catch {}

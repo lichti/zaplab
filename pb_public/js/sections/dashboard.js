@@ -170,7 +170,7 @@ function dashboardSection() {
     // Navigate to Event Browser and select the given event record.
     dashGoToEvent(item) {
       this.eb.selected = item;
-      this.setSection('eventbrowser');
+      setSection('eventbrowser');
     },
 
     dashConnCardClass() {

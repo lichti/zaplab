@@ -76,7 +76,7 @@ function annotationsSection() {
         const params = new URLSearchParams({ page: this.anPage, per_page: this.anPerPage });
         if (this.anFilterEvt) params.set('event_id', this.anFilterEvt);
         if (this.anFilterJID) params.set('jid', this.anFilterJID);
-        const res = await fetch(`/zaplab/api/annotations?${params}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/annotations?${params}`, { headers: apiHeaders() });
         if (!res.ok) { this.anError = `HTTP ${res.status}`; return; }
         const data = await res.json();
         this.anItems = (data.items || []).map(this._anMapRecord.bind(this));
@@ -132,13 +132,13 @@ function annotationsSection() {
         if (this.anEditID) {
           res = await fetch(`/zaplab/api/annotations/${this.anEditID}`, {
             method: 'PATCH',
-            headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+            headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ note: this.anEditNote, tags }),
           });
         } else {
           res = await fetch('/zaplab/api/annotations', {
             method: 'POST',
-            headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+            headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({
               event_id:   this.anEditEventID,
               event_type: this.anEditEventType,
@@ -166,7 +166,7 @@ function annotationsSection() {
       try {
         await fetch(`/zaplab/api/annotations/${id}`, {
           method: 'DELETE',
-          headers: this.apiHeaders(),
+          headers: apiHeaders(),
         });
       } catch {}
     },

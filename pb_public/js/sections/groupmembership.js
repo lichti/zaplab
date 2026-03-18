@@ -17,6 +17,13 @@ function groupMembershipSection() {
           this.loadGroupMembership();
         }
       });
+      this.$watch(() => Alpine.store('nav').gmtJID, jid => {
+        if (jid) {
+          this.gmt.jidFilter = jid;
+          Alpine.store('nav').gmtJID = '';
+          this.loadGroupHistory(jid);
+        }
+      });
     },
 
     // ── load ──

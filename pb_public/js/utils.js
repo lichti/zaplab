@@ -102,3 +102,21 @@ function utilsSection() {
     },
   };
 }
+
+// ── Global helpers — callable from any Alpine x-data scope ────────────────
+// Reads credentials directly from the global `pb` instance and localStorage
+// so isolated section components don't need to reference the parent scope.
+
+function apiHeaders() {
+  const headers = {};
+  if (typeof pb !== 'undefined' && pb.authStore && pb.authStore.token) {
+    headers['Authorization'] = pb.authStore.token;
+  }
+  const apiToken = localStorage.getItem('zaplab-api-token') || '';
+  if (apiToken) headers['X-API-Token'] = apiToken;
+  return headers;
+}
+
+function setSection(s) {
+  window.location.hash = '#/' + s;
+}

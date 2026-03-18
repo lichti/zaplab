@@ -168,7 +168,7 @@ console.log("Done.");`,
       this.scLoading = true;
       this.scError   = '';
       try {
-        const res = await fetch('/zaplab/api/scripts', { headers: this.apiHeaders() });
+        const res = await fetch('/zaplab/api/scripts', { headers: apiHeaders() });
         if (res.ok) {
           const d = await res.json();
           this.scScripts = d.scripts || [];
@@ -188,7 +188,7 @@ console.log("Done.");`,
       try {
         const res = await fetch('/zaplab/api/scripts', {
           method: 'POST',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name:         this.scNewName.trim(),
             description:  this.scNewDesc.trim(),
@@ -221,7 +221,7 @@ console.log("Done.");`,
       try {
         const res = await fetch(`/zaplab/api/scripts/${script.id}`, {
           method: 'PATCH',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name:         script.name,
             description:  script.description,
@@ -250,7 +250,7 @@ console.log("Done.");`,
       try {
         const res = await fetch(`/zaplab/api/scripts/${script.id}`, {
           method: 'DELETE',
-          headers: this.apiHeaders(),
+          headers: apiHeaders(),
         });
         if (res.ok) {
           this.scScripts = this.scScripts.filter(s => s.id !== script.id);
@@ -274,7 +274,7 @@ console.log("Done.");`,
       try {
         const res = await fetch(`/zaplab/api/scripts/${script.id}/run`, {
           method: 'POST',
-          headers: this.apiHeaders(),
+          headers: apiHeaders(),
         });
         const d = await res.json();
         this.scRunStatus      = d.status || '';
@@ -314,7 +314,7 @@ console.log("Done.");`,
       try {
         const res = await fetch('/zaplab/api/scripts/run', {
           method: 'POST',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: this.scAdhocCode, timeout_secs: 15 }),
         });
         const d = await res.json();

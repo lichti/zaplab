@@ -41,7 +41,7 @@ function pairingSection() {
         // Auto-navigate to pairing section on first detection of a problem
         if (['qr', 'timeout', 'disconnected'].includes(this.wa.status) && this.activeSection !== 'pairing') {
           if (prev === 'unknown' || prev === 'connected') {
-            this.setSection('pairing');
+            setSection('pairing');
           }
         }
       } catch { /* ignore transient network errors */ }

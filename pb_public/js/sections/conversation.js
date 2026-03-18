@@ -22,6 +22,7 @@ function conversationSection() {
     cvSelectedMsg:  null,
     cvNames:        {},
     cvOrderAsc:     true, // true = old→new, false = new→old
+    cvDisplayLimit: 80,   // max bubbles rendered at once — "Show more" increments this
 
     // ── init ──
     initConversation() {
@@ -29,6 +30,14 @@ function conversationSection() {
         if (val === 'conversation' && this.cvChats.length === 0) this.cvLoadChats();
         if (val === 'conversation' && this.cvSelectedChat && this.cvMessages.length === 0)
           this.cvSelectChat(this.cvSelectedChat);
+      });
+      // Consume cross-section navigation requests via Alpine.store('nav')
+      this.$watch(() => Alpine.store('nav').cvSelectedChat, jid => {
+        if (jid) {
+          this.cvSelectChat(jid);
+          Alpine.store('nav').cvSelectedChat = '';
+          if (this.activeSection !== 'conversation') setSection('conversation');
+        }
       });
     },
 
@@ -39,8 +48,8 @@ function conversationSection() {
       this.cvChatsError   = '';
       try {
         const [chatsRes, namesRes] = await Promise.all([
-          fetch('/zaplab/api/conversation/chats?limit=200', { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/conversation/names',           { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/conversation/chats?limit=200', { headers: apiHeaders() }),
+          fetch('/zaplab/api/conversation/names',           { headers: apiHeaders() }),
         ]);
         if (chatsRes.ok) this.cvChats = (await chatsRes.json()).chats || [];
         if (namesRes.ok) this.cvNames = (await namesRes.json()).names || {};
@@ -58,6 +67,7 @@ function conversationSection() {
       this.cvReactions    = {};
       this.cvEdits        = {};
       this.cvReactMap     = {};
+      this.cvDisplayLimit = 80;
       this.cvEditMap      = {};
       this.cvHasMore      = false;
       this.cvNextBefore   = null;
@@ -72,7 +82,7 @@ function conversationSection() {
       try {
         const params = new URLSearchParams({ chat, limit: 60 });
         if (before) params.set('before', before);
-        const res = await fetch('/zaplab/api/conversation?' + params, { headers: this.apiHeaders() });
+        const res = await fetch('/zaplab/api/conversation?' + params, { headers: apiHeaders() });
         if (res.ok) {
           const d    = await res.json();
           const msgs = (d.messages || []).reverse();
@@ -134,7 +144,19 @@ function conversationSection() {
         m.type !== 'deleted' &&
         !(m.type && m.type.startsWith('edited_'))
       );
-      return this.cvOrderAsc ? msgs : [...msgs].reverse();
+      const ordered = this.cvOrderAsc ? msgs : [...msgs].reverse();
+      return ordered.slice(-this.cvDisplayLimit);
+    },
+
+    cvShowMoreMessages() {
+      this.cvDisplayLimit = Math.min(this.cvDisplayLimit + 80, this.cvMessages.length + 80);
+    },
+
+    cvHasHiddenMessages() {
+      const visible = this.cvMessages.filter(m =>
+        m.type !== 'reaction' && m.type !== 'deleted' && !(m.type && m.type.startsWith('edited_'))
+      );
+      return visible.length > this.cvDisplayLimit;
     },
 
     cvToggleOrder() { this.cvOrderAsc = !this.cvOrderAsc; },
@@ -146,7 +168,7 @@ function conversationSection() {
       // Reset other filters so the result is clean
       this.eb.filterType = '';
       this.eb.filterText = '';
-      this.setSection('eventbrowser');
+      setSection('eventbrowser');
       this.ebSearch();
     },
 

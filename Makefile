@@ -25,7 +25,7 @@ DATA_DIR ?= $(or $(ZAPLAB_DATA_DIR),$(HOME)/.zaplab)
 .DEFAULT_GOAL := build
 .PHONY: fmt vet deps-download build link build-run run tag tag-push git-init \
         build-img run-docker down clean clean-docker ps logs \
-        shell help
+        shell help css
 
 # ─── Go ───────────────────────────────────────────────────────────────────────
 
@@ -37,6 +37,10 @@ vet: fmt
 
 deps-download:
 	$(GO) mod download
+
+## css: generate Tailwind CSS (JIT, minified) → pb_public/css/tailwind.css
+css:
+	node_modules/.bin/tailwindcss -i tailwind.input.css -o pb_public/css/tailwind.css --minify
 
 ## build: fmt + vet + compile → bin/zaplab_<OS>_<ARCH>
 build: vet deps-download

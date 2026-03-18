@@ -19,8 +19,8 @@ function cronSchedulerSection() {
       this.csError   = '';
       try {
         const [schedRes, scriptsRes] = await Promise.all([
-          fetch('/zaplab/api/scripts/cron',  { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/scripts',        { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/scripts/cron',  { headers: apiHeaders() }),
+          fetch('/zaplab/api/scripts',        { headers: apiHeaders() }),
         ]);
         if (schedRes.ok)   this.csSchedules = ((await schedRes.json()).schedules) || [];
         if (scriptsRes.ok) this.csScripts   = ((await scriptsRes.json()).scripts)  || [];
@@ -43,7 +43,7 @@ function cronSchedulerSection() {
       try {
         const res = await fetch(`/zaplab/api/scripts/${this.csEditId}`, {
           method:  'PATCH',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body:    JSON.stringify({ cron_expression: this.csEditExpr }),
         });
         if (!res.ok) { const t = await res.text(); throw new Error(t); }
@@ -59,7 +59,7 @@ function cronSchedulerSection() {
       try {
         const res = await fetch(`/zaplab/api/scripts/${scriptId}`, {
           method:  'PATCH',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body:    JSON.stringify({ cron_expression: '' }),
         });
         if (!res.ok) { const t = await res.text(); throw new Error(t); }

@@ -50,7 +50,7 @@ function exportSection() {
           filename = `zaplab-frames-${this._ts()}.har`;
         }
 
-        const res = await fetch(url, { headers: this.apiHeaders() });
+        const res = await fetch(url, { headers: apiHeaders() });
         if (!res.ok) { const t = await res.text(); throw new Error(t); }
         const blob = await res.blob();
         const a    = document.createElement('a');

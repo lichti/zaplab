@@ -34,8 +34,8 @@ function groupOverviewSection() {
       this.govListError   = '';
       try {
         const [chatsRes, namesRes] = await Promise.all([
-          fetch('/zaplab/api/conversation/chats?limit=500', { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/conversation/names',           { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/conversation/chats?limit=500', { headers: apiHeaders() }),
+          fetch('/zaplab/api/conversation/names',           { headers: apiHeaders() }),
         ]);
         const chatsData = chatsRes.ok ? await chatsRes.json() : {};
         const namesData = namesRes.ok ? await namesRes.json() : {};
@@ -79,7 +79,7 @@ function groupOverviewSection() {
         const jid = encodeURIComponent(this.govJID);
         const res = await fetch(
           `/zaplab/api/groups/${jid}/overview?period=${this.govPeriod}`,
-          { headers: this.apiHeaders() }
+          { headers: apiHeaders() }
         );
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
@@ -100,7 +100,7 @@ function groupOverviewSection() {
       this.govProfileLoading = true;
       try {
         const jid = encodeURIComponent(this.govJID);
-        const res = await fetch(`/zaplab/api/contacts/${jid}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/contacts/${jid}`, { headers: apiHeaders() });
         if (res.ok) this.govProfile = await res.json();
       } catch (_) {}
       this.govProfileLoading = false;
@@ -196,34 +196,27 @@ function groupOverviewSection() {
     // ── navigation ────────────────────────────────────────────────────────────
     govOpenConversation() {
       if (!this.govJID) return;
-      this.cvSelectChat(this.govJID);
-      this.setSection('conversation');
+      Alpine.store('nav').cvSelectedChat = this.govJID;
+      setSection('conversation');
     },
     govOpenMembership() {
       if (!this.govJID) return;
-      this.gmt.jidFilter = this.govJID;
-      this.setSection('group-membership');
-      this.$nextTick(() => this.loadGroupHistory(this.govJID));
+      Alpine.store('nav').gmtJID = this.govJID;
+      setSection('group-membership');
     },
     govOpenSearch() {
       if (!this.govJID) return;
-      this.srQuery = '';
-      this.srChat  = this.govJID;
-      this.setSection('search');
+      Alpine.store('nav').srQuery = '';
+      Alpine.store('nav').srChat  = this.govJID;
+      setSection('search');
     },
     govOpenNetworkGraph() {
       if (!this.govJID) return;
-      this.setSection('networkgraph');
+      setSection('networkgraph');
     },
     govOpenMemberProfile(jid) {
-      this.coJID = jid;
-      this.setSection('contact-overview');
-      this.$nextTick(() => {
-        this.coData    = null;
-        this.coProfile = null;
-        this.coLoad();
-        this.coLoadProfile();
-      });
+      Alpine.store('nav').coJID = jid;
+      setSection('contact-overview');
     },
   };
 }

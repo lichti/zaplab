@@ -32,9 +32,9 @@ function triggersSection() {
       this.trError   = '';
       try {
         const [triRes, typRes, scrRes] = await Promise.all([
-          fetch('/zaplab/api/script-triggers',             { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/script-triggers/event-types', { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/scripts',                     { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/script-triggers',             { headers: apiHeaders() }),
+          fetch('/zaplab/api/script-triggers/event-types', { headers: apiHeaders() }),
+          fetch('/zaplab/api/scripts',                     { headers: apiHeaders() }),
         ]);
         if (triRes.ok) this.trTriggers      = (await triRes.json()).triggers || [];
         if (typRes.ok) this.trEventTypes    = (await typRes.json()).types    || [];
@@ -52,7 +52,7 @@ function triggersSection() {
       try {
         const res = await fetch('/zaplab/api/script-triggers', {
           method: 'POST',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             script_id:    this.trNewScriptId,
             event_type:   this.trNewEventType,
@@ -85,7 +85,7 @@ function triggersSection() {
       try {
         const res = await fetch(`/zaplab/api/script-triggers/${t.id}`, {
           method: 'PATCH',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             script_id:    t.script_id,
             event_type:   t.event_type,
@@ -114,7 +114,7 @@ function triggersSection() {
       try {
         const res = await fetch(`/zaplab/api/script-triggers/${t.id}`, {
           method: 'DELETE',
-          headers: this.apiHeaders(),
+          headers: apiHeaders(),
         });
         if (res.ok) {
           this.trTriggers = this.trTriggers.filter(x => x.id !== t.id);

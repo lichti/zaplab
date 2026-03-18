@@ -19,6 +19,12 @@ function searchSection() {
       this.$watch('activeSection', val => {
         if (val !== 'search') this.srSelectedEvent = null;
       });
+      this.$watch(() => Alpine.store('nav').srChat, v => {
+        if (v) { this.srChat = v; Alpine.store('nav').srChat = ''; }
+      });
+      this.$watch(() => Alpine.store('nav').srQuery, v => {
+        if (v !== undefined && v !== '') { this.srQuery = v; Alpine.store('nav').srQuery = ''; }
+      });
     },
 
     // ── search ──
@@ -31,7 +37,7 @@ function searchSection() {
         const params = new URLSearchParams({ q: this.srQuery.trim(), limit: this.srLimit, offset: this.srOffset });
         if (this.srType) params.set('type', this.srType);
         if (this.srChat) params.set('chat', this.srChat);
-        const res = await fetch('/zaplab/api/search?' + params, { headers: this.apiHeaders() });
+        const res = await fetch('/zaplab/api/search?' + params, { headers: apiHeaders() });
         if (res.ok) {
           const d = await res.json();
           this.srResults = d.results || [];
@@ -85,7 +91,7 @@ function searchSection() {
     // Navigate to conversation view for a chat
     srOpenConversation(chat) {
       this.cvSelectedChat = chat;
-      this.setSection('conversation');
+      setSection('conversation');
     },
   };
 }

@@ -47,7 +47,7 @@ function frameCaptureSection() {
       const params = new URLSearchParams({ limit: 500 });
       if (this.fcModuleFilter) params.set('module', this.fcModuleFilter);
       if (this.fcLevelFilter)  params.set('level',  this.fcLevelFilter);
-      const res = await fetch(`/zaplab/api/frames/ring?${params}`, { headers: this.apiHeaders() });
+      const res = await fetch(`/zaplab/api/frames/ring?${params}`, { headers: apiHeaders() });
       if (!res.ok) return;
       const data = await res.json();
       this.fcEntries = (data.entries || []).reverse(); // newest first
@@ -58,7 +58,7 @@ function frameCaptureSection() {
       if (this.fcModuleFilter) params.set('module', this.fcModuleFilter);
       if (this.fcLevelFilter)  params.set('level',  this.fcLevelFilter);
       if (this.fcSearch)       params.set('search', this.fcSearch);
-      const res = await fetch(`/zaplab/api/frames?${params}`, { headers: this.apiHeaders() });
+      const res = await fetch(`/zaplab/api/frames?${params}`, { headers: apiHeaders() });
       if (!res.ok) return;
       const data = await res.json();
       this.fcEntries = data.items || [];
@@ -67,7 +67,7 @@ function frameCaptureSection() {
 
     async fcLoadModules() {
       try {
-        const res = await fetch('/zaplab/api/frames/modules', { headers: this.apiHeaders() });
+        const res = await fetch('/zaplab/api/frames/modules', { headers: apiHeaders() });
         if (res.ok) {
           const data = await res.json();
           this.fcModules = (data.modules || []).sort();
@@ -128,7 +128,7 @@ function frameCaptureSection() {
       if (this.fcLevelFilter)  params.set('level',  this.fcLevelFilter);
       if (this.fcSearch.trim()) params.set('search', this.fcSearch.trim());
       try {
-        const res = await fetch(`/zaplab/api/frames/pcap?${params}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/frames/pcap?${params}`, { headers: apiHeaders() });
         if (!res.ok) return;
         const blob = await res.blob();
         const url  = URL.createObjectURL(blob);

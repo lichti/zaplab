@@ -37,10 +37,10 @@ function statsSection() {
       try {
         const p   = this.stPeriod;
         const [sumRes, heatRes, dailyRes, typesRes] = await Promise.all([
-          fetch('/zaplab/api/stats/summary',                   { headers: this.apiHeaders() }),
-          fetch(`/zaplab/api/stats/heatmap?period=${p}`,       { headers: this.apiHeaders() }),
-          fetch(`/zaplab/api/stats/daily?days=${p || 365}`,    { headers: this.apiHeaders() }),
-          fetch(`/zaplab/api/stats/types?period=${p}&limit=15`,{ headers: this.apiHeaders() }),
+          fetch('/zaplab/api/stats/summary',                   { headers: apiHeaders() }),
+          fetch(`/zaplab/api/stats/heatmap?period=${p}`,       { headers: apiHeaders() }),
+          fetch(`/zaplab/api/stats/daily?days=${p || 365}`,    { headers: apiHeaders() }),
+          fetch(`/zaplab/api/stats/types?period=${p}&limit=15`,{ headers: apiHeaders() }),
         ]);
         if (sumRes.ok)   this.stSummary   = await sumRes.json();
         if (heatRes.ok)  this.stHeatCells = (await heatRes.json()).cells || [];

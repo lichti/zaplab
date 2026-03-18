@@ -22,7 +22,7 @@ function receiptsSection() {
         const p = new URLSearchParams({ days: this.rlDays, limit: 500 });
         if (this.rlJid.trim())  p.set('jid',  this.rlJid.trim());
         if (this.rlType.trim()) p.set('type', this.rlType.trim());
-        const res = await fetch(`/zaplab/api/stats/receipt-latency?${p}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/stats/receipt-latency?${p}`, { headers: apiHeaders() });
         if (!res.ok) { const t = await res.text(); throw new Error(t); }
         const data   = await res.json();
         this.rlRows  = data.rows  || [];

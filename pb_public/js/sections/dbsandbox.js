@@ -36,7 +36,7 @@ function dbSandboxSection() {
       try {
         const res = await fetch('/zaplab/api/db/query', {
           method:  'POST',
-          headers: { ...this.apiHeaders(), 'Content-Type': 'application/json' },
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
           body:    JSON.stringify({ sql: this.sbSQL }),
         });
         const data = await res.json();

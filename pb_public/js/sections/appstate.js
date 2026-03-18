@@ -34,8 +34,8 @@ function appStateSection() {
       this.asError   = '';
       try {
         const [colRes, keyRes] = await Promise.all([
-          fetch('/zaplab/api/appstate/collections', { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/appstate/synckeys',    { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/appstate/collections', { headers: apiHeaders() }),
+          fetch('/zaplab/api/appstate/synckeys',    { headers: apiHeaders() }),
         ]);
         if (colRes.ok) {
           const d = await colRes.json();
@@ -61,7 +61,7 @@ function appStateSection() {
       this.asError = '';
       try {
         const params = new URLSearchParams({ collection: this.asMutCollection, limit: this.asMutLimit });
-        const res = await fetch(`/zaplab/api/appstate/mutations?${params}`, { headers: this.apiHeaders() });
+        const res = await fetch(`/zaplab/api/appstate/mutations?${params}`, { headers: apiHeaders() });
         const d   = await res.json();
         if (!res.ok) { this.asError = d.error || 'Failed'; return; }
         this.asMutations = d.mutations || [];

@@ -13,8 +13,7 @@
     })();
   </script>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link rel="stylesheet" href="css/tailwind.css">
   <script src="https://cdn.jsdelivr.net/npm/pocketbase/dist/pocketbase.umd.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
 
@@ -6821,8 +6820,8 @@
       </div>
 
       <!-- ── Section: Frame Capture ───────────────────────────────────── -->
+      <template x-if="activeSection === 'framecapture'">
       <div
-        x-show="activeSection === 'framecapture'"
         x-effect="if (activeSection === 'framecapture') { fcLoad(); fcSubscribe(); fcLoadModules(); }"
         class="flex flex-col h-full overflow-hidden"
       >
@@ -6967,6 +6966,7 @@
 
         </div>
       </div>
+      </template>
 
       <!-- ── Section: Noise Handshake Inspector ─────────────────────────── -->
       <div
@@ -7529,8 +7529,8 @@
       <!-- ══════════════════════════════════════════════════════════════════ -->
       <!-- Advanced Stats & Heatmap                                           -->
       <!-- ══════════════════════════════════════════════════════════════════ -->
+      <template x-if="activeSection === 'stats'">
       <div
-        x-show="activeSection === 'stats'"
         x-effect="if (activeSection === 'stats' && !stSummary && !stLoading) stLoad()"
         class="flex flex-col h-full overflow-hidden"
       >
@@ -7702,6 +7702,7 @@
 
       </div><!-- end scroll wrapper -->
       </div><!-- end stats section -->
+      </template>
 
       <!-- ── Section: App State Inspector ─────────────────────────────────── -->
       <div
@@ -8132,8 +8133,8 @@
       </div>
 
       <!-- ── Section: Network Graph ─────────────────────────────────────────── -->
+      <template x-if="activeSection === 'networkgraph'">
       <div
-        x-show="activeSection === 'networkgraph'"
         x-effect="if (activeSection === 'networkgraph' && !ngNodes.length && !ngLoading) ngLoad()"
         class="flex flex-col h-full overflow-hidden"
       >
@@ -8305,6 +8306,7 @@
           </div>
         </div>
       </div>
+      </template>
 
       <!-- ── Section: Contact Overview ────────────────────────────────────────── -->
       <div
@@ -8990,8 +8992,8 @@
       </div>
 
       <!-- ── Section: Scripting ─────────────────────────────────────────────── -->
+      <template x-if="activeSection === 'scripting'">
       <div
-        x-show="activeSection === 'scripting'"
         x-effect="if (activeSection === 'scripting' && scScripts.length === 0 && !scLoading) scLoad()"
         class="flex flex-col h-full overflow-hidden"
       >
@@ -9151,6 +9153,7 @@
 
         </div>
       </div>
+      </template>
 
 
       <!-- ── Section: Search ────────────────────────────────────────────────── -->
@@ -9308,6 +9311,12 @@
                   <template x-if="cvMsgLoading && cvMessages.length === 0">
                     <p class="text-xs text-gray-400 text-center py-4">Loading…</p>
                   </template>
+                  <!-- Show more (hidden messages above the display window) -->
+                  <div x-show="cvHasHiddenMessages()" class="text-center py-2">
+                    <button @click="cvShowMoreMessages()" class="text-xs px-3 py-1 rounded-full bg-gray-100 dark:bg-[#21262d] text-gray-500 dark:text-[#8b949e] hover:bg-gray-200 dark:hover:bg-[#30363d] transition-colors">
+                      Show older messages
+                    </button>
+                  </div>
                   <template x-for="msg in cvDisplayMessages()" :key="msg.id">
                     <div class="flex" :class="msg.is_from_me ? 'justify-end' : 'justify-start'">
                       <div @click="cvSelectedMsg = msg" class="max-w-[75%] cursor-pointer group">

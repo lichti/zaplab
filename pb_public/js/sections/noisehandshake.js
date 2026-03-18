@@ -76,8 +76,8 @@ function noiseHandshakeSection() {
       this.nhError = '';
       try {
         const [keysRes, ringRes] = await Promise.all([
-          fetch('/zaplab/api/wa/keys', { headers: this.apiHeaders() }),
-          fetch('/zaplab/api/frames/ring?limit=200', { headers: this.apiHeaders() }),
+          fetch('/zaplab/api/wa/keys', { headers: apiHeaders() }),
+          fetch('/zaplab/api/frames/ring?limit=200', { headers: apiHeaders() }),
         ]);
         if (keysRes.ok) {
           this.nhKeys = await keysRes.json();
