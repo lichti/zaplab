@@ -231,6 +231,10 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	// Group membership tracker
 	e.Router.GET("/zaplab/api/groups/membership", getGroupMembershipAll).Bind(auth)
 	e.Router.GET("/zaplab/api/groups/{jid}/history", getGroupMembershipHistory).Bind(auth)
+	e.Router.GET("/zaplab/api/groups/{jid}/overview", getGroupOverview).Bind(auth)
+
+	// Contact overview
+	e.Router.GET("/zaplab/api/contacts/{jid}/overview", getContactOverview).Bind(auth)
 
 	// Audit log
 	e.Router.GET("/zaplab/api/audit", getAuditLog).Bind(auth)

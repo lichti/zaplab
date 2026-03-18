@@ -31,26 +31,64 @@ import (
 //
 // Query params:
 //
-//	period  int  days to look back (default 30, max 365; 0 = all time)
-//	limit   int  max Message events to scan (default 2000, max 10000)
+//	period        int     days to look back (default 30, max 365; 0 = all time)
+//	date_from     string  ISO-8601 date lower bound (overrides period when set)
+//	date_to       string  ISO-8601 date upper bound (inclusive)
+//	event_types   string  comma-separated event type filters (default "Message")
+//	min_msgs      int     minimum message count for a node to be included (default 1)
+//	include_groups bool   include group nodes (default true; set "false" to hide)
+//	limit         int     max events to scan (default 2000, max 10000)
 func getNetworkGraph(e *core.RequestEvent) error {
-	period, _ := strconv.Atoi(e.Request.URL.Query().Get("period"))
+	q := e.Request.URL.Query()
+
+	period, _ := strconv.Atoi(q.Get("period"))
 	if period < 0 || period > 365 {
 		period = 30
 	}
-	limit, _ := strconv.Atoi(e.Request.URL.Query().Get("limit"))
+	limit, _ := strconv.Atoi(q.Get("limit"))
 	if limit < 100 || limit > 10000 {
 		limit = 2000
 	}
+	minMsgs, _ := strconv.Atoi(q.Get("min_msgs"))
+	if minMsgs < 1 {
+		minMsgs = 1
+	}
+	includeGroups := q.Get("include_groups") != "false"
 
-	periodClause := ""
-	if period > 0 {
-		periodClause = fmt.Sprintf("AND datetime(created) >= datetime('now', '-%d days')", period)
+	dateFrom := sanitizeSQL(q.Get("date_from"))
+	dateTo := sanitizeSQL(q.Get("date_to"))
+
+	// Build event-type filter — default to Message only
+	rawTypes := q.Get("event_types")
+	var typeFilters []string
+	if rawTypes != "" {
+		for _, t := range strings.Split(rawTypes, ",") {
+			t = strings.TrimSpace(t)
+			if t != "" {
+				typeFilters = append(typeFilters, "'"+sanitizeSQL(t)+"'")
+			}
+		}
+	}
+	typeClause := "type = 'Message'"
+	if len(typeFilters) > 0 {
+		typeClause = "type IN (" + strings.Join(typeFilters, ",") + ")"
+	}
+
+	// Date range: explicit date_from/date_to take priority over period
+	var timeClause string
+	if dateFrom != "" && dateTo != "" {
+		timeClause = fmt.Sprintf("AND datetime(created) BETWEEN datetime('%s') AND datetime('%s', '+1 day')", dateFrom, dateTo)
+	} else if dateFrom != "" {
+		timeClause = fmt.Sprintf("AND datetime(created) >= datetime('%s')", dateFrom)
+	} else if dateTo != "" {
+		timeClause = fmt.Sprintf("AND datetime(created) <= datetime('%s', '+1 day')", dateTo)
+	} else if period > 0 {
+		timeClause = fmt.Sprintf("AND datetime(created) >= datetime('now', '-%d days')", period)
 	}
 
 	rawSQL := fmt.Sprintf(
-		`SELECT raw FROM events WHERE type = 'Message' %s ORDER BY created DESC LIMIT %d`,
-		periodClause, limit,
+		`SELECT raw FROM events WHERE %s %s ORDER BY created DESC LIMIT %d`,
+		typeClause, timeClause, limit,
 	)
 
 	type rawRow struct {
@@ -156,6 +194,11 @@ func getNetworkGraph(e *core.RequestEvent) error {
 			chatType = "broadcast"
 		}
 
+		// Skip group nodes when include_groups=false
+		if chatType == "group" && !includeGroups {
+			continue
+		}
+
 		chatNode := getOrCreate(chat, chatType)
 		chatNode.MsgCount++
 
@@ -178,11 +221,14 @@ func getNetworkGraph(e *core.RequestEvent) error {
 		addEdge(selfJID, chat)
 	}
 
-	// ── trim to top-N nodes by message count ─────────────────────────────────
+	// ── apply min_msgs filter then trim to top-N nodes by message count ─────
 
 	const maxNodes = 100
 	nodes := make([]*nodeData, 0, len(nodeMap))
 	for _, n := range nodeMap {
+		if n.NodeType != "self" && n.MsgCount < minMsgs {
+			continue
+		}
 		nodes = append(nodes, n)
 	}
 	sort.Slice(nodes, func(i, j int) bool {
@@ -214,6 +260,10 @@ func getNetworkGraph(e *core.RequestEvent) error {
 		"nodes":          nodes,
 		"edges":          edges,
 		"period":         period,
+		"date_from":      dateFrom,
+		"date_to":        dateTo,
+		"min_msgs":       minMsgs,
+		"include_groups": includeGroups,
 		"total_messages": len(rows),
 		"total_nodes":    len(nodes),
 		"total_edges":    len(edges),

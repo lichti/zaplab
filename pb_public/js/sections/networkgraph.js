@@ -15,15 +15,20 @@
 function networkGraphSection() {
   return {
     // ── state ──
-    ngLoading:    false,
-    ngError:      '',
-    ngPeriod:     30,
-    ngPeriodOpts: [7, 30, 90, 365, 0],
-    ngNodes:      [],
-    ngEdges:      [],
-    ngNodeMap:    {},
-    ngStats:      { total_messages: 0, total_nodes: 0, total_edges: 0 },
-    ngSelected:   null,   // hovered/clicked node
+    ngLoading:       false,
+    ngError:         '',
+    ngPeriod:        30,
+    ngPeriodOpts:    [7, 30, 90, 365, 0],
+    ngDateFrom:      '',
+    ngDateTo:        '',
+    ngMinMsgs:       1,
+    ngIncludeGroups: true,
+    ngShowFilters:   false,
+    ngNodes:         [],
+    ngEdges:         [],
+    ngNodeMap:       {},
+    ngStats:         { total_messages: 0, total_nodes: 0, total_edges: 0 },
+    ngSelected:      null,   // hovered/clicked node
 
     // ── physics constants ──
     ngRepulsion: 9000,
@@ -52,8 +57,17 @@ function networkGraphSection() {
       this.ngHovered  = null;
       if (this.ngFrame) cancelAnimationFrame(this.ngFrame);
       try {
+        const params = new URLSearchParams();
+        if (this.ngDateFrom && this.ngDateTo) {
+          params.set('date_from', this.ngDateFrom);
+          params.set('date_to',   this.ngDateTo);
+        } else {
+          params.set('period', this.ngPeriod);
+        }
+        if (this.ngMinMsgs > 1) params.set('min_msgs', this.ngMinMsgs);
+        if (!this.ngIncludeGroups) params.set('include_groups', 'false');
         const res = await fetch(
-          `/zaplab/api/network/graph?period=${this.ngPeriod}`,
+          `/zaplab/api/network/graph?${params}`,
           { headers: this.apiHeaders() }
         );
         if (!res.ok) {
@@ -342,6 +356,55 @@ function networkGraphSection() {
 
     ngResumeSim() {
       this._ngStartSim();
+    },
+
+    // ── export ────────────────────────────────────────────────────────────────
+
+    ngExportPNG() {
+      const canvas = this.$refs && this.$refs.ngCanvas;
+      if (!canvas) return;
+      const a = document.createElement('a');
+      a.href     = canvas.toDataURL('image/png');
+      a.download = 'network-graph.png';
+      a.click();
+    },
+
+    ngExportJSON() {
+      const payload = {
+        nodes: this.ngNodes.map(n => ({
+          id: n.id, label: n.label, node_type: n.node_type, msg_count: n.msg_count,
+        })),
+        edges: this.ngEdges.map(e => ({
+          source: e.source, target: e.target, weight: e.weight,
+        })),
+        stats: this.ngStats,
+        exported_at: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = 'network-graph.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    },
+
+    ngExportCSV() {
+      const header = 'source,target,weight\n';
+      const rows   = this.ngEdges.map(e => `${e.source},${e.target},${e.weight}`).join('\n');
+      const blob   = new Blob([header + rows], { type: 'text/csv' });
+      const a      = document.createElement('a');
+      a.href       = URL.createObjectURL(blob);
+      a.download   = 'network-edges.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    },
+
+    ngResetFilters() {
+      this.ngDateFrom      = '';
+      this.ngDateTo        = '';
+      this.ngMinMsgs       = 1;
+      this.ngIncludeGroups = true;
+      this.ngPeriod        = 30;
     },
   };
 }

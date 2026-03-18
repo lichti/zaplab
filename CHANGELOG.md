@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Dev]
 
+### Added
+- **Contact Overview Dashboard** — rich analytics profile for a single contact JID.
+  - New endpoint `GET /zaplab/api/contacts/{jid}/overview?period=N`.
+  - Returns: DM stats (total/received/sent/media), group activity, edit/delete counts, common groups (up to 15 with names), activity heatmap 7×24, daily sparkline, first/last seen.
+  - **Frontend**: sidebar contact list with search, summary cards, sparkline, heatmap, common groups table with quick-link to Group Overview, action buttons (View Chat, Search, Network Graph).
+- **Group Overview Dashboard** — rich analytics panel for a single group JID.
+  - New endpoint `GET /zaplab/api/groups/{jid}/overview?period=N`.
+  - Returns: summary (total messages/media/active-members/known-members/silent-members/edited/deleted), member ranking top-25 with name enrichment, activity heatmap 7×24, daily sparkline, membership evolution (joins/leaves per day), message type distribution.
+  - **Frontend**: sidebar group list with search, summary cards, sparkline, heatmap, member ranking table with Profile button (→ Contact Overview), type distribution bars, membership events log, action buttons (View Chat, Members, Search).
+- **Network Graph — Advanced Filters** — new filter panel in the Network Graph section.
+  - New query params: `date_from`, `date_to` (ISO-8601, override `period`), `min_msgs` (minimum node message count), `include_groups` (boolean).
+  - **Frontend**: collapsible "Filters" panel with date pickers, min-msgs input, groups toggle, Reset and Apply buttons.
+- **Network Graph — Export** — three export buttons added to the header: **PNG** (canvas snapshot), **JSON** (nodes + edges + stats), **CSV** (edge list).
+
 ---
 
 ## [v1.0.0-beta.8] — 2026-03-17

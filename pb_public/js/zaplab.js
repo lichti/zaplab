@@ -53,6 +53,8 @@ function zaplab() {
     framesIQSection(),
     groupMembershipSection(),
     auditLogSection(),
+    contactOverviewSection(),
+    groupOverviewSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -152,6 +154,8 @@ function zaplab() {
         this.initFramesIQ();
         this.initGroupMembership();
         this.initAuditLog();
+        this.initContactOverview();
+        this.initGroupOverview();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;
