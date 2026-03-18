@@ -124,6 +124,8 @@ func getGroupOverview(e *core.RequestEvent) error {
 		MsgCount   int    `json:"msg_count"`
 		MediaCount int    `json:"media_count"`
 	}
+	// 'demote' means the member was demoted from admin but is still in the group.
+	// Include join + promote + demote; exclude only leave.
 	var currentMembers []memberRow
 	_ = pb.DB().NewQuery(fmt.Sprintf(`
 		SELECT m.member_jid, m.action
@@ -134,9 +136,12 @@ func getGroupOverview(e *core.RequestEvent) error {
 		    GROUP BY member_jid
 		) latest ON m.member_jid = latest.member_jid AND m.created = latest.max_created
 		WHERE m.group_jid = '%s'
-		  AND m.action IN ('join', 'promote')
+		  AND m.action NOT IN ('leave')
 		ORDER BY m.member_jid ASC`, jid, jid)).All(&currentMembers)
 
+	// Build a set of known current members for quick lookup.
+	memberSet := map[string]bool{}
+	adminSet := map[string]bool{}
 	for i := range currentMembers {
 		currentMembers[i].IsAdmin = currentMembers[i].Action == "promote"
 		currentMembers[i].Name = enrichName(currentMembers[i].MemberJID)
@@ -144,35 +149,58 @@ func getGroupOverview(e *core.RequestEvent) error {
 			currentMembers[i].MsgCount = stats.MsgCount
 			currentMembers[i].MediaCount = stats.MediaCount
 		}
+		memberSet[currentMembers[i].MemberJID] = true
+		if currentMembers[i].IsAdmin {
+			adminSet[currentMembers[i].MemberJID] = true
+		}
 	}
 
 	// ── Derived lists ──────────────────────────────────────────────────────────
+	// Admins: from membership data (requires recorded events).
 	var admins []memberRow
-	var silentList []memberRow
-	var activeList []memberRow
-
 	for _, m := range currentMembers {
 		if m.IsAdmin {
 			admins = append(admins, m)
 		}
-		if m.MsgCount == 0 {
-			silentList = append(silentList, m)
-		} else {
-			activeList = append(activeList, m)
+	}
+
+	// Top 5 active / least active: derived from senderStats (message events),
+	// which is always populated regardless of membership history completeness.
+	// Enrich with admin status from membership data where available.
+	sortedSenders := make([]senderStat, len(senderStats))
+	copy(sortedSenders, senderStats)
+	sort.Slice(sortedSenders, func(i, j int) bool { return sortedSenders[i].MsgCount > sortedSenders[j].MsgCount })
+
+	makeRow := func(s senderStat) memberRow {
+		return memberRow{
+			MemberJID:  s.SenderJID,
+			Name:       enrichName(s.SenderJID),
+			IsAdmin:    adminSet[s.SenderJID],
+			MsgCount:   s.MsgCount,
+			MediaCount: s.MediaCount,
 		}
 	}
 
-	sort.Slice(activeList, func(i, j int) bool { return activeList[i].MsgCount > activeList[j].MsgCount })
-	top5Active := activeList
-	if len(top5Active) > 5 {
-		top5Active = top5Active[:5]
+	top5Active := make([]memberRow, 0, 5)
+	for _, s := range sortedSenders {
+		if len(top5Active) >= 5 {
+			break
+		}
+		top5Active = append(top5Active, makeRow(s))
 	}
 
-	leastActive := make([]memberRow, len(activeList))
-	copy(leastActive, activeList)
-	sort.Slice(leastActive, func(i, j int) bool { return leastActive[i].MsgCount < leastActive[j].MsgCount })
-	if len(leastActive) > 5 {
-		leastActive = leastActive[:5]
+	leastActive := make([]memberRow, 0, 5)
+	for i := len(sortedSenders) - 1; i >= 0 && len(leastActive) < 5; i-- {
+		leastActive = append(leastActive, makeRow(sortedSenders[i]))
+	}
+
+	// Silent members: current members (known via membership events) with 0 messages.
+	// Only meaningful when membership history is available.
+	var silentList []memberRow
+	for _, m := range currentMembers {
+		if m.MsgCount == 0 {
+			silentList = append(silentList, m)
+		}
 	}
 
 	// Nil-guard all slices
