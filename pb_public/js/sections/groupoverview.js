@@ -23,6 +23,8 @@ function groupOverviewSection() {
 
     // ui
     govActiveTab:    'overview', // overview | members | silent | evolution
+    govMemberSort:   'messages', // 'name' | 'messages'
+    govMemberSortDir: 'desc',    // 'asc' | 'desc'
 
     // ── init ──
     initGroupOverview() {},
@@ -165,6 +167,26 @@ function groupOverviewSection() {
     govTypeMax() {
       if (!this.govData) return 1;
       return Math.max(1, ...(this.govData.type_distribution || []).map(t => t.count));
+    },
+
+    // ── sorted members (all known members) ────────────────────────────────────
+    govSortedMembers() {
+      const members = (this.govData && this.govData.current_members) || [];
+      const dir = this.govMemberSortDir === 'asc' ? 1 : -1;
+      return [...members].sort((a, b) => {
+        if (this.govMemberSort === 'name') {
+          return dir * (a.name || '').localeCompare(b.name || '');
+        }
+        return dir * ((a.msg_count || 0) - (b.msg_count || 0));
+      });
+    },
+    govToggleMemberSort(col) {
+      if (this.govMemberSort === col) {
+        this.govMemberSortDir = this.govMemberSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.govMemberSort = col;
+        this.govMemberSortDir = col === 'name' ? 'asc' : 'desc';
+      }
     },
 
     // ── member bar width (for top5) ───────────────────────────────────────────

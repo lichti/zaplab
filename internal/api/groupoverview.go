@@ -7,7 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/pocketbase/core"
+	"go.mau.fi/whatsmeow/types"
 )
 
 // getGroupOverview returns a rich analytics dashboard for a single group JID.
@@ -70,6 +72,7 @@ func getGroupOverview(e *core.RequestEvent) error {
 	// ── Load contact names ────────────────────────────────────────────────────
 	contactNames := map[string]string{}
 	if waDB != nil {
+		// Direct contacts (phone-number JIDs and any @lid already in contacts table).
 		crows, err := waDB.Query(`SELECT their_jid, COALESCE(NULLIF(push_name,''), NULLIF(full_name,''), their_jid) AS name FROM whatsmeow_contacts`)
 		if err == nil {
 			defer crows.Close()
@@ -77,6 +80,23 @@ func getGroupOverview(e *core.RequestEvent) error {
 				var j, n string
 				if crows.Scan(&j, &n) == nil {
 					contactNames[j] = n
+				}
+			}
+		}
+		// LID → name: join whatsmeow_lid_map with whatsmeow_contacts via the PN.
+		// The table stores only the User part (e.g. "1234567890"), so we append
+		// the server domain to reconstruct full JIDs for both the key and the JOIN.
+		lrows, err := waDB.Query(`
+			SELECT m.lid || '@lid',
+			       COALESCE(NULLIF(c.push_name,''), NULLIF(c.full_name,''), m.pn || '@s.whatsapp.net') AS name
+			FROM whatsmeow_lid_map m
+			JOIN whatsmeow_contacts c ON c.their_jid = m.pn || '@s.whatsapp.net'`)
+		if err == nil {
+			defer lrows.Close()
+			for lrows.Next() {
+				var lid, name string
+				if lrows.Scan(&lid, &name) == nil {
+					contactNames[lid] = name
 				}
 			}
 		}
@@ -112,7 +132,35 @@ func getGroupOverview(e *core.RequestEvent) error {
 	type msgStat struct{ MsgCount, MediaCount int }
 	msgMap := map[string]msgStat{}
 	for _, s := range senderStats {
-		msgMap[s.SenderJID] = msgStat{s.MsgCount, s.MediaCount}
+		// Normalize device-suffixed LIDs (e.g. "123:15@lid" → "123@lid")
+		// so they match whatsmeow_lid_map keys which have no device part.
+		key := s.SenderJID
+		if colon := strings.Index(key, ":"); colon > 0 {
+			if at := strings.Index(key, "@"); at > colon {
+				key = key[:colon] + key[at:] // strip device part
+			}
+		}
+		existing := msgMap[key]
+		msgMap[key] = msgStat{existing.MsgCount + s.MsgCount, existing.MediaCount + s.MediaCount}
+		// Also keep original key for direct lookups (e.g. GetGroupInfo returns bare user JID)
+		if key != s.SenderJID {
+			msgMap[s.SenderJID] = msgMap[key]
+		}
+	}
+	// Normalize: add LID↔PN aliases so lookups work regardless of which form
+	// was stored in events. Merge counts if both forms have entries.
+	for lid, pn := range loadLIDMap() {
+		lidStat, hasLID := msgMap[lid]
+		pnStat, hasPN := msgMap[pn]
+		if hasLID && hasPN {
+			merged := msgStat{lidStat.MsgCount + pnStat.MsgCount, lidStat.MediaCount + pnStat.MediaCount}
+			msgMap[lid] = merged
+			msgMap[pn] = merged
+		} else if hasLID {
+			msgMap[pn] = lidStat
+		} else if hasPN {
+			msgMap[lid] = pnStat
+		}
 	}
 
 	// ── Current members + admins from group_membership ────────────────────────
@@ -152,6 +200,37 @@ func getGroupOverview(e *core.RequestEvent) error {
 		memberSet[currentMembers[i].MemberJID] = true
 		if currentMembers[i].IsAdmin {
 			adminSet[currentMembers[i].MemberJID] = true
+		}
+	}
+
+	// ── Enrich with live participants from WhatsApp ────────────────────────────
+	// group_membership only records events observed after the bot joined, so it
+	// may be empty for pre-existing groups. GetGroupInfo fills the gaps.
+	if groupJID, err := types.ParseJID(jid); err == nil {
+		if info, err := whatsapp.GetGroupInfo(groupJID); err == nil {
+			if info.Name != "" {
+				groupName = info.Name
+			}
+			for _, p := range info.Participants {
+				pJID := p.JID.String()
+				if memberSet[pJID] {
+					continue // already present — keep DB-derived entry
+				}
+				m := memberRow{
+					MemberJID: pJID,
+					Name:      enrichName(pJID),
+					IsAdmin:   p.IsAdmin || p.IsSuperAdmin,
+				}
+				if stats, ok := msgMap[pJID]; ok {
+					m.MsgCount = stats.MsgCount
+					m.MediaCount = stats.MediaCount
+				}
+				currentMembers = append(currentMembers, m)
+				memberSet[pJID] = true
+				if m.IsAdmin {
+					adminSet[pJID] = true
+				}
+			}
 		}
 	}
 
@@ -382,6 +461,7 @@ func getGroupOverview(e *core.RequestEvent) error {
 		},
 		"peak_activity":        peakLabel,
 		"admins":               admins,
+		"current_members":      currentMembers,
 		"member_ranking":       ranking,
 		"top5_active":          top5Active,
 		"top5_least_active":    leastActive,

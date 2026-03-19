@@ -8408,6 +8408,9 @@
                         <div class="text-xs text-gray-600 dark:text-[#8b949e] mt-0.5" x-text="coData.full_name"></div>
                       </template>
                       <div class="text-[10px] font-mono text-gray-400 dark:text-[#484f58] mt-0.5" x-text="coData.jid"></div>
+                      <template x-if="coData.alt_jid">
+                        <div class="text-[10px] font-mono text-orange-400 dark:text-[#ffa657] mt-0.5" x-text="coData.alt_jid"></div>
+                      </template>
                       <!-- Status -->
                       <template x-if="coProfile && coProfile.status">
                         <div class="text-xs text-gray-600 dark:text-[#8b949e] mt-1.5 italic" x-text="'\"' + coProfile.status + '\"'"></div>
@@ -8860,33 +8863,47 @@
 
                 <!-- ── Tab: Members ── -->
                 <div x-show="govActiveTab === 'members'" class="p-4">
-                  <div x-show="govData.member_ranking && govData.member_ranking.length > 0">
-                    <p class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] mb-2">
-                      Member Ranking (<span x-text="govData.member_ranking.length"></span> active senders)
-                    </p>
+                  <div x-show="govData.current_members && govData.current_members.length > 0">
+                    <div class="flex items-center justify-between mb-2">
+                      <p class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e]">
+                        All Members (<span x-text="govData.current_members.length"></span>)
+                      </p>
+                    </div>
                     <div class="bg-gray-50 dark:bg-[#161b22] rounded-lg border border-gray-100 dark:border-[#21262d] overflow-hidden">
                       <table class="w-full text-xs">
                         <thead>
                           <tr class="text-[10px] text-gray-400 dark:text-[#484f58] bg-gray-100 dark:bg-[#21262d]">
                             <th class="text-left px-3 py-2">#</th>
-                            <th class="text-left px-3 py-2">Member</th>
-                            <th class="text-right px-3 py-2">Messages</th>
+                            <th class="text-left px-3 py-2">
+                              <button @click="govToggleMemberSort('name')" class="flex items-center gap-0.5 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                Member
+                                <span x-show="govMemberSort==='name'" x-text="govMemberSortDir==='asc'?'↑':'↓'" class="text-blue-500"></span>
+                              </button>
+                            </th>
+                            <th class="text-right px-3 py-2">
+                              <button @click="govToggleMemberSort('messages')" class="flex items-center gap-0.5 ml-auto hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                <span x-show="govMemberSort==='messages'" x-text="govMemberSortDir==='asc'?'↑':'↓'" class="text-blue-500"></span>
+                                Messages
+                              </button>
+                            </th>
                             <th class="text-right px-3 py-2">Media</th>
                             <th class="px-3 py-2"></th>
                           </tr>
                         </thead>
                         <tbody>
-                          <template x-for="(m, idx) in govData.member_ranking" :key="m.jid">
-                            <tr class="border-t border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#21262d] transition-colors">
+                          <template x-for="(m, idx) in govSortedMembers()" :key="m.jid">
+                            <tr class="border-t border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#21262d] transition-colors"
+                                :class="m.msg_count === 0 ? 'opacity-60' : ''">
                               <td class="px-3 py-2 text-gray-400 dark:text-[#484f58] w-8" x-text="idx+1"></td>
                               <td class="px-3 py-2">
                                 <div class="flex items-center gap-1.5">
                                   <span class="font-medium text-gray-800 dark:text-[#e6edf3] truncate max-w-[140px]" x-text="m.name"></span>
                                   <span x-show="m.is_admin" class="text-[9px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-1 py-0.5 rounded flex-shrink-0">admin</span>
+                                  <span x-show="m.msg_count === 0" class="text-[9px] bg-gray-100 dark:bg-[#30363d] text-gray-400 dark:text-[#484f58] px-1 py-0.5 rounded flex-shrink-0">silent</span>
                                 </div>
                                 <div class="text-[10px] font-mono text-gray-400 dark:text-[#484f58] truncate max-w-[160px]" x-text="m.jid"></div>
                               </td>
-                              <td class="px-3 py-2 text-right font-medium text-green-600 dark:text-[#3fb950]" x-text="govFmt(m.msg_count)"></td>
+                              <td class="px-3 py-2 text-right font-medium" :class="m.msg_count > 0 ? 'text-green-600 dark:text-[#3fb950]' : 'text-gray-400 dark:text-[#484f58]'" x-text="govFmt(m.msg_count)"></td>
                               <td class="px-3 py-2 text-right text-gray-500 dark:text-[#8b949e]" x-text="govFmt(m.media_count)"></td>
                               <td class="px-3 py-2 text-right">
                                 <button @click="govOpenMemberProfile(m.jid)"
@@ -8898,7 +8915,7 @@
                       </table>
                     </div>
                   </div>
-                  <div x-show="!govData.member_ranking || govData.member_ranking.length === 0" class="text-center py-8 text-xs text-gray-400 dark:text-[#484f58]">No member activity data</div>
+                  <div x-show="!govData.current_members || govData.current_members.length === 0" class="text-center py-8 text-xs text-gray-400 dark:text-[#484f58]">No member data available</div>
                 </div>
 
                 <!-- ── Tab: Silent ── -->
