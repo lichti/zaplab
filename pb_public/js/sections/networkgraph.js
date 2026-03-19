@@ -2,16 +2,6 @@
 // Renders a force-directed graph of the WhatsApp contact/group network derived
 // from stored Message events.  Uses a pure-JS Verlet physics simulation and
 // draws on an HTML <canvas> element — no external libraries required.
-//
-// Node types:
-//   self      — the device owner (blue, larger)
-//   contact   — individual chat partners (orange)
-//   group     — group chats (green)
-//   broadcast — broadcast lists (purple)
-//
-// Edges:
-//   self ↔ chat   — message count (thickness = weight)
-//   sender ↔ group — member appeared in a group conversation
 function networkGraphSection() {
   return {
     // ── state ──
@@ -24,11 +14,31 @@ function networkGraphSection() {
     ngMinMsgs:       1,
     ngIncludeGroups: true,
     ngShowFilters:   false,
+    ngDirection:     'both',    // 'both'|'sent'|'received'
+    ngEventTypes:    'Message', // comma-separated; '' = all
+    ngContactFilter: '',        // filter nodes to those matching this substring
     ngNodes:         [],
     ngEdges:         [],
     ngNodeMap:       {},
     ngStats:         { total_messages: 0, total_nodes: 0, total_edges: 0 },
-    ngSelected:      null,   // hovered/clicked node
+
+    // visual options
+    ngLabelMode:     'auto',      // 'auto'|'always'|'hover'|'hidden'
+    ngNodeSizeMode:  'messages',  // 'messages'|'uniform'
+    ngEdgeColorMode: 'count',     // 'count'|'direction'
+
+    // interaction state
+    ngSelected:      null,
+    ngFocusJID:      null,        // 1-hop focus node ID (null = no focus)
+    ngMultiSelect:   {},          // plain obj acting as Set: {id: true}
+    ngPathA:         null,        // shortest path endpoint A
+    ngPathB:         null,        // shortest path endpoint B
+    ngShortestPath:  null,        // array of node IDs in path order, or null/[] if none
+
+    // double-click detection
+    _ngLastClickTime: 0,
+    _ngLastClickId:   null,
+    _ngWasAnimating:  false,
 
     // ── physics constants ──
     ngRepulsion: 9000,
@@ -50,15 +60,28 @@ function networkGraphSection() {
       this.$watch('activeSection', val => {
         if (val !== 'networkgraph') this.ngStopSim();
       });
+      // Background throttle: stop simulation when tab is hidden
+      document.addEventListener('visibilitychange', () => {
+        if (this.activeSection !== 'networkgraph') return;
+        if (document.hidden && this.ngAnimating) {
+          this.ngStopSim();
+          this._ngWasAnimating = true;
+        } else if (!document.hidden && this._ngWasAnimating) {
+          this._ngWasAnimating = false;
+          this.ngResumeSim();
+        }
+      });
     },
 
     // ── load ──
     async ngLoad() {
       if (this.ngLoading) return;
-      this.ngLoading  = true;
-      this.ngError    = '';
-      this.ngSelected = null;
-      this.ngHovered  = null;
+      this.ngLoading    = true;
+      this.ngError      = '';
+      this.ngSelected   = null;
+      this.ngHovered    = null;
+      this.ngFocusJID   = null;
+      this.ngShortestPath = null;
       if (this.ngFrame) cancelAnimationFrame(this.ngFrame);
       try {
         const params = new URLSearchParams();
@@ -68,21 +91,24 @@ function networkGraphSection() {
         } else {
           params.set('period', this.ngPeriod);
         }
-        if (this.ngMinMsgs > 1) params.set('min_msgs', this.ngMinMsgs);
-        if (!this.ngIncludeGroups) params.set('include_groups', 'false');
+        if (this.ngMinMsgs > 1)       params.set('min_msgs', this.ngMinMsgs);
+        if (!this.ngIncludeGroups)     params.set('include_groups', 'false');
+        if (this.ngDirection !== 'both') params.set('direction', this.ngDirection);
+        if (this.ngEventTypes && this.ngEventTypes !== 'Message')
+          params.set('event_types', this.ngEventTypes);
         const res = await fetch(
           `/zaplab/api/network/graph?${params}`,
           { headers: apiHeaders() }
         );
         if (!res.ok) {
-          const d = await res.json();
+          const d = await res.json().catch(() => ({}));
           this.ngError = d.error || `HTTP ${res.status}`;
           return;
         }
-        const data  = await res.json();
-        this.ngNodes = data.nodes || [];
-        this.ngEdges = data.edges || [];
-        this.ngStats = {
+        const data     = await res.json();
+        this.ngNodes   = data.nodes || [];
+        this.ngEdges   = data.edges || [];
+        this.ngStats   = {
           total_messages: data.total_messages || 0,
           total_nodes:    data.total_nodes    || 0,
           total_edges:    data.total_edges    || 0,
@@ -129,7 +155,6 @@ function networkGraphSection() {
         this._ngTick();
         this._ngRender();
         iter++;
-        // Run at full speed for 200 frames, then slow down to ~10fps for updates
         if (iter < 200) {
           this.ngFrame = requestAnimationFrame(tick);
         } else {
@@ -148,7 +173,7 @@ function networkGraphSection() {
       for (let i = 0; i < N; i++) {
         for (let j = i + 1; j < N; j++) {
           const a = nodes[i], b = nodes[j];
-          let dx = a.x - b.x, dy = a.y - b.y;
+          const dx = a.x - b.x, dy = a.y - b.y;
           const d2 = Math.max(dx * dx + dy * dy, 0.25);
           const d  = Math.sqrt(d2);
           const f  = this.ngRepulsion / d2;
@@ -194,64 +219,172 @@ function networkGraphSection() {
     _ngRender() {
       const canvas = this.$refs && this.$refs.ngCanvas;
       if (!canvas) return;
-      const ctx   = canvas.getContext('2d');
-      const dark  = document.documentElement.classList.contains('dark');
-      const bg    = dark ? '#0d1117' : '#f6f8fa';
-      const edgeC = dark ? 'rgba(139,148,158,' : 'rgba(100,116,139,';
-      const lblC  = dark ? '#c9d1d9' : '#24292f';
+      const ctx  = canvas.getContext('2d');
+      const dark = document.documentElement.classList.contains('dark');
+      const bg   = dark ? '#0d1117' : '#f6f8fa';
+      const lblC = dark ? '#c9d1d9' : '#24292f';
 
       ctx.clearRect(0, 0, this.ngW, this.ngH);
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, this.ngW, this.ngH);
 
-      // Edges
+      // Focus neighborhood set (null = no focus = show all)
+      const focusSet    = this._ngFocusSet();
+      // Path sets
+      const pathNodes   = this.ngShortestPath && this.ngShortestPath.length
+        ? new Set(this.ngShortestPath) : null;
+      const pathEdgeSet = this._ngPathEdgeSet();
+      // Self JID for direction coloring
+      const selfNode = this.ngNodes.find(n => n.node_type === 'self');
+      const selfId   = selfNode ? selfNode.id : null;
+      // Contact filter
+      const cf = (this.ngContactFilter || '').toLowerCase();
+
+      // ── edges ──
       for (const ed of this.ngEdges) {
         const a = this.ngNodeMap[ed.source], b = this.ngNodeMap[ed.target];
         if (!a || !b) continue;
-        const alpha = Math.min(0.7, 0.08 + ed.weight / 60);
+        if (cf && !a.label.toLowerCase().includes(cf) && !b.label.toLowerCase().includes(cf)) continue;
+
+        const edgeKey = [ed.source, ed.target].sort().join('|');
+        const isPath  = pathEdgeSet && pathEdgeSet.has(edgeKey);
+        const inFocus = !focusSet || (
+          (focusSet.has(ed.source) || focusSet.has(ed.target)) &&
+          (focusSet.has(ed.source) && focusSet.has(ed.target))
+        );
+        const dim = inFocus ? 1 : 0.07;
+
+        if (isPath) {
+          ctx.strokeStyle = dark ? 'rgba(255,215,0,0.95)' : 'rgba(180,120,0,0.95)';
+          ctx.lineWidth   = 3.5;
+        } else if (this.ngEdgeColorMode === 'direction' && selfId) {
+          if (ed.source === selfId || ed.target === selfId) {
+            const sentRatio  = ed.weight > 0 ? (ed.sent || 0) / ed.weight : 0.5;
+            const r = Math.round(88 + (255 - 88) * (1 - sentRatio));
+            const g = Math.round(166 * sentRatio);
+            const bv = Math.round(255 * sentRatio);
+            const alpha = Math.min(0.75, 0.1 + ed.weight / 50) * dim;
+            ctx.strokeStyle = `rgba(${r},${g},${bv},${alpha})`;
+          } else {
+            const alpha = Math.min(0.5, 0.05 + ed.weight / 60) * dim;
+            ctx.strokeStyle = dark ? `rgba(63,185,80,${alpha})` : `rgba(17,99,41,${alpha})`;
+          }
+          ctx.lineWidth = Math.min(4, 0.4 + ed.weight / 15);
+        } else {
+          const alpha = Math.min(0.7, 0.08 + ed.weight / 60) * dim;
+          ctx.strokeStyle = (dark ? 'rgba(139,148,158,' : 'rgba(100,116,139,') + alpha + ')';
+          ctx.lineWidth   = Math.min(4, 0.4 + ed.weight / 15);
+        }
+
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = edgeC + alpha + ')';
-        ctx.lineWidth   = Math.min(4, 0.4 + ed.weight / 15);
         ctx.stroke();
       }
 
-      // Nodes
+      // ── nodes ──
       for (const n of this.ngNodes) {
-        const r = this._ngRadius(n);
-        const isHov = this.ngHovered && this.ngHovered.id === n.id;
-        const isSel = this.ngSelected && this.ngSelected.id === n.id;
+        if (cf && !n.label.toLowerCase().includes(cf) && !n.id.toLowerCase().includes(cf)) continue;
 
+        const r       = this._ngRadius(n);
+        const isHov   = this.ngHovered  && this.ngHovered.id  === n.id;
+        const isSel   = this.ngSelected && this.ngSelected.id === n.id;
+        const isMulti = !!this.ngMultiSelect[n.id];
+        const isOnPath = pathNodes && pathNodes.has(n.id);
+        const isPathEnd = n.id === this.ngPathA || n.id === this.ngPathB;
+        const inFocus  = !focusSet || focusSet.has(n.id);
+
+        ctx.globalAlpha = inFocus ? 1 : 0.08;
+
+        // Node circle
+        const extra = (isHov || isSel || isMulti || isPathEnd) ? 2.5 : 0;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r + (isHov || isSel ? 2 : 0), 0, 2 * Math.PI);
-        ctx.fillStyle = this._ngColor(n, dark);
+        ctx.arc(n.x, n.y, r + extra, 0, 2 * Math.PI);
+        ctx.fillStyle = isPathEnd
+          ? (dark ? '#ffd700' : '#b87800')
+          : (isOnPath ? (dark ? '#ffaa00' : '#cc6600') : this._ngColor(n, dark));
         ctx.fill();
 
-        ctx.strokeStyle = isSel ? (dark ? '#e6edf3' : '#24292f') : (dark ? '#21262d' : '#ffffff');
-        ctx.lineWidth   = isSel ? 2.5 : 1.5;
+        // Border
+        if (isMulti) {
+          ctx.strokeStyle = dark ? '#f0a500' : '#c07800';
+          ctx.lineWidth   = 2.5;
+        } else if (isSel || isPathEnd) {
+          ctx.strokeStyle = dark ? '#e6edf3' : '#24292f';
+          ctx.lineWidth   = 2.5;
+        } else {
+          ctx.strokeStyle = dark ? '#21262d' : '#ffffff';
+          ctx.lineWidth   = 1.5;
+        }
         ctx.stroke();
+
+        // Pinned indicator: small filled circle on top-right
+        if (n.pinned && n.node_type !== 'self') {
+          ctx.beginPath();
+          ctx.arc(n.x + r * 0.7, n.y - r * 0.7, 3, 0, 2 * Math.PI);
+          ctx.fillStyle = dark ? '#58a6ff' : '#0550ae';
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
       }
 
-      // Labels
+      // ── labels ──
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'top';
       for (const n of this.ngNodes) {
-        const r = this._ngRadius(n);
-        const isHov = this.ngHovered && this.ngHovered.id === n.id;
+        if (this.ngLabelMode === 'hidden') continue;
+        if (cf && !n.label.toLowerCase().includes(cf) && !n.id.toLowerCase().includes(cf)) continue;
+
+        const r     = this._ngRadius(n);
+        const isHov = this.ngHovered  && this.ngHovered.id  === n.id;
         const isSel = this.ngSelected && this.ngSelected.id === n.id;
-        // Always show self label; show others when hovered, selected, or important
-        if (n.node_type !== 'self' && !isHov && !isSel && n.msg_count < 5) continue;
+        const inFocus = !focusSet || focusSet.has(n.id);
+
+        const show =
+          this.ngLabelMode === 'always' ||
+          n.node_type === 'self' ||
+          (this.ngLabelMode === 'hover'  && (isHov || isSel)) ||
+          (this.ngLabelMode === 'auto'   && (isHov || isSel || n.msg_count >= 5)) ||
+          this.ngMultiSelect[n.id] || n.id === this.ngPathA || n.id === this.ngPathB;
+
+        if (!show) continue;
+
         const label = n.label.length > 14 ? n.label.slice(0, 13) + '…' : n.label;
         ctx.font      = (n.node_type === 'self' ? 'bold ' : '') + '10px system-ui,sans-serif';
         ctx.fillStyle = lblC;
+        ctx.globalAlpha = inFocus ? 1 : 0.2;
         ctx.fillText(label, n.x, n.y + r + 3);
+        ctx.globalAlpha = 1;
       }
     },
 
     // ── geometry helpers ─────────────────────────────────────────────────────
 
+    _ngFocusSet() {
+      if (!this.ngFocusJID) return null;
+      const s = new Set([this.ngFocusJID]);
+      for (const ed of this.ngEdges) {
+        if (ed.source === this.ngFocusJID) s.add(ed.target);
+        if (ed.target === this.ngFocusJID) s.add(ed.source);
+      }
+      return s;
+    },
+
+    _ngPathEdgeSet() {
+      if (!this.ngShortestPath || this.ngShortestPath.length < 2) return null;
+      const s = new Set();
+      for (let i = 0; i < this.ngShortestPath.length - 1; i++) {
+        const [a, b] = [this.ngShortestPath[i], this.ngShortestPath[i + 1]].sort();
+        s.add(a + '|' + b);
+      }
+      return s;
+    },
+
     _ngRadius(n) {
+      if (this.ngNodeSizeMode === 'uniform') {
+        return n.node_type === 'self' ? 14 : 8;
+      }
       if (n.node_type === 'self')  return 14;
       if (n.node_type === 'group') return Math.min(20, 7 + Math.sqrt(n.msg_count) * 0.9);
       return Math.min(16, 5 + Math.sqrt(n.msg_count) * 0.6);
@@ -259,7 +392,7 @@ function networkGraphSection() {
 
     _ngColor(n, dark) {
       const d = { self: '#58a6ff', contact: '#ffa657', group: '#3fb950', broadcast: '#bc8cff' };
-      const l = { self: '#0550ae', contact: '#953800', group: '#116329', broadcast: '#6639ba'  };
+      const l = { self: '#0550ae', contact: '#953800', group: '#116329', broadcast: '#6639ba' };
       return (dark ? d : l)[n.node_type] || '#888';
     },
 
@@ -287,13 +420,43 @@ function networkGraphSection() {
     ngOnMouseDown(evt) {
       const { x, y } = this._ngCanvasXY(evt);
       const n = this._ngNodeAt(x, y);
+
       if (n) {
-        this.ngDragging = n;
-        n.pinned = true;
-        this.ngSelected = n;
+        // Double-click: toggle pin
+        const now = Date.now();
+        if (now - this._ngLastClickTime < 300 && this._ngLastClickId === n.id) {
+          if (n.node_type !== 'self') n.pinned = !n.pinned;
+          this._ngLastClickTime = 0;
+          evt.preventDefault();
+          return;
+        }
+        this._ngLastClickTime = now;
+        this._ngLastClickId   = n.id;
+
+        // Shift+click: toggle multi-select
+        if (evt.shiftKey) {
+          if (this.ngMultiSelect[n.id]) {
+            delete this.ngMultiSelect[n.id];
+          } else {
+            this.ngMultiSelect[n.id] = true;
+          }
+          this.ngMultiSelect = { ...this.ngMultiSelect }; // trigger reactivity
+          this._ngRender();
+          evt.preventDefault();
+          return;
+        }
+
+        // Regular click: drag + select (clear multi-select)
+        this.ngDragging  = n;
+        n.pinned         = true;
+        this.ngSelected  = n;
+        this.ngMultiSelect = {};
         evt.preventDefault();
       } else {
-        this.ngSelected = null;
+        this.ngSelected   = null;
+        this.ngMultiSelect = {};
+        this._ngLastClickTime = 0;
+        this._ngLastClickId   = null;
       }
     },
 
@@ -326,12 +489,71 @@ function networkGraphSection() {
       this._ngRender();
     },
 
+    // ── focus mode ────────────────────────────────────────────────────────────
+
+    ngFocusOn(jid) {
+      this.ngFocusJID = this.ngFocusJID === jid ? null : jid;
+      this._ngRender();
+    },
+
+    // ── shortest path (BFS) ───────────────────────────────────────────────────
+
+    ngSetPathA(jid) {
+      this.ngPathA = jid;
+      this.ngShortestPath = null;
+      this._ngRender();
+    },
+
+    ngSetPathB(jid) {
+      this.ngPathB = jid;
+      this.ngShortestPath = null;
+      if (this.ngPathA && this.ngPathB) this._ngComputePath();
+      this._ngRender();
+    },
+
+    ngClearPath() {
+      this.ngPathA = null;
+      this.ngPathB = null;
+      this.ngShortestPath = null;
+      this._ngRender();
+    },
+
+    _ngComputePath() {
+      if (!this.ngPathA || !this.ngPathB) return;
+      // Build adjacency list
+      const adj = {};
+      for (const n of this.ngNodes) adj[n.id] = [];
+      for (const ed of this.ngEdges) {
+        adj[ed.source].push(ed.target);
+        adj[ed.target].push(ed.source);
+      }
+      // BFS
+      const prev  = { [this.ngPathA]: null };
+      const queue = [this.ngPathA];
+      let found   = false;
+      outer: while (queue.length) {
+        const cur = queue.shift();
+        for (const nb of (adj[cur] || [])) {
+          if (nb in prev) continue;
+          prev[nb] = cur;
+          if (nb === this.ngPathB) { found = true; break outer; }
+          queue.push(nb);
+        }
+      }
+      if (!found) { this.ngShortestPath = []; return; }
+      // Reconstruct path as node ID array
+      const path = [];
+      let cur = this.ngPathB;
+      while (cur !== null && cur !== undefined) {
+        path.unshift(cur);
+        cur = prev[cur];
+      }
+      this.ngShortestPath = path;
+    },
+
     // ── UI helpers ────────────────────────────────────────────────────────────
 
-    ngPeriodLabel(p) {
-      if (p === 0) return 'All time';
-      return p + 'd';
-    },
+    ngPeriodLabel: p => p === 0 ? 'All time' : `${p}d`,
 
     ngTypeColor(type) {
       return {
@@ -353,14 +575,29 @@ function networkGraphSection() {
       return n ? n.label : other;
     },
 
+    ngMultiSelectList() {
+      return Object.keys(this.ngMultiSelect)
+        .map(id => this.ngNodeMap[id]).filter(Boolean);
+    },
+
+    // Returns the display label for a node by ID (for use in templates)
+    ngNodeLabel(id) {
+      const n = this.ngNodeMap && this.ngNodeMap[id];
+      return n ? n.label : (id ? id.split('@')[0] : '');
+    },
+
+    // Triggers BFS path computation from UI (Set A + Set B already set)
+    ngFindPath() {
+      if (this.ngPathA && this.ngPathB) this._ngComputePath();
+      this._ngRender();
+    },
+
     ngStopSim() {
       this.ngAnimating = false;
       if (this.ngFrame) { cancelAnimationFrame(this.ngFrame); clearTimeout(this.ngFrame); }
     },
 
-    ngResumeSim() {
-      this._ngStartSim();
-    },
+    ngResumeSim() { this._ngStartSim(); },
 
     // ── export ────────────────────────────────────────────────────────────────
 
@@ -380,8 +617,9 @@ function networkGraphSection() {
         })),
         edges: this.ngEdges.map(e => ({
           source: e.source, target: e.target, weight: e.weight,
+          sent: e.sent || 0, received: e.received || 0,
         })),
-        stats: this.ngStats,
+        stats:       this.ngStats,
         exported_at: new Date().toISOString(),
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -393,12 +631,21 @@ function networkGraphSection() {
     },
 
     ngExportCSV() {
-      const header = 'source,target,weight\n';
-      const rows   = this.ngEdges.map(e => `${e.source},${e.target},${e.weight}`).join('\n');
-      const blob   = new Blob([header + rows], { type: 'text/csv' });
-      const a      = document.createElement('a');
-      a.href       = URL.createObjectURL(blob);
-      a.download   = 'network-edges.csv';
+      const esc  = s => '"' + String(s).replace(/"/g, '""') + '"';
+      const head = 'source,source_label,target,target_label,weight,sent,received\n';
+      const rows = this.ngEdges.map(e => {
+        const sn = this.ngNodeMap[e.source];
+        const tn = this.ngNodeMap[e.target];
+        return [
+          esc(e.source), esc(sn?.label || ''),
+          esc(e.target), esc(tn?.label || ''),
+          e.weight, e.sent || 0, e.received || 0,
+        ].join(',');
+      }).join('\n');
+      const blob = new Blob([head + rows], { type: 'text/csv' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = 'network-edges.csv';
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     },
@@ -409,6 +656,9 @@ function networkGraphSection() {
       this.ngMinMsgs       = 1;
       this.ngIncludeGroups = true;
       this.ngPeriod        = 30;
+      this.ngDirection     = 'both';
+      this.ngEventTypes    = 'Message';
+      this.ngContactFilter = '';
     },
   };
 }

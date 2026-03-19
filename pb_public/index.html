@@ -8194,27 +8194,72 @@
           </div>
 
           <!-- Advanced filters panel -->
-          <div x-show="ngShowFilters" x-transition class="mt-2 pt-2 border-t border-gray-200 dark:border-[#30363d] flex flex-wrap gap-3 items-end">
-            <div>
-              <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">From</label>
-              <input type="date" x-model="ngDateFrom" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+          <div x-show="ngShowFilters" x-transition class="mt-2 pt-2 border-t border-gray-200 dark:border-[#30363d] space-y-2">
+            <!-- Row 1: data filters -->
+            <div class="flex flex-wrap gap-3 items-end">
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">From</label>
+                <input type="date" x-model="ngDateFrom" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">To</label>
+                <input type="date" x-model="ngDateTo" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Min msgs</label>
+                <input type="number" x-model.number="ngMinMsgs" min="1" max="100" class="w-16 text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Direction</label>
+                <select x-model="ngDirection" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+                  <option value="both">Both</option>
+                  <option value="sent">Sent only</option>
+                  <option value="received">Received only</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Event types</label>
+                <input type="text" x-model="ngEventTypes" placeholder="Message,Receipt,…" class="w-36 text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9] placeholder-gray-400 dark:placeholder-[#484f58]">
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Contact filter</label>
+                <input type="text" x-model="ngContactFilter" placeholder="JID or name…" class="w-36 text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9] placeholder-gray-400 dark:placeholder-[#484f58]">
+              </div>
+              <div class="flex items-center gap-1.5">
+                <input type="checkbox" id="ngIncludeGroups" x-model="ngIncludeGroups" class="rounded">
+                <label for="ngIncludeGroups" class="text-xs text-gray-600 dark:text-[#8b949e]">Groups</label>
+              </div>
+              <button @click="ngResetFilters()"
+                class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors">Reset</button>
+              <button @click="ngLoad()"
+                class="text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors">Apply</button>
             </div>
-            <div>
-              <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">To</label>
-              <input type="date" x-model="ngDateTo" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+            <!-- Row 2: visual options -->
+            <div class="flex flex-wrap gap-3 items-end border-t border-gray-100 dark:border-[#21262d] pt-2">
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Labels</label>
+                <select x-model="ngLabelMode" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+                  <option value="auto">Auto</option>
+                  <option value="always">Always</option>
+                  <option value="hover">Hover only</option>
+                  <option value="hidden">Hidden</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Node size</label>
+                <select x-model="ngNodeSizeMode" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+                  <option value="messages">By messages</option>
+                  <option value="uniform">Uniform</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Edge color</label>
+                <select x-model="ngEdgeColorMode" class="text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
+                  <option value="count">By weight</option>
+                  <option value="direction">By direction</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] block mb-1">Min msgs</label>
-              <input type="number" x-model.number="ngMinMsgs" min="1" max="100" class="w-16 text-xs bg-white dark:bg-[#0d1117] border border-gray-300 dark:border-[#30363d] rounded px-2 py-1 text-gray-700 dark:text-[#c9d1d9]">
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input type="checkbox" id="ngIncludeGroups" x-model="ngIncludeGroups" class="rounded">
-              <label for="ngIncludeGroups" class="text-xs text-gray-600 dark:text-[#8b949e]">Groups</label>
-            </div>
-            <button @click="ngResetFilters()"
-              class="text-xs px-2 py-1.5 rounded-md border border-gray-200 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors">Reset</button>
-            <button @click="ngLoad()"
-              class="text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors">Apply</button>
           </div>
 
           <div x-show="ngError" class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono" x-text="ngError"></div>
@@ -8254,7 +8299,7 @@
           </div>
 
           <!-- Info panel -->
-          <div class="w-52 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] overflow-y-auto flex flex-col">
+          <div class="w-56 flex-shrink-0 border-l border-gray-200 dark:border-[#30363d] bg-gray-50 dark:bg-[#161b22] overflow-y-auto flex flex-col">
 
             <!-- Legend -->
             <div class="p-3 border-b border-gray-200 dark:border-[#30363d]">
@@ -8267,7 +8312,58 @@
                   </div>
                 </template>
               </div>
-              <p class="text-[10px] text-gray-400 dark:text-[#484f58] mt-2">Edge thickness = message count. Drag nodes to reposition.</p>
+              <p class="text-[10px] text-gray-400 dark:text-[#484f58] mt-2">Drag to move · Double-click to pin · Shift+click multi-select</p>
+            </div>
+
+            <!-- Shortest path controls -->
+            <div class="p-3 border-b border-gray-200 dark:border-[#30363d]">
+              <p class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e] mb-2">Shortest path</p>
+              <div class="space-y-1.5">
+                <div class="flex gap-1">
+                  <button @click="ngPathA = ngSelected ? ngSelected.id : ngPathA"
+                    :disabled="!ngSelected"
+                    class="flex-1 text-[10px] px-1.5 py-1 rounded border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] disabled:opacity-40 truncate"
+                    :title="ngPathA || 'Set A from selection'">
+                    <span x-text="ngPathA ? (ngNodeLabel(ngPathA) || ngPathA.split('@')[0]) : 'Set A'"></span>
+                  </button>
+                  <button @click="ngPathB = ngSelected ? ngSelected.id : ngPathB"
+                    :disabled="!ngSelected"
+                    class="flex-1 text-[10px] px-1.5 py-1 rounded border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] disabled:opacity-40 truncate"
+                    :title="ngPathB || 'Set B from selection'">
+                    <span x-text="ngPathB ? (ngNodeLabel(ngPathB) || ngPathB.split('@')[0]) : 'Set B'"></span>
+                  </button>
+                </div>
+                <div class="flex gap-1">
+                  <button @click="ngFindPath()"
+                    :disabled="!ngPathA || !ngPathB"
+                    class="flex-1 text-[10px] px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40 transition-colors">Find</button>
+                  <button @click="ngPathA=''; ngPathB=''; ngShortestPath=[]"
+                    class="text-[10px] px-2 py-1 rounded border border-gray-200 dark:border-[#30363d] text-gray-500 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d] transition-colors">Clear</button>
+                </div>
+                <div x-show="ngShortestPath.length > 0" class="text-[10px] text-amber-600 dark:text-amber-400">
+                  Path: <span x-text="ngShortestPath.length"></span> nodes (<span x-text="ngShortestPath.length - 1"></span> hops)
+                </div>
+                <div x-show="ngPathA && ngPathB && ngShortestPath.length === 0" class="text-[10px] text-red-500 dark:text-red-400">No path found</div>
+              </div>
+            </div>
+
+            <!-- Multi-select summary -->
+            <div x-show="Object.keys(ngMultiSelect).length > 0" class="p-3 border-b border-gray-200 dark:border-[#30363d]">
+              <div class="flex items-center justify-between mb-1.5">
+                <p class="text-[10px] uppercase font-semibold text-gray-500 dark:text-[#8b949e]">Selected (<span x-text="Object.keys(ngMultiSelect).length"></span>)</p>
+                <button @click="ngMultiSelect = {}" class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-[#8b949e]">Clear</button>
+              </div>
+              <div class="text-[10px] text-gray-600 dark:text-[#8b949e]">
+                Total msgs: <span class="font-semibold" x-text="Object.keys(ngMultiSelect).reduce((s,id) => { const n = ngNodes.find(n=>n.id===id); return s + (n ? n.msg_count : 0); }, 0)"></span>
+              </div>
+              <div class="max-h-20 overflow-y-auto mt-1 space-y-0.5">
+                <template x-for="id in Object.keys(ngMultiSelect)" :key="id">
+                  <div class="flex items-center gap-1 text-[10px]">
+                    <button @click="const c={...ngMultiSelect}; delete c[id]; ngMultiSelect=c" class="text-gray-400 hover:text-red-500 flex-shrink-0">×</button>
+                    <span class="font-mono text-gray-600 dark:text-[#8b949e] truncate" x-text="ngNodeLabel(id) || id.split('@')[0]"></span>
+                  </div>
+                </template>
+              </div>
             </div>
 
             <!-- Selected node detail -->
@@ -8284,13 +8380,23 @@
                   <div class="text-[10px] text-gray-600 dark:text-[#8b949e]">
                     <span class="font-semibold" x-text="ngSelected.msg_count"></span> messages
                   </div>
+                  <!-- Focus / Unfocus -->
+                  <div class="flex gap-1">
+                    <button @click="ngFocusOn(ngSelected.id)"
+                      class="flex-1 text-[10px] px-2 py-1 rounded border transition-colors"
+                      :class="ngFocusJID === ngSelected.id
+                        ? 'bg-blue-100 dark:bg-[#1c3a5e] text-blue-700 dark:text-[#58a6ff] border-blue-300 dark:border-blue-700'
+                        : 'border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-[#8b949e] hover:bg-gray-100 dark:hover:bg-[#21262d]'"
+                      x-text="ngFocusJID === ngSelected.id ? 'Unfocus' : 'Focus 1-hop'">
+                    </button>
+                  </div>
                   <div x-show="ngNodeEdges(ngSelected).length > 0">
                     <p class="text-[10px] uppercase font-semibold text-gray-400 dark:text-[#484f58] mb-1">Connections (<span x-text="ngNodeEdges(ngSelected).length"></span>)</p>
-                    <div class="space-y-0.5 max-h-48 overflow-y-auto">
+                    <div class="space-y-0.5 max-h-40 overflow-y-auto">
                       <template x-for="ed in ngNodeEdges(ngSelected)" :key="ed.source+ed.target">
                         <div class="flex items-center gap-1.5 text-[10px]">
                           <span class="flex-1 font-mono text-gray-600 dark:text-[#8b949e] truncate" x-text="ngEdgeLabel(ed, ngSelected.id)"></span>
-                          <span class="text-gray-400 dark:text-[#484f58]" x-text="ed.weight + ' msg'"></span>
+                          <span class="text-gray-400 dark:text-[#484f58]" x-text="ed.weight + 'msg'"></span>
                         </div>
                       </template>
                     </div>
@@ -8299,7 +8405,7 @@
               </template>
             </div>
 
-            <div x-show="!ngSelected" class="p-3 flex-1 flex items-center justify-center">
+            <div x-show="!ngSelected && Object.keys(ngMultiSelect).length === 0" class="p-3 flex-1 flex items-center justify-center">
               <p class="text-[10px] text-gray-400 dark:text-[#484f58] text-center">Click a node to see details</p>
             </div>
 

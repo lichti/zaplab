@@ -55,6 +55,12 @@ func getNetworkGraph(e *core.RequestEvent) error {
 	}
 	includeGroups := q.Get("include_groups") != "false"
 
+	// direction: "both" (default) | "sent" | "received"
+	direction := q.Get("direction")
+	if direction != "sent" && direction != "received" {
+		direction = "both"
+	}
+
 	dateFrom := sanitizeSQL(q.Get("date_from"))
 	dateTo := sanitizeSQL(q.Get("date_to"))
 
@@ -119,9 +125,11 @@ func getNetworkGraph(e *core.RequestEvent) error {
 		MsgCount int    `json:"msg_count"`
 	}
 	type edgeData struct {
-		Source string `json:"source"`
-		Target string `json:"target"`
-		Weight int    `json:"weight"`
+		Source   string `json:"source"`
+		Target   string `json:"target"`
+		Weight   int    `json:"weight"`
+		Sent     int    `json:"sent"`
+		Received int    `json:"received"`
 	}
 
 	nodeMap := map[string]*nodeData{}
@@ -140,15 +148,23 @@ func getNetworkGraph(e *core.RequestEvent) error {
 		return n
 	}
 
-	addEdge := func(a, b string) {
+	// addEdge records a directed message: from→to. "sent" is from self's perspective.
+	addEdge := func(from, to string, isFromMe bool) {
+		a, b := from, to
 		if a > b {
 			a, b = b, a
 		}
 		key := a + "|" + b
-		if ed, ok := edgeMap[key]; ok {
-			ed.Weight++
+		ed, ok := edgeMap[key]
+		if !ok {
+			ed = &edgeData{Source: a, Target: b}
+			edgeMap[key] = ed
+		}
+		ed.Weight++
+		if isFromMe {
+			ed.Sent++
 		} else {
-			edgeMap[key] = &edgeData{Source: a, Target: b, Weight: 1}
+			ed.Received++
 		}
 	}
 
@@ -187,6 +203,14 @@ func getNetworkGraph(e *core.RequestEvent) error {
 			continue
 		}
 
+		// Direction filter
+		if direction == "sent" && !msg.Info.IsFromMe {
+			continue
+		}
+		if direction == "received" && msg.Info.IsFromMe {
+			continue
+		}
+
 		chatType := "contact"
 		if strings.HasSuffix(chat, "@g.us") {
 			chatType = "group"
@@ -214,11 +238,11 @@ func getNetworkGraph(e *core.RequestEvent) error {
 			if name, ok := contactNames[sender]; ok && name != sender {
 				senderNode.Label = name
 			}
-			addEdge(sender, chat) // member → group
+			addEdge(sender, chat, false) // member → group (not from self)
 		}
 
 		// Device ↔ chat edge (counts every message)
-		addEdge(selfJID, chat)
+		addEdge(selfJID, chat, msg.Info.IsFromMe)
 	}
 
 	// ── apply min_msgs filter then trim to top-N nodes by message count ─────
