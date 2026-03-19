@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/pocketbase/core"
+	"go.mau.fi/whatsmeow/types"
 )
 
 // getContactOverview returns a rich analytics dashboard for a single contact JID.
@@ -37,12 +39,63 @@ func getContactOverview(e *core.RequestEvent) error {
 		displayName = jid[:at]
 	}
 	var fullName, pushName, businessName string
+
+	// Resolve the LID↔PN pair. The lid_map table stores only the User part (no @server).
+	// primaryJID  = canonical PN (preferred for queries, most events use this after migration)
+	// secondaryJID = the other form (LID or old PN) — may be empty if mapping unknown
+	primaryJID := jid
+	secondaryJID := ""
+	if waDB != nil {
+		if strings.HasSuffix(jid, "@lid") {
+			lidUser := strings.TrimSuffix(jid, "@lid")
+			var pnUser string
+			if waDB.QueryRow(`SELECT pn FROM whatsmeow_lid_map WHERE lid = ?`, lidUser).Scan(&pnUser) == nil && pnUser != "" {
+				primaryJID = pnUser + "@s.whatsapp.net"
+				secondaryJID = jid // keep LID as secondary
+			}
+		} else if strings.Contains(jid, "@s.whatsapp.net") {
+			pnUser := strings.TrimSuffix(jid, "@s.whatsapp.net")
+			var lidUser string
+			if waDB.QueryRow(`SELECT lid FROM whatsmeow_lid_map WHERE pn = ?`, pnUser).Scan(&lidUser) == nil && lidUser != "" {
+				secondaryJID = lidUser + "@lid"
+			}
+		}
+	}
+	// altJID is the non-primary form, shown in the UI.
+	altJID := secondaryJID
+
 	if waDB != nil {
 		row := waDB.QueryRow(
 			`SELECT COALESCE(NULLIF(push_name,''), NULLIF(full_name,''), their_jid),
 			        COALESCE(full_name,''), COALESCE(push_name,''), COALESCE(business_name,'')
-			 FROM whatsmeow_contacts WHERE their_jid = ?`, jid)
-		_ = row.Scan(&displayName, &fullName, &pushName, &businessName)
+			 FROM whatsmeow_contacts WHERE their_jid = ?`, primaryJID)
+		if row.Scan(&displayName, &fullName, &pushName, &businessName) != nil {
+			// fallback: try original jid in case primaryJID not in contacts
+			row2 := waDB.QueryRow(
+				`SELECT COALESCE(NULLIF(push_name,''), NULLIF(full_name,''), their_jid),
+				        COALESCE(full_name,''), COALESCE(push_name,''), COALESCE(business_name,'')
+				 FROM whatsmeow_contacts WHERE their_jid = ?`, jid)
+			_ = row2.Scan(&displayName, &fullName, &pushName, &businessName)
+		}
+	}
+
+	// jidIn builds  = 'primary'  or  IN ('primary','secondary')  for SQL WHERE clauses.
+	jidIn := func(col string) string {
+		if secondaryJID == "" {
+			return fmt.Sprintf("%s = '%s'", col, primaryJID)
+		}
+		return fmt.Sprintf("%s IN ('%s','%s')", col, primaryJID, secondaryJID)
+	}
+
+	// Group name map: prefer group_membership, fall back to GetJoinedGroups().
+	// Built once and reused for all commonGroups name resolution below.
+	groupNames := map[string]string{}
+	if groups, err := whatsapp.GetJoinedGroups(); err == nil {
+		for _, g := range groups {
+			if g.Name != "" {
+				groupNames[g.JID.String()] = g.Name
+			}
+		}
 	}
 
 	// ── DM stats ──────────────────────────────────────────────────────────────
@@ -60,8 +113,8 @@ func getContactOverview(e *core.RequestEvent) error {
 		       SUM(CASE WHEN file != '' THEN 1 ELSE 0 END) AS media_dm
 		FROM events
 		WHERE type LIKE '%%Message%%'
-		  AND json_extract(raw,'$.Info.Chat') = '%s'
-		  %s`, jid, periodClause)).One(&dm)
+		  AND %s
+		  %s`, jidIn("json_extract(raw,'$.Info.Chat')"), periodClause)).One(&dm)
 
 	// ── Group activity ────────────────────────────────────────────────────────
 	type grpRow struct {
@@ -74,9 +127,9 @@ func getContactOverview(e *core.RequestEvent) error {
 		       SUM(CASE WHEN file != '' THEN 1 ELSE 0 END) AS group_media
 		FROM events
 		WHERE type LIKE '%%Message%%'
-		  AND json_extract(raw,'$.Info.Sender') = '%s'
+		  AND %s
 		  AND json_extract(raw,'$.Info.IsGroup') = 1
-		  %s`, jid, periodClause)).One(&grp)
+		  %s`, jidIn("json_extract(raw,'$.Info.Sender')"), periodClause)).One(&grp)
 
 	// ── Edit / delete / reactions ─────────────────────────────────────────────
 	type editReactRow struct {
@@ -93,8 +146,8 @@ func getContactOverview(e *core.RequestEvent) error {
 		       SUM(CASE WHEN raw LIKE '%%"ReactionMessage":{%%' AND json_extract(raw,'$.Info.IsFromMe')=1 THEN 1 ELSE 0 END) AS reactions_sent
 		FROM events
 		WHERE type LIKE '%%Message%%'
-		  AND json_extract(raw,'$.Info.Chat') = '%s'
-		  %s`, jid, periodClause)).One(&er)
+		  AND %s
+		  %s`, jidIn("json_extract(raw,'$.Info.Chat')"), periodClause)).One(&er)
 
 	// ── Common groups ──────────────────────────────────────────────────────────
 	type groupRow struct {
@@ -107,28 +160,39 @@ func getContactOverview(e *core.RequestEvent) error {
 		SELECT json_extract(raw,'$.Info.Chat') AS group_jid, COUNT(*) AS msg_count
 		FROM events
 		WHERE type LIKE '%%Message%%'
-		  AND json_extract(raw,'$.Info.Sender') = '%s'
+		  AND %s
 		  AND json_extract(raw,'$.Info.Chat') LIKE '%%@g.us'
 		  %s
 		GROUP BY group_jid
 		ORDER BY msg_count DESC
-		LIMIT 15`, jid, periodClause)).All(&commonGroups)
+		LIMIT 15`, jidIn("json_extract(raw,'$.Info.Sender')"), periodClause)).All(&commonGroups)
 	if commonGroups == nil {
 		commonGroups = []groupRow{}
 	}
 	for i := range commonGroups {
-		name := commonGroups[i].GroupJID
+		gJID := commonGroups[i].GroupJID
+		// Default: numeric prefix of JID
+		name := gJID
 		if at := strings.Index(name, "@"); at > 0 {
 			name = name[:at]
 		}
+		// 1st choice: group_membership recorded name
 		type nameRow struct {
 			N string `db:"group_name"`
 		}
 		var nr nameRow
 		if err := pb.DB().NewQuery(fmt.Sprintf(
 			`SELECT group_name FROM group_membership WHERE group_jid='%s' AND group_name!='' ORDER BY created DESC LIMIT 1`,
-			sanitizeSQL(commonGroups[i].GroupJID))).One(&nr); err == nil && nr.N != "" {
+			sanitizeSQL(gJID))).One(&nr); err == nil && nr.N != "" {
 			name = nr.N
+		} else if n, ok := groupNames[gJID]; ok {
+			// 2nd choice: live joined-groups list
+			name = n
+		} else if groupJID, err := types.ParseJID(gJID); err == nil {
+			// 3rd choice: direct group info API call
+			if info, err := whatsapp.GetGroupInfo(groupJID); err == nil && info.Name != "" {
+				name = info.Name
+			}
 		}
 		commonGroups[i].Name = name
 	}
@@ -147,13 +211,16 @@ func getContactOverview(e *core.RequestEvent) error {
 		FROM events
 		WHERE type LIKE '%%Message%%'
 		  AND (
-		    (json_extract(raw,'$.Info.Chat')   = '%s' AND json_extract(raw,'$.Info.IsFromMe')=0)
+		    (%s AND json_extract(raw,'$.Info.IsFromMe')=0)
 		    OR
-		    (json_extract(raw,'$.Info.Sender') = '%s' AND json_extract(raw,'$.Info.IsGroup')=1)
+		    (%s AND json_extract(raw,'$.Info.IsGroup')=1)
 		  )
 		  %s
 		GROUP BY dow, hour
-		ORDER BY dow, hour`, jid, jid, periodClause)).All(&heatmap)
+		ORDER BY dow, hour`,
+		jidIn("json_extract(raw,'$.Info.Chat')"),
+		jidIn("json_extract(raw,'$.Info.Sender')"),
+		periodClause)).All(&heatmap)
 	if heatmap == nil {
 		heatmap = []heatCell{}
 	}
@@ -172,13 +239,16 @@ func getContactOverview(e *core.RequestEvent) error {
 		FROM events
 		WHERE type LIKE '%%Message%%'
 		  AND (
-		    (json_extract(raw,'$.Info.Chat')   = '%s' AND json_extract(raw,'$.Info.IsFromMe')=0)
+		    (%s AND json_extract(raw,'$.Info.IsFromMe')=0)
 		    OR
-		    (json_extract(raw,'$.Info.Sender') = '%s' AND json_extract(raw,'$.Info.IsGroup')=1)
+		    (%s AND json_extract(raw,'$.Info.IsGroup')=1)
 		  )
 		  %s
 		GROUP BY dow, hour
-		ORDER BY cnt DESC LIMIT 1`, jid, jid, periodClause)).One(&peak)
+		ORDER BY cnt DESC LIMIT 1`,
+		jidIn("json_extract(raw,'$.Info.Chat')"),
+		jidIn("json_extract(raw,'$.Info.Sender')"),
+		periodClause)).One(&peak)
 
 	// ── Daily sparkline ───────────────────────────────────────────────────────
 	type dayRow struct {
@@ -195,12 +265,15 @@ func getContactOverview(e *core.RequestEvent) error {
 		FROM events
 		WHERE type LIKE '%%Message%%'
 		  AND (
-		    (json_extract(raw,'$.Info.Chat')   = '%s' AND json_extract(raw,'$.Info.IsFromMe')=0)
+		    (%s AND json_extract(raw,'$.Info.IsFromMe')=0)
 		    OR
-		    (json_extract(raw,'$.Info.Sender') = '%s' AND json_extract(raw,'$.Info.IsGroup')=1)
+		    (%s AND json_extract(raw,'$.Info.IsGroup')=1)
 		  )
 		  AND datetime(created) >= datetime('now', '-%d days')
-		GROUP BY day ORDER BY day ASC`, jid, jid, dailyDays)).All(&daily)
+		GROUP BY day ORDER BY day ASC`,
+		jidIn("json_extract(raw,'$.Info.Chat')"),
+		jidIn("json_extract(raw,'$.Info.Sender')"),
+		dailyDays)).All(&daily)
 	if daily == nil {
 		daily = []dayRow{}
 	}
@@ -211,11 +284,15 @@ func getContactOverview(e *core.RequestEvent) error {
 		Created string `db:"created" json:"created"`
 	}
 	var presence []presRow
+	presenceFilter := fmt.Sprintf("raw LIKE '%%%s%%'", primaryJID)
+	if secondaryJID != "" {
+		presenceFilter = fmt.Sprintf("(raw LIKE '%%%s%%' OR raw LIKE '%%%s%%')", primaryJID, secondaryJID)
+	}
 	_ = pb.DB().NewQuery(fmt.Sprintf(`
 		SELECT type, created FROM events
 		WHERE (type LIKE 'Presence.%%' OR type LIKE 'ChatPresence.%%')
-		  AND raw LIKE '%%%s%%'
-		ORDER BY created DESC LIMIT 15`, jid)).All(&presence)
+		  AND %s
+		ORDER BY created DESC LIMIT 15`, presenceFilter)).All(&presence)
 	if presence == nil {
 		presence = []presRow{}
 	}
@@ -227,8 +304,8 @@ func getContactOverview(e *core.RequestEvent) error {
 	var lastOnline lastOnlineRow
 	_ = pb.DB().NewQuery(fmt.Sprintf(`
 		SELECT created FROM events
-		WHERE type = 'Presence.Online' AND raw LIKE '%%%s%%'
-		ORDER BY created DESC LIMIT 1`, jid)).One(&lastOnline)
+		WHERE type = 'Presence.Online' AND %s
+		ORDER BY created DESC LIMIT 1`, presenceFilter)).One(&lastOnline)
 
 	// ── First and last activity ────────────────────────────────────────────────
 	type flRow struct {
@@ -240,8 +317,9 @@ func getContactOverview(e *core.RequestEvent) error {
 		SELECT MIN(created) AS first_seen, MAX(created) AS last_seen
 		FROM events
 		WHERE type LIKE '%%Message%%'
-		  AND (json_extract(raw,'$.Info.Chat')='%s' OR json_extract(raw,'$.Info.Sender')='%s')`,
-		jid, jid)).One(&fl)
+		  AND (%s OR %s)`,
+		jidIn("json_extract(raw,'$.Info.Chat')"),
+		jidIn("json_extract(raw,'$.Info.Sender')"))).One(&fl)
 
 	// ── Peak label ────────────────────────────────────────────────────────────
 	dowNames := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
@@ -261,6 +339,7 @@ func getContactOverview(e *core.RequestEvent) error {
 
 	return e.JSON(http.StatusOK, map[string]any{
 		"jid":           jid,
+		"alt_jid":       altJID,
 		"display_name":  displayName,
 		"full_name":     fullName,
 		"push_name":     pushName,
