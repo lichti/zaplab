@@ -7625,23 +7625,20 @@
                   </template>
 
                   <!-- Rows: each day of week -->
-                  <template x-for="(day, d) in stDayLabels" :key="day">
-                    <!-- Day label -->
-                    <template x-for="col in [-1, ...Array.from({length:24},(_,i)=>i)]" :key="col">
-                      <template x-if="col === -1">
-                        <div class="flex items-center justify-end pr-1 text-gray-500 dark:text-[#8b949e]"
-                             style="font-size:10px" x-text="day"></div>
-                      </template>
-                      <template x-if="col >= 0">
+                  <template x-for="row in stHeatRows()" :key="row.d">
+                    <!-- display:contents makes label + cells direct grid children -->
+                    <div style="display:contents">
+                      <div class="flex items-center justify-end pr-1 text-gray-500 dark:text-[#8b949e]"
+                           style="font-size:10px" x-text="row.label"></div>
+                      <template x-for="cell in row.cells" :key="cell.h">
                         <div
                           class="rounded-sm heat-cell"
                           style="height:14px;cursor:default"
-                          :style="stCellStyle(stHeatCount(d, col))"
-                          :class="stHeatCount(d, col) === 0 ? 'bg-gray-100 dark:bg-[#161b22]' : ''"
-                          :title="stCellTitle(d, col, stHeatCount(d, col))"
+                          :style="stCellStyle(cell.count)"
+                          :title="stCellTitle(row.d, cell.h, cell.count)"
                         ></div>
                       </template>
-                    </template>
+                    </div>
                   </template>
                 </div>
               </div>

@@ -100,12 +100,24 @@ function statsSection() {
     },
 
     stCellStyle(count) {
-      if (count === 0) return '';
+      const lightColors = ['#ebedf0','#9be9a8','#40c463','#30a14e','#216e39'];
+      const darkColors  = ['#161b22','#0e4429','#006d32','#26a641','#39d353'];
+      if (count === 0) return `--heat-light:${lightColors[0]};--heat-dark:${darkColors[0]}`;
       const ratio = Math.min(count / this.stHeatMax(), 1);
       const level = Math.ceil(ratio * 4);
-      const lightColors = ['','#9be9a8','#40c463','#30a14e','#216e39'];
-      const darkColors  = ['','#0e4429','#006d32','#26a641','#39d353'];
       return `--heat-light:${lightColors[level]};--heat-dark:${darkColors[level]}`;
+    },
+
+    // Returns pre-computed row data for the heatmap grid.
+    stHeatRows() {
+      return this.stDayLabels.map((label, d) => ({
+        d,
+        label,
+        cells: Array.from({length: 24}, (_, h) => ({
+          h,
+          count: this.stHeatCount(d, h),
+        })),
+      }));
     },
 
     stCellTitle(dow, hour, count) {
