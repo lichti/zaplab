@@ -87,10 +87,12 @@ func getContactOverview(e *core.RequestEvent) error {
 		return fmt.Sprintf("%s IN ('%s','%s')", col, primaryJID, secondaryJID)
 	}
 
-	// Group name map: prefer group_membership, fall back to GetJoinedGroups().
-	// Built once and reused for all commonGroups name resolution below.
+	// Group data: names map + full list for silent-membership detection.
+	// GetJoinedGroups returns full GroupInfo including Participants (with both JID and LID).
 	groupNames := map[string]string{}
+	var joinedGroups []*types.GroupInfo
 	if groups, err := whatsapp.GetJoinedGroups(); err == nil {
+		joinedGroups = groups
 		for _, g := range groups {
 			if g.Name != "" {
 				groupNames[g.JID.String()] = g.Name
@@ -195,6 +197,48 @@ func getContactOverview(e *core.RequestEvent) error {
 			}
 		}
 		commonGroups[i].Name = name
+	}
+
+	// ── Silent memberships: groups where the contact is a member but sent no messages ──
+	// GetJoinedGroups already returns full participant lists (including LID).
+	// Check both primaryJID and secondaryJID against each participant's JID and LID.
+	if len(joinedGroups) > 0 {
+		knownGroups := map[string]bool{}
+		for _, g := range commonGroups {
+			knownGroups[g.GroupJID] = true
+		}
+		for _, jg := range joinedGroups {
+			gjid := jg.JID.String()
+			if knownGroups[gjid] {
+				continue
+			}
+			isMember := false
+			for _, p := range jg.Participants {
+				pjid := p.JID.String()
+				if pjid == primaryJID || pjid == secondaryJID {
+					isMember = true
+					break
+				}
+				if !p.LID.IsEmpty() {
+					plid := p.LID.String()
+					if plid == primaryJID || plid == secondaryJID {
+						isMember = true
+						break
+					}
+				}
+			}
+			if !isMember {
+				continue
+			}
+			name := gjid
+			if at := strings.Index(name, "@"); at > 0 {
+				name = name[:at]
+			}
+			if jg.Name != "" {
+				name = jg.Name
+			}
+			commonGroups = append(commonGroups, groupRow{GroupJID: gjid, MsgCount: 0, Name: name})
+		}
 	}
 
 	// ── Heatmap ───────────────────────────────────────────────────────────────
