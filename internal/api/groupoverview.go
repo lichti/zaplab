@@ -102,11 +102,21 @@ func getGroupOverview(e *core.RequestEvent) error {
 		}
 	}
 	enrichName := func(memberJID string) string {
+		// Normalise device-suffix JIDs: "123:46@s.whatsapp.net" → "123@s.whatsapp.net"
+		normJID := memberJID
+		if colon := strings.Index(normJID, ":"); colon > 0 {
+			if at := strings.Index(normJID, "@"); at > colon {
+				normJID = normJID[:colon] + normJID[at:]
+			}
+		}
+		if name, ok := contactNames[normJID]; ok {
+			return name
+		}
 		if name, ok := contactNames[memberJID]; ok {
 			return name
 		}
-		if at := strings.Index(memberJID, "@"); at > 0 {
-			return memberJID[:at]
+		if at := strings.Index(normJID, "@"); at > 0 {
+			return normJID[:at]
 		}
 		return memberJID
 	}
