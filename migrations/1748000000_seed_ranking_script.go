@@ -40,7 +40,7 @@ func upRankingScript(app core.App) error {
 	script.Set("description", "Posts group activity ranking for /ranking <days> — groups only, bot user only.")
 	script.Set("enabled", true)
 	script.Set("timeout_secs", 30.0)
-	script.Set("code", rankingScriptCode)
+	script.Set("code", rankingScript)
 	if err := app.Save(script); err != nil {
 		return err
 	}
@@ -53,176 +53,118 @@ func upRankingScript(app core.App) error {
 	return app.Save(trigger)
 }
 
-// rankingScriptCode is the JS code executed when /ranking <days> is sent by the bot
+// rankingScript is the JS code executed when /ranking <days> is sent by the bot
 // inside a group. It posts top-5 most active, top-5 least active, and silent count.
-const rankingScriptCode = `// ── /ranking <dias> ──────────────────────────────────────────────────────────
-// Conditions:
-//   - Only works in groups (event.Info.IsGroup)
-//   - Only the bot user can trigger (event.Info.IsFromMe)
-// Usage: /ranking <days>  (e.g. /ranking 30)
+// Wrapped in an IIFE — top-level return is a JS syntax error in goja.
+var rankingScript = `(function() {
+// /ranking <dias> — groups only, bot user only
+// Usage: /ranking <days>  (default 30)
+var info = event && event.Info;
+if (!info || !info.IsFromMe || !info.IsGroup) return;
 
-if (!event || !event.Info) return;
-if (!event.Info.IsFromMe) return;   // ignore messages from other users
-if (!event.Info.IsGroup)  return;   // ignore private chats
-
-// ── Extract message text ──────────────────────────────────────────────────────
-var msgText = '';
-if (event.Message) {
-  msgText = event.Message.conversation
-    || (event.Message.extendedTextMessage && event.Message.extendedTextMessage.text)
-    || '';
-}
-msgText = msgText.trim();
-
-// ── Parse command ─────────────────────────────────────────────────────────────
-var parts = msgText.split(/\s+/);
+var msg = event.Message || {};
+var txt = (msg.conversation || (msg.extendedTextMessage && msg.extendedTextMessage.text) || '').trim();
+var parts = txt.split(/\s+/);
 if (!parts[0] || parts[0].toLowerCase() !== '/ranking') return;
 
 var days = parseInt(parts[1], 10);
 if (isNaN(days) || days < 1) days = 30;
 if (days > 365) days = 365;
 
-var chatJID = event.Info.Chat;   // e.g. "120363425621295665@g.us"
-var botJID  = wa.jid;            // e.g. "5511999999999@s.whatsapp.net"
-var botUser = botJID ? botJID.split('@')[0].split(':')[0] : '';
+var chat    = info.Chat;
+var botUser = (wa.jid || '').split('@')[0].split(':')[0];
 
-// ── 1. Message stats per sender (PocketBase events table) ─────────────────────
-var statsRows = db.query(
-  "SELECT json_extract(raw,'$.Info.Sender') AS jid, COUNT(*) AS cnt " +
-  "FROM events " +
-  "WHERE type LIKE '%Message%' " +
-  "  AND json_extract(raw,'$.Info.Chat') = '" + chatJID + "' " +
-  "  AND json_extract(raw,'$.Info.IsFromMe') = 0 " +
-  "  AND datetime(created) >= datetime('now','-" + days + " days') " +
-  "GROUP BY jid"
-);
+// 1. Message stats
+var stats = db.query(
+  "SELECT json_extract(raw,'$.Info.Sender') AS jid, COUNT(*) AS cnt FROM events" +
+  " WHERE type LIKE '%Message%'" +
+  " AND json_extract(raw,'$.Info.Chat')='" + chat + "'" +
+  " AND json_extract(raw,'$.Info.IsFromMe')=0" +
+  " AND datetime(created)>=datetime('now','-" + days + " days')" +
+  " GROUP BY jid");
 
-// ── 2. Build msgMap with device-suffix normalisation ("123:15@lid" → "123@lid") ─
+// 2. msgMap with device-suffix + LID/PN normalisation
 var msgMap = {};
-for (var i = 0; i < statsRows.length; i++) {
-  var r = statsRows[i];
-  if (!r.jid) continue;
-  var normJID = r.jid.replace(/:[\d]+@/, '@');
-  var cnt = parseInt(r.cnt, 10) || 0;
-  msgMap[normJID] = (msgMap[normJID] || 0) + cnt;
-  if (normJID !== r.jid) msgMap[r.jid] = msgMap[normJID];
+for (var i=0;i<stats.length;i++){
+  var r=stats[i]; if(!r.jid)continue;
+  var k=r.jid.replace(/:[\d]+@/,'@'), c=parseInt(r.cnt,10)||0;
+  msgMap[k]=(msgMap[k]||0)+c;
+  if(k!==r.jid) msgMap[r.jid]=msgMap[k];
+}
+var lids=wa.db.query("SELECT lid||'@lid' AS l,pn||'@s.whatsapp.net' AS p FROM whatsmeow_lid_map");
+for(var i=0;i<lids.length;i++){
+  var l=lids[i].l,p=lids[i].p,hl=msgMap[l]!==undefined,hp=msgMap[p]!==undefined;
+  if(hl&&hp){var m2=msgMap[l]+msgMap[p];msgMap[l]=m2;msgMap[p]=m2;}
+  else if(hl){msgMap[p]=msgMap[l];}else if(hp){msgMap[l]=msgMap[p];}
 }
 
-// ── 3. LID ↔ PN alias normalisation (same as Go loadLIDMap) ──────────────────
-var lidMapRows = wa.db.query(
-  "SELECT lid || '@lid' AS lid_jid, pn || '@s.whatsapp.net' AS pn_jid FROM whatsmeow_lid_map"
-);
-for (var i = 0; i < lidMapRows.length; i++) {
-  var lm = lidMapRows[i];
-  var lid = lm.lid_jid, pn = lm.pn_jid;
-  var hasLID = msgMap[lid] !== undefined;
-  var hasPN  = msgMap[pn]  !== undefined;
-  if (hasLID && hasPN) {
-    var merged = msgMap[lid] + msgMap[pn];
-    msgMap[lid] = merged; msgMap[pn] = merged;
-  } else if (hasLID) { msgMap[pn] = msgMap[lid];
-  } else if (hasPN)  { msgMap[lid] = msgMap[pn]; }
+// 3. Contact names
+var names={};
+var cn=wa.db.query("SELECT their_jid AS j,COALESCE(NULLIF(push_name,''),NULLIF(full_name,''),their_jid) AS n FROM whatsmeow_contacts");
+for(var i=0;i<cn.length;i++) names[cn[i].j]=cn[i].n;
+var ln=wa.db.query("SELECT m.lid||'@lid' AS j,COALESCE(NULLIF(c.push_name,''),NULLIF(c.full_name,''),m.pn||'@s.whatsapp.net') AS n FROM whatsmeow_lid_map m LEFT JOIN whatsmeow_contacts c ON c.their_jid=m.pn||'@s.whatsapp.net'");
+for(var i=0;i<ln.length;i++) names[ln[i].j]=ln[i].n;
+function nm(jid){
+  if(names[jid])return names[jid];
+  var u=jid.split('@')[0].split(':')[0];
+  return names[u+'@s.whatsapp.net']||u;
 }
 
-// ── 4. Current members from group_membership (last action per member) ─────────
-var memberRows = db.query(
-  "SELECT m.member_jid " +
-  "FROM group_membership m " +
-  "INNER JOIN (" +
-  "  SELECT member_jid, MAX(created) AS max_created " +
-  "  FROM group_membership WHERE group_jid = '" + chatJID + "' " +
-  "  GROUP BY member_jid" +
-  ") latest ON m.member_jid = latest.member_jid AND m.created = latest.max_created " +
-  "WHERE m.group_jid = '" + chatJID + "' AND m.action NOT IN ('leave') " +
-  "ORDER BY m.member_jid ASC"
-);
-
-// ── 5. Contact names from whatsapp DB ─────────────────────────────────────────
-var nameMap = {};
-var nameRows = wa.db.query(
-  "SELECT their_jid AS jid, " +
-  "       COALESCE(NULLIF(push_name,''), NULLIF(full_name,''), their_jid) AS name " +
-  "FROM whatsmeow_contacts"
-);
-for (var i = 0; i < nameRows.length; i++) nameMap[nameRows[i].jid] = nameRows[i].name;
-
-var lidNameRows = wa.db.query(
-  "SELECT m.lid || '@lid' AS jid, " +
-  "       COALESCE(NULLIF(c.push_name,''), NULLIF(c.full_name,''), m.pn || '@s.whatsapp.net') AS name " +
-  "FROM whatsmeow_lid_map m " +
-  "LEFT JOIN whatsmeow_contacts c ON c.their_jid = m.pn || '@s.whatsapp.net'"
-);
-for (var i = 0; i < lidNameRows.length; i++) nameMap[lidNameRows[i].jid] = lidNameRows[i].name;
-
-function getName(jid) {
-  if (nameMap[jid]) return nameMap[jid];
-  var user = jid.split('@')[0].split(':')[0];
-  if (nameMap[user + '@s.whatsapp.net']) return nameMap[user + '@s.whatsapp.net'];
-  return user;
+// 4. Members: group_membership first, then wa.getGroups() fallback
+var seen={},members=[];
+function addMember(jid){
+  if(!jid||seen[jid])return;
+  var u=jid.split('@')[0].split(':')[0];
+  if(u===botUser)return;
+  seen[jid]=true;
+  members.push({jid:jid,name:nm(jid),count:msgMap[jid]||0});
 }
 
-// ── 6. Build ranked member list, skipping the bot itself ──────────────────────
-var members = [];
-var seen = {};
-for (var i = 0; i < memberRows.length; i++) {
-  var mJID = memberRows[i].member_jid;
-  if (!mJID || seen[mJID]) continue;
-  var mUser = mJID.split('@')[0].split(':')[0];
-  if (mUser === botUser) continue; // skip self
-  seen[mJID] = true;
-  members.push({ jid: mJID, name: getName(mJID), count: msgMap[mJID] || 0 });
+var rows=db.query(
+  "SELECT m.member_jid FROM group_membership m"+
+  " INNER JOIN(SELECT member_jid,MAX(created) AS mc FROM group_membership WHERE group_jid='"+chat+"' GROUP BY member_jid) lt"+
+  " ON m.member_jid=lt.member_jid AND m.created=lt.mc"+
+  " WHERE m.group_jid='"+chat+"' AND m.action NOT IN('leave') ORDER BY m.member_jid");
+for(var i=0;i<rows.length;i++) addMember(rows[i].member_jid);
+
+// Fallback: live group participants (covers pre-existing groups)
+if(members.length===0){
+  var groups=wa.getGroups();
+  for(var i=0;i<groups.length;i++){
+    if(groups[i].jid===chat){
+      // wa.getGroups() only returns jid/name/participant_count, not individual JIDs.
+      // Use msgMap senders as best-effort member list.
+      break;
+    }
+  }
+  // Populate from senders observed in events (best-effort when membership unknown)
+  for(var jid in msgMap){
+    if(msgMap[jid]>0) addMember(jid);
+  }
 }
 
-// Sort descending by message count
-members.sort(function(a, b) { return b.count - a.count; });
+// 5. Sort and slice
+members.sort(function(a,b){return b.count-a.count;});
+var total=members.length, silent=0;
+for(var i=0;i<members.length;i++){if(members[i].count===0)silent++;}
 
-var totalMembers = members.length;
-var silent = 0;
-for (var i = 0; i < members.length; i++) { if (members[i].count === 0) silent++; }
+var top5=[],active=[];
+for(var i=0;i<members.length;i++){if(members[i].count>0){if(top5.length<5)top5.push(members[i]);active.push(members[i]);}}
+var bot5=active.length>5?active.slice(active.length-5).reverse():[];
 
-// Top 5 most active
-var top5 = [];
-for (var i = 0; i < members.length && top5.length < 5; i++) {
-  if (members[i].count > 0) top5.push(members[i]);
-}
-
-// Bottom 5 least active (with at least 1 message, not already in top5)
-var active = [];
-for (var i = 0; i < members.length; i++) { if (members[i].count > 0) active.push(members[i]); }
-var bottom5 = [];
-if (active.length > 5) {
-  bottom5 = active.slice(active.length - 5).reverse();
-}
-
-// ── 7. Format and send ────────────────────────────────────────────────────────
-var medals = ['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49','\u0034\uFE0F\u20E3','\u0035\uFE0F\u20E3'];
-
-function fmtMember(i, m) {
-  return (medals[i] || (i + 1) + '.') + ' ' + m.name + ' \u2014 ' + m.count + ' msg' + (m.count !== 1 ? 's' : '');
-}
-
-var lines = [
-  '\uD83D\uDCCA *Ranking do grupo \u2014 últimos ' + days + ' dia' + (days === 1 ? '' : 's') + '*',
-  ''
-];
-
-lines.push('\uD83D\uDD25 *Mais ativos*');
-if (top5.length === 0) {
-  lines.push('Nenhuma mensagem no período.');
-} else {
-  for (var i = 0; i < top5.length; i++) lines.push(fmtMember(i, top5[i]));
-}
-
-lines.push('');
-lines.push('\uD83D\uDC22 *Menos ativos*');
-if (bottom5.length === 0) {
-  lines.push('Nenhuma mensagem no período.' + (active.length > 0 && active.length <= 5 ? ' (todos listados acima)' : ''));
-} else {
-  for (var i = 0; i < bottom5.length; i++) lines.push(fmtMember(i, bottom5[i]));
-}
-
-lines.push('');
-lines.push('\uD83D\uDE34 *Sem interação:* ' + silent + ' de ' + totalMembers + ' membro' + (totalMembers !== 1 ? 's' : ''));
-
-wa.sendText(chatJID, lines.join('\n'));
+// 6. Format
+var md=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49','\u0034\uFE0F\u20E3','\u0035\uFE0F\u20E3'];
+function row(i,m){return (md[i]||(i+1)+'.')+' '+m.name+' \u2014 '+m.count+' msg'+(m.count!==1?'s':'');}
+var L=['\uD83D\uDCCA *Ranking \u2014 últimos '+days+' dia'+(days===1?'':'s')+'*',''];
+L.push('\uD83D\uDD25 *Mais ativos*');
+if(top5.length===0){L.push('Nenhuma mensagem no período.');}
+else{for(var i=0;i<top5.length;i++)L.push(row(i,top5[i]));}
+L.push('');
+L.push('\uD83D\uDC22 *Menos ativos*');
+if(bot5.length===0){L.push(active.length>0?'(todos listados acima)':'Nenhuma mensagem no período.');}
+else{for(var i=0;i<bot5.length;i++)L.push(row(i,bot5[i]));}
+L.push('');
+L.push('\uD83D\uDE34 *Sem interação:* '+silent+' de '+total+' membro'+(total!==1?'s':''));
+wa.sendText(chat,L.join('\n'));
+})();
 `
