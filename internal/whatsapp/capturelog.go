@@ -145,8 +145,9 @@ func NewCapturingLogger(inner waLog.Logger, module string) waLog.Logger {
 // or later). Runs in a background goroutine for the lifetime of the process.
 func StartLogConsumer() {
 	go func() {
+		defer func() { recover() }() //nolint:errcheck
 		for entry := range captureSink {
-			if pb == nil {
+			if pb == nil || pb.DB() == nil {
 				continue
 			}
 			persistLogEntry(entry)
@@ -155,6 +156,9 @@ func StartLogConsumer() {
 }
 
 func persistLogEntry(entry LogEntry) {
+	if pb.DB() == nil {
+		return
+	}
 	col, err := pb.FindCollectionByNameOrId("frames")
 	if err != nil {
 		return

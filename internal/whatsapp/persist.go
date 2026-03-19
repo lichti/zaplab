@@ -1,6 +1,7 @@
 package whatsapp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -8,10 +9,39 @@ import (
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
+// normalizeLID replaces @lid JIDs in a Message event with the corresponding
+// phone-number JID from the whatsmeow LID map.  Called before persisting so
+// that all storage is keyed on the canonical PN JID.  No-op when the mapping
+// is not yet known — the event is stored as-is and will be fixed by migration.
+func normalizeLID(msg *events.Message) {
+	if client == nil || msg == nil {
+		return
+	}
+	ctx := context.Background()
+	if msg.Info.Sender.Server == types.HiddenUserServer {
+		if pn, err := client.Store.LIDs.GetPNForLID(ctx, msg.Info.Sender); err == nil && !pn.IsEmpty() {
+			msg.Info.Sender = pn
+		}
+	}
+	// DMs where the chat itself is a LID (rare but possible).
+	if msg.Info.Chat.Server == types.HiddenUserServer {
+		if pn, err := client.Store.LIDs.GetPNForLID(ctx, msg.Info.Chat); err == nil && !pn.IsEmpty() {
+			msg.Info.Chat = pn
+		}
+	}
+}
+
 func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName string, fileBytes []byte) error {
+	if pb.DB() == nil {
+		return fmt.Errorf("database is closed")
+	}
+	if msg, ok := raw.(*events.Message); ok {
+		normalizeLID(msg)
+	}
 	collection, err := pb.FindCollectionByNameOrId("events")
 	if err != nil {
 		return err
@@ -59,6 +89,12 @@ func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName 
 }
 
 func saveEvent(evtType string, raw interface{}, extra interface{}) error {
+	if pb.DB() == nil {
+		return fmt.Errorf("database is closed")
+	}
+	if msg, ok := raw.(*events.Message); ok {
+		normalizeLID(msg)
+	}
 	collection, err := pb.FindCollectionByNameOrId("events")
 	if err != nil {
 		return err
@@ -110,6 +146,9 @@ func SaveEvent(evtType string, raw interface{}, extra interface{}) error {
 }
 
 func saveError(evtType string, evtError string, raw interface{}) error {
+	if pb.DB() == nil {
+		return fmt.Errorf("database is closed")
+	}
 	collection, err := pb.FindCollectionByNameOrId("errors")
 	if err != nil {
 		return err
