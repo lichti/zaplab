@@ -85,8 +85,55 @@ func dispatchTriggers(evtType string, rawJSON []byte) {
 		env := map[string]any{"event": eventVal}
 
 		go func() {
-			defer func() { recover() }() //nolint:errcheck
-			runScript(t.Code, timeout, env)
+			defer func() {
+				if r := recover(); r != nil {
+					pb.Logger().Error("trigger script panic",
+						"trigger_id", t.ID,
+						"script_id", t.ScriptID,
+						"panic", fmt.Sprintf("%v", r),
+					)
+				}
+			}()
+			pb.Logger().Info("trigger fired",
+				"trigger_id", t.ID,
+				"script_id", t.ScriptID,
+				"event_type", evtType,
+				"chat", chatJID,
+			)
+			output, runErr, dur := runScript(t.Code, timeout, env)
+			durMs := float64(dur.Milliseconds())
+			if runErr != nil {
+				pb.Logger().Error("trigger script error",
+					"trigger_id", t.ID,
+					"script_id", t.ScriptID,
+					"error", runErr.Error(),
+					"output", output,
+					"duration_ms", durMs,
+				)
+			} else {
+				pb.Logger().Info("trigger script ok",
+					"trigger_id", t.ID,
+					"script_id", t.ScriptID,
+					"output", output,
+					"duration_ms", durMs,
+				)
+			}
+			// Persist last_run_* on the script record so the UI shows the result.
+			if t.ScriptID != "" {
+				if rec, err := pb.FindRecordById("scripts", t.ScriptID); err == nil {
+					status := "ok"
+					errMsg := ""
+					if runErr != nil {
+						status = "error"
+						errMsg = runErr.Error()
+					}
+					rec.Set("last_run_status", status)
+					rec.Set("last_run_output", output)
+					rec.Set("last_run_duration_ms", durMs)
+					rec.Set("last_run_error", errMsg)
+					_ = pb.Save(rec)
+				}
+			}
 		}()
 	}
 }
