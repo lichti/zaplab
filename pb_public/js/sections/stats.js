@@ -108,17 +108,6 @@ function statsSection() {
       return `--heat-light:${lightColors[level]};--heat-dark:${darkColors[level]}`;
     },
 
-    // Returns pre-computed row data for the heatmap grid.
-    stHeatRows() {
-      return this.stDayLabels.map((label, d) => ({
-        d,
-        label,
-        cells: Array.from({length: 24}, (_, h) => ({
-          h,
-          count: this.stHeatCount(d, h),
-        })),
-      }));
-    },
 
     stCellTitle(dow, hour, count) {
       if (count === 0) return `${this.stDayLabels[dow]} ${String(hour).padStart(2,'0')}:00 — no messages`;
