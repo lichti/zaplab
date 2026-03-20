@@ -76,6 +76,36 @@ func getConversationChats(e *core.RequestEvent) error {
 	if rows == nil {
 		rows = []chatRow{}
 	}
+
+	// Normalize @lid chat JIDs → PN and merge any resulting duplicates.
+	lidMap := loadLIDMap()
+	if len(lidMap) > 0 {
+		type merged struct {
+			chat     string
+			msgCount int
+			lastMsg  string
+		}
+		seen := map[string]*merged{}
+		order := []string{}
+		for _, r := range rows {
+			canonical := normalizeLIDJID(r.Chat, lidMap)
+			if prev, ok := seen[canonical]; ok {
+				prev.msgCount += r.MsgCount
+				if r.LastMsg > prev.lastMsg {
+					prev.lastMsg = r.LastMsg
+				}
+			} else {
+				seen[canonical] = &merged{chat: canonical, msgCount: r.MsgCount, lastMsg: r.LastMsg}
+				order = append(order, canonical)
+			}
+		}
+		rows = rows[:0]
+		for _, k := range order {
+			m := seen[k]
+			rows = append(rows, chatRow{Chat: m.chat, MsgCount: m.msgCount, LastMsg: m.lastMsg})
+		}
+	}
+
 	return e.JSON(http.StatusOK, map[string]any{"chats": rows, "total": len(rows)})
 }
 
@@ -321,6 +351,23 @@ func getConversationNames(e *core.RequestEvent) error {
 				var jid, name string
 				if rows.Scan(&jid, &name) == nil && name != "" {
 					names[jid] = name
+				}
+			}
+		}
+
+		// Also map LID → name so lookups work for events not yet migrated.
+		// The table stores only the User part, so we append server domains.
+		lrows, err := waDB.Query(`
+			SELECT m.lid || '@lid',
+			       COALESCE(NULLIF(c.full_name,''), NULLIF(c.push_name,''), m.pn || '@s.whatsapp.net') AS name
+			FROM whatsmeow_lid_map m
+			JOIN whatsmeow_contacts c ON c.their_jid = m.pn || '@s.whatsapp.net'`)
+		if err == nil {
+			defer lrows.Close()
+			for lrows.Next() {
+				var lid, name string
+				if lrows.Scan(&lid, &name) == nil && name != "" {
+					names[lid] = name
 				}
 			}
 		}

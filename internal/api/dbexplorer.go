@@ -102,6 +102,10 @@ func initDBExplorer(dsn, dialect string) error {
 	}
 
 	pb.Logger().Info("DB Explorer: connections established", "file", dbFilePath, "backups", dbBackupDir)
+
+	// Normalize any @lid JIDs already stored in events (best-effort, non-blocking).
+	go runLIDMigration()
+
 	return nil
 }
 
