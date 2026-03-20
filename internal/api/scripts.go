@@ -6,7 +6,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -597,6 +599,70 @@ func runScript(code string, timeout time.Duration, env map[string]any) (output s
 		return vm.ToValue(out)
 	})
 	_ = vm.Set("db", dbObj)
+
+	// ── zaplab ───────────────────────────────────────────────────────────────
+	// zaplab.api(path) — authenticated GET against the local zaplab API.
+	// Auth order: 1) X-API-Token env var, 2) short-lived superuser JWT.
+	// Returns a parsed JS object. Panics on HTTP error or JSON parse failure.
+	// Example: var data = zaplab.api('/zaplab/api/groups/'+jid+'/overview?period=30')
+
+	// Pre-generate a short-lived superuser token once per runScript invocation.
+	zaplabToken := os.Getenv("API_TOKEN")
+	if zaplabToken == "" {
+		// Fall back: mint a 2-minute superuser JWT from the first available superuser.
+		type suRow struct {
+			ID string `db:"id"`
+		}
+		var suRows []suRow
+		_ = pb.DB().Select("id").From("_superusers").Limit(1).All(&suRows)
+		if len(suRows) > 0 {
+			if su, err := pb.FindRecordById("_superusers", suRows[0].ID); err == nil {
+				if tok, err := su.NewStaticAuthToken(2 * time.Minute); err == nil {
+					zaplabToken = tok
+				}
+			}
+		}
+	}
+
+	zaplabObj := vm.NewObject()
+	_ = zaplabObj.Set("api", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			panic(vm.ToValue("zaplab.api(path) requires 1 argument"))
+		}
+		path := call.Arguments[0].String()
+		if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
+		url := "http://127.0.0.1:8090" + path
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("zaplab.api: request build error: %v", err)))
+		}
+		if zaplabToken != "" {
+			// API_TOKEN → X-API-Token; superuser JWT → Authorization: Bearer
+			if len(zaplabToken) < 100 {
+				req.Header.Set("X-API-Token", zaplabToken)
+			} else {
+				req.Header.Set("Authorization", "Bearer "+zaplabToken)
+			}
+		}
+		hc := &http.Client{Timeout: 20 * time.Second}
+		resp, err := hc.Do(req)
+		if err != nil {
+			panic(vm.ToValue(fmt.Sprintf("zaplab.api: request error: %v", err)))
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			panic(vm.ToValue(fmt.Sprintf("zaplab.api: HTTP %d — %s", resp.StatusCode, string(body))))
+		}
+		var out any
+		if err := json.Unmarshal(body, &out); err != nil {
+			panic(vm.ToValue(fmt.Sprintf("zaplab.api: JSON parse error: %v", err)))
+		}
+		return vm.ToValue(out)
+	})
+	_ = vm.Set("zaplab", zaplabObj)
 
 	// ── sleep ─────────────────────────────────────────────────────────────────
 	_ = vm.Set("sleep", func(call goja.FunctionCall) goja.Value {
