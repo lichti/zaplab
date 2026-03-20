@@ -20,7 +20,7 @@ Scripts are persisted in the PocketBase `scripts` collection and executed server
 |-------|------|-------------|
 | `name` | TextField (required, unique) | Human-readable script name |
 | `description` | TextField | Optional description |
-| `code` | TextField | JavaScript source |
+| `code` | TextField (max 65 535) | JavaScript source. Migration `1747999000_increase_script_code_size.go` raised the max from the PocketBase default 5 000 to 65 535 characters. |
 | `enabled` | BoolField | Whether the script is active |
 | `timeout_secs` | NumberField | Execution timeout (default 10, max defined by caller) |
 | `last_run_status` | TextField | `"success"` or `"error"` |
@@ -97,13 +97,17 @@ After executing a persisted script, `last_run_*` fields are updated in PocketBas
 
 ---
 
-## 3. Sandbox — `runScript(code string, timeout time.Duration)`
+## 3. Sandbox — `runScript(code string, timeout time.Duration, env map[string]any)`
 
 Runs inside an isolated `goja.Runtime` (no shared state between calls).
 
 ### Timeout
 
 `time.AfterFunc(timeout, vm.Interrupt)` — the VM is interrupted after the configured duration with the message `"script timeout"`.
+
+### Environment injection
+
+`runScript` accepts an optional `env map[string]any` parameter. Every key in the map is set as a global variable in the goja runtime before the script runs. Script triggers inject `{"event": <event payload>}` so scripts can inspect the triggering event.
 
 ### Exposed APIs
 
@@ -144,6 +148,12 @@ Output is returned as a newline-joined string in the response.
 ```js
 sleep(ms) // max 5000 ms per call
 ```
+
+#### `zaplab`
+
+| Function | Behaviour |
+|----------|-----------|
+| `zaplab.api(path)` | Calls the internal ZapLab REST API at `path` (e.g. `'/zaplab/api/groups/123@g.us/overview?period=30'`). Auth is injected automatically: uses `API_TOKEN` env var as `X-API-Token` header if set; otherwise mints a 2-minute PocketBase superuser JWT and uses `Authorization: Bearer`. Panics on non-2xx response or network error. Returns the parsed JSON body as a JS object. |
 
 ---
 
@@ -204,6 +214,50 @@ e.Router.POST("/zaplab/api/scripts/run",     postScriptRunAdhoc).Bind(auth)
 
 ---
 
+## 5. Trigger Execution Logging
+
+When a trigger fires, `dispatchTriggers` in `internal/api/triggers.go`:
+
+1. Logs the trigger fire with `trigger_id`, `script_id`, `event_type`, `chat`.
+2. Runs `runScript(code, timeout, env)` with `env = {"event": <event payload>}`.
+3. After execution, persists to the script record:
+   - `last_run_status`: `"ok"` or `"error"`
+   - `last_run_output`: stdout captured from the run
+   - `last_run_duration_ms`: wall-clock time in milliseconds
+   - `last_run_error`: error message if the run failed
+4. Logs the result (output, duration, error).
+5. A `recover()` deferred in the goroutine prevents trigger panics from crashing the process.
+
+---
+
+## 6. Scripts Repository — `scripts/`
+
+The `scripts/` directory contains example `.js` scripts that can be imported into ZapLab. Each file follows this structure:
+
+- **Howto block** (top of file, commented): step-by-step instructions on how to create the Script and configure a Trigger in the UI, including the recommended Name, Description, Timeout, Event type, and Text pattern.
+- **Script body**: wrapped in an IIFE `(function(){ ... })()` to allow early `return` statements (required because goja does not allow top-level `return`).
+
+### Available scripts
+
+| File | Trigger | Description |
+|------|---------|-------------|
+| `scripts/group-ranking.js` | Message `/ranking` | Posts top-5 most active, top-5 least active, and silent member count for the last N days; calls `zaplab.api('/zaplab/api/groups/<jid>/overview?period=<N>')` |
+
+### IIFE requirement
+
+All scripts that need conditional early exit **must** use the IIFE pattern:
+
+```js
+(function () {
+  if (!condition) return;  // early exit — valid inside IIFE
+  // ...
+})();
+```
+
+Top-level `return` statements are a syntax error in goja (`SyntaxError: Illegal return statement`).
+
+---
+
 ## Security Notes
 
 - All endpoints are behind `requireAuth()` — API token required.
@@ -211,4 +265,5 @@ e.Router.POST("/zaplab/api/scripts/run",     postScriptRunAdhoc).Bind(auth)
 - `wa.sendText` can send real WhatsApp messages. Scripts should only be run by the device owner.
 - `http.get` / `http.post` make outbound HTTP requests from the server. Bodies are capped at 64 KB.
 - `sleep` is capped at 5 s per call to prevent easy DoS.
+- `zaplab.api` makes internal HTTP requests to the ZapLab server itself; auth is auto-injected and never exposed in script output.
 - The VM timeout (`time.AfterFunc`) prevents infinite loops.

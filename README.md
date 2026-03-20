@@ -1188,6 +1188,14 @@ Commands are typed **in the bot's own private chat** (chat with itself).
 
 > For `msgID`: use `!` to generate a random ID, or `#<ID>` to use a specific ID.
 
+### Bot-triggered group commands (via Script Triggers)
+
+These commands work by sending a message from the bot's own account in a group. They are implemented as Script Triggers and require importing the corresponding script from the `scripts/` repository.
+
+| Command | Script | Description |
+|---|---|---|
+| `/ranking [dias]` | `scripts/group-ranking.js` | Posts the top-5 most active and top-5 least active members plus silent member count for the last N days (default: 30, max: 365). Only fires when sent by the bot in a group. |
+
 ---
 
 ## Data Model (PocketBase)
@@ -1331,9 +1339,9 @@ A built-in web interface for interacting with all API features without writing a
 | **Message Search** | Full-text search across all stored messages; filters by message type and chat JID; paginated results with text preview; deep link to Conversation view; raw event drawer |
 | **Conversation View** | Two-pane chat bubble browser — left panel lists all chats (filter by JID, last-message preview); right panel shows messages as sent/received bubbles with inline media thumbnails, load-more pagination, and raw event drawer |
 | **Media Gallery** | Grid view of all downloaded media files (images, video, audio, documents, stickers); type and chat filters; lightbox with inline image/video/audio playback |
-| **Script Triggers** | Automatically execute stored scripts when WhatsApp events arrive; optional JID and text-pattern filters; event type dropdown; enable/disable toggle; trigger list with inline edit |
-| **Scripting** | JavaScript automation sandbox powered by goja; persisted scripts with name, description, configurable timeout, enable/disable toggle; expanded sandbox APIs: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`; ad-hoc console with 10 built-in example snippets; last-run status/output/duration stored per script; **Export / Import** — download all scripts as a JSON bundle or import from a file (upserts by name, preserves `enabled` and `timeout_secs`) |
-| **Advanced Stats & Heatmap** | GitHub-style activity heatmap (7×24 grid of day-of-week × hour); daily message sparkline SVG; event type distribution bar chart; summary cards (total, last 24 h, 7 d, 30 d, last event, edited, deleted); configurable period (7 / 30 / 90 / 365 days / all time) |
+| **Script Triggers** | Automatically execute stored scripts when WhatsApp events arrive; optional JID and text-pattern filters; event type dropdown; enable/disable toggle; trigger list with inline edit; trigger execution logged — last-run status/output/error/duration persisted to the script record after every fire |
+| **Scripting** | JavaScript automation sandbox powered by goja; persisted scripts with name, description, configurable timeout, enable/disable toggle; expanded sandbox APIs: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`, `zaplab.api(path)` — call the internal ZapLab REST API from scripts (auth auto-injected); ad-hoc console with 10 built-in example snippets; last-run status/output/duration stored per script; **Export / Import** — download all scripts as a JSON bundle or import from a file (upserts by name, preserves `enabled` and `timeout_secs`) |
+| **Advanced Stats & Heatmap** | GitHub-style activity heatmap (7×24 grid of day-of-week × hour); daily message sparkline SVG; event type distribution bar chart; summary cards (total, last 24 h, 7 d, 30 d, last event, edited, deleted); configurable period (7 / 30 / 90 / 365 days / all time); period filter updates all charts (heatmap, sparkline, type distribution) |
 | **WA Health Monitor** | Pre-key health check — shows how many pre-keys are uploaded vs. total, a visual progress bar, and highlights when the supply is dangerously low; **Message Secret Inspector** tab — browse all `whatsmeow_message_secrets` entries with key ID, chain key, and related columns |
 | **Frame Analyzers** | **IQ Node Analyzer** — filter and browse `<iq>` XML stanzas captured in the `frames` table (filter by level and IQ type: get / set / result / error); **Binary Node Inspector** — browse Noise/Socket-layer binary frames with level and module filters; expandable full-message detail for any entry |
 | **Group Membership Tracker** | Historical log of all group membership events (join, leave, promote, demote) recorded from `events.GroupInfo`; filter by action type and JID; group-level history view for a specific group JID |

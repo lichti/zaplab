@@ -1145,6 +1145,14 @@ Os comandos são digitados **na conversa privada do próprio bot** (chat consigo
 
 > Para `msgID`: usar `!` para gerar um ID aleatório, ou `#<ID>` para usar um ID específico.
 
+### Comandos de grupo disparados pelo bot (via Script Triggers)
+
+Esses comandos funcionam enviando uma mensagem a partir da própria conta do bot em um grupo. São implementados como Script Triggers e requerem a importação do script correspondente do repositório `scripts/`.
+
+| Comando | Script | Descrição |
+|---|---|---|
+| `/ranking [dias]` | `scripts/group-ranking.js` | Posta o top-5 membros mais ativos, top-5 menos ativos e quantidade de membros silenciosos nos últimos N dias (padrão: 30, máx: 365). Só dispara quando enviado pelo bot em um grupo. |
+
 ---
 
 ## Modelo de dados (PocketBase)
@@ -1289,9 +1297,9 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Busca de Mensagens** | Pesquisa full-text em todas as mensagens armazenadas; filtros por tipo e JID do chat; resultados paginados com preview de texto; link direto para a Conversa; drawer de evento raw |
 | **Visualização de Conversa** | Navegador de bolhas de chat em dois painéis — painel esquerdo lista todos os chats (filtro por JID, preview da última mensagem); painel direito exibe mensagens como bolhas enviadas/recebidas com miniaturas de mídia, paginação "Carregar mais" e drawer de evento raw |
 | **Galeria de Mídia** | Visualização em grade de todos os arquivos de mídia baixados (imagens, vídeo, áudio, documentos, figurinhas); filtros por tipo e chat; lightbox com reprodução inline de imagem/vídeo/áudio |
-| **Script Triggers** | Execute scripts automaticamente quando eventos WhatsApp chegam; filtros opcionais por JID e padrão de texto; dropdown de tipo de evento; toggle de habilitado/desabilitado; lista de triggers com edição inline |
-| **Scripting** | Sandbox de automação JavaScript com motor goja; scripts persistidos com nome, descrição, timeout configurável, toggle de habilitado/desabilitado; APIs expandidas: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`; console ad-hoc com 10 exemplos integrados; status/saída/duração da última execução armazenados por script; **Exportar / Importar** — baixe todos os scripts como um bundle JSON ou importe de um arquivo (upsert por nome, preserva `enabled` e `timeout_secs`) |
-| **Stats Avançadas & Heatmap** | Heatmap de atividade estilo GitHub (grade 7×24 de dia da semana × hora); sparkline SVG de mensagens diárias; gráfico de barras de distribuição de tipos de evento; cards de resumo (total, últimas 24 h, 7 d, 30 d, último evento, editadas, apagadas); período configurável (7 / 30 / 90 / 365 dias / todo o tempo) |
+| **Script Triggers** | Execute scripts automaticamente quando eventos WhatsApp chegam; filtros opcionais por JID e padrão de texto; dropdown de tipo de evento; toggle de habilitado/desabilitado; lista de triggers com edição inline; execução do trigger registrada em log — status/saída/erro/duração da última execução persistidos no registro do script após cada disparo |
+| **Scripting** | Sandbox de automação JavaScript com motor goja; scripts persistidos com nome, descrição, timeout configurável, toggle de habilitado/desabilitado; APIs expandidas: `console.log`, `wa.sendText`, `wa.sendImage`, `wa.sendAudio`, `wa.sendDocument`, `wa.sendLocation`, `wa.sendReaction`, `wa.editMessage`, `wa.revokeMessage`, `wa.setTyping`, `wa.getContacts`, `wa.getGroups`, `wa.jid`, `wa.status()`, `wa.db.query(sql)`, `http.get(url)`, `http.post(url, body)`, `db.query(sql)`, `sleep(ms)`, `zaplab.api(path)` — chama a API REST interna do ZapLab a partir de scripts (auth injetada automaticamente); console ad-hoc com 10 exemplos integrados; status/saída/duração da última execução armazenados por script; **Exportar / Importar** — baixe todos os scripts como um bundle JSON ou importe de um arquivo (upsert por nome, preserva `enabled` e `timeout_secs`) |
+| **Stats Avançadas & Heatmap** | Heatmap de atividade estilo GitHub (grade 7×24 de dia da semana × hora); sparkline SVG de mensagens diárias; gráfico de barras de distribuição de tipos de evento; cards de resumo (total, últimas 24 h, 7 d, 30 d, último evento, editadas, apagadas); período configurável (7 / 30 / 90 / 365 dias / todo o tempo); filtro de período atualiza todos os gráficos (heatmap, sparkline, distribuição de tipos) |
 | **WA Health Monitor** | Verificação de saúde das pre-keys — mostra total, quantidade carregada e uma barra visual que fica vermelha quando o estoque está criticamente baixo; aba **Message Secrets** — navega pelos registros de `whatsmeow_message_secrets` |
 | **Frame Analyzers** | **IQ Node Analyzer** — filtra e navega pelos stanzas XML `<iq>` capturados na tabela `frames` (filtro por nível e tipo IQ: get / set / result / error); **Binary Node Inspector** — navega pelos frames binários da camada Noise/Socket com filtros de nível e módulo; detalhe expansível por entrada |
 | **Group Membership Tracker** | Histórico de todas as mudanças de participação em grupos (entrar, sair, promover, rebaixar) gravadas a partir de `events.GroupInfo`; filtro por tipo de ação e JID; visualização do histórico de um grupo específico |

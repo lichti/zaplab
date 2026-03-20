@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Script Repository** — new `scripts/` directory containing example `.js` scripts with howto comments at the top. Each script documents how to configure it in the UI (Name, Description, Timeout, Event type, Text pattern). Establishes the convention for reusable community scripts. Example: `scripts/group-ranking.js`.
+- **`/ranking` Group Activity Command** — script trigger that posts top-5 most active, top-5 least active, and silent member count in a group when `/ranking <dias>` is sent by the bot. Sources data from `GET /zaplab/api/groups/<jid>/overview?period=<dias>`. Only fires in groups and only when the bot sends the command. Example script at `scripts/group-ranking.js`.
+- **`zaplab.api(path)` sandbox function** — calls the internal ZapLab REST API from within a script. Auth auto-injected: uses `API_TOKEN` env var as `X-API-Token` header if set; otherwise mints a 2-minute PocketBase superuser JWT. Returns the parsed JSON body as a JS object. Panics on non-2xx response or network error.
+- **`scripts.code` field size raised to 65 535 chars** — migration `1747999000_increase_script_code_size.go` raises the PocketBase TextField max from the default 5 000 to 65 535, allowing larger scripts.
+- **Network Graph A.3 — Direction, Visual Options, Shortest Path, Multi-select** — Direction selector (Any/Sent/Received), Event Types multi-select filter, Contact filter; Visual options panel (Labels: auto/always/hover/hidden; Node size: messages/uniform; Edge color: count/direction); Shortest path panel (Set A / Set B / Find path / Clear + hop count display); Multi-select summary (total msgs, per-node remove buttons); Focus 1-hop toggle button per selected node.
+- **Inline audio and video players in Conversation View** — media messages in the conversation bubble view now show inline `<video>` and `<audio>` players.
 - **Contact Overview Dashboard** — rich analytics profile for a single contact JID.
   - New endpoint `GET /zaplab/api/contacts/{jid}/overview?period=N`.
   - Returns: DM stats (total/received/sent/media), group activity, edit/delete counts, common groups (up to 15 with names), activity heatmap 7×24, daily sparkline, first/last seen.
@@ -22,6 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New query params: `date_from`, `date_to` (ISO-8601, override `period`), `min_msgs` (minimum node message count), `include_groups` (boolean).
   - **Frontend**: collapsible "Filters" panel with date pickers, min-msgs input, groups toggle, Reset and Apply buttons.
 - **Network Graph — Export** — three export buttons added to the header: **PNG** (canvas snapshot), **JSON** (nodes + edges + stats), **CSV** (edge list).
+
+### Fixed
+- **Trigger script execution logging** — `dispatchTriggers` now logs each trigger fire (trigger_id, script_id, event_type, chat) and persists `last_run_status`, `last_run_output`, `last_run_duration_ms`, `last_run_error` on the script record after every trigger execution. Previously all output and errors were silently discarded.
+- **IIFE requirement for scripts** — top-level `return` is a syntax error in goja; all scripts that need conditional early exit must use the IIFE pattern `(function(){ ... })()`. The `group-ranking.js` example script was updated to follow this pattern.
+- **Activity Heatmap not rendering** — two bugs: (1) Alpine `x-for` cannot have multiple sibling `<template x-if>` children (single root required); fixed with a `display:contents` wrapper div and a separate `stHeatRows()` method; (2) `stCellStyle()` returned `''` for count=0, leaving the CSS `--heat-light`/`--heat-dark` variables undefined and making empty cells transparent (overriding the intended `bg-gray-100`); fixed by always emitting both CSS variables, including for count=0 (`#ebedf0`/`#161b22`).
+- **Activity Heatmap period filter not reactive** — pre-computed `stHeatRows()` cells were plain JS objects stored in a scope variable; inner `x-for` bindings over `row.cells` did not re-evaluate when `stHeatCells` changed; replaced `stHeatRows()` with direct nested `x-for` over `stDayLabels`/`stHourLabels`, each cell's `:style` calling `stHeatCount(d, h)` inline so Alpine tracks the reactive dependency per cell.
+- **Shutdown crash (nil DB panic)** — background goroutines (event handler, log consumer) accessed PocketBase after DB was closed on shutdown, causing a nil pointer panic; added `pb.DB() == nil` early-exit guards in `saveEvent`, `saveEventFile`, `saveError`, `persistLogEntry`, and a `recover()` deferred in `StartLogConsumer`.
+- **Device suffix in Group Overview / Contact Overview names** — `enrichName` in `groupoverview.go` now strips the `:device` suffix before contact name lookup (`123:46@s.whatsapp.net` → `123@s.whatsapp.net`), fixing names displaying as raw JIDs instead of the contact's push name.
+- **Group Overview Members tab** — all members now shown (not only active ones); Name/Messages sort; silent members fixed for LID/PN and device-suffix mismatches.
+- **Contact Overview — silent group membership** — contacts who are in a group but sent no messages (silent members) now appear in the "Groups" tab of Contact Overview.
+- **Contact Overview — group names fallback** — uses `GetGroupInfo()` as final fallback for group names when the local store does not have them.
+- **Event Browser — Inspect JSON** — now opens the Event Browser (not Live Events) when navigating from the JSON inspector; added support for `contact`, `poll`, and `enc_reaction` message types.
+- **Stats & Heatmap — scroll** — section now scrolls correctly when content overflows.
 
 ---
 
