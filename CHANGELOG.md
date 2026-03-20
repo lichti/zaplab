@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Backlog]
+
+### Planned
+- **Device Activity Tracker** — RTT-based WhatsApp device state inference (Online / Standby / Offline). Ports the algorithm from `gommzystudio/device-activity-tracker` (Node/Baileys) to Go/whatsmeow.
+  - **Mechanism**: send a probe (delete revocation or reaction to a fake message ID) at ~2 s intervals with jitter; measure time until delivery receipt arrives; classify with a 3-sample moving average vs. 90% of the 2000-sample global median RTT.
+  - **whatsmeow mapping**: `events.Receipt{Type: ReceiptTypeDelivered/Inactive}` for RTT; `client.SubscribePresence(jid)` + `events.Presence` for multi-device JID discovery; `client.RevokeMessage()` for delete probe; `client.SendMessage` with `ReactionMessage` for reaction probe.
+  - **Backend**: goroutine per tracked JID; RTT state in memory; writes to two new PocketBase collections — `device_activity_sessions` (jid, started_at, stopped_at, probe_method) and `device_activity_probes` (jid, rtt_ms, state, median_ms, threshold_ms, timestamp).
+  - **API**: `POST /zaplab/api/activity-tracker/start` (jid, probe_method), `POST .../stop`, `GET .../status`, `GET .../{jid}/history`.
+  - **Frontend**: section with tracked JID list, real-time state badge (Online/Standby/Offline) via PocketBase SSE, RTT sparkline chart, probe method selector.
+  - **Risks**: WhatsApp rate-limit/ban risk; `inactive` receipt type needs whatsmeow validation; multi-device JIDs require separate state tracking per linked device; legal/privacy — only use with own accounts or explicit consent.
+  - **Reference**: https://github.com/gommzystudio/device-activity-tracker
+
+---
+
 ## [Dev]
 
 ### Added
