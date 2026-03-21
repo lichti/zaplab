@@ -222,6 +222,12 @@ func main() {
 		return whatsapp.Bootstrap(e)
 	})
 
+	// Signal the whatsapp package to stop persisting events before the DB closes.
+	app.pb.OnTerminate().BindFunc(func(e *core.TerminateEvent) error {
+		whatsapp.SetShuttingDown()
+		return e.Next()
+	})
+
 	// Register HTTP API routes on serve.
 	app.pb.OnServe().BindFunc(func(e *core.ServeEvent) error {
 		if err := api.RegisterRoutes(e); err != nil {

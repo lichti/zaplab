@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/lichti/zaplab/internal/config"
 	"github.com/lichti/zaplab/internal/webhook"
@@ -26,7 +27,12 @@ var (
 	requestFullSync *bool
 	logLevel        string
 	deviceSpoof     *string
+	shuttingDown    atomic.Bool
 )
+
+// SetShuttingDown marks the package as shutting down so that persist
+// functions silently discard operations instead of logging spurious errors.
+func SetShuttingDown() { shuttingDown.Store(true) }
 
 // Init injects all dependencies into the whatsapp package before Bootstrap is called.
 func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *config.Config, log waLog.Logger,

@@ -262,9 +262,11 @@ func handler(rawEvt interface{}) {
 			types.ReceiptTypeRetry:     "ReceiptRetry",
 		}
 		if name, ok := receiptType[evt.Type]; ok {
-			if err := saveEvent(name, rawEvt, nil); err != nil {
-				logger.Errorf("Error persisting receipt event type=%s error=%v", name, err)
-			}
+			go func(n string, e interface{}) {
+				if err := saveEvent(n, e, nil); err != nil {
+					logger.Errorf("Error persisting receipt event type=%s error=%v", n, err)
+				}
+			}(name, rawEvt)
 		}
 		// Calculate receipt latency for delivered/read receipts
 		if evt.Type == types.ReceiptTypeDelivered || evt.Type == types.ReceiptTypeRead {

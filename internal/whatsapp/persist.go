@@ -36,8 +36,8 @@ func normalizeLID(msg *events.Message) {
 }
 
 func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName string, fileBytes []byte) error {
-	if pb.DB() == nil {
-		return fmt.Errorf("database is closed")
+	if shuttingDown.Load() || pb.DB() == nil {
+		return nil
 	}
 	if msg, ok := raw.(*events.Message); ok {
 		normalizeLID(msg)
@@ -89,8 +89,8 @@ func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName 
 }
 
 func saveEvent(evtType string, raw interface{}, extra interface{}) error {
-	if pb.DB() == nil {
-		return fmt.Errorf("database is closed")
+	if shuttingDown.Load() || pb.DB() == nil {
+		return nil
 	}
 	if msg, ok := raw.(*events.Message); ok {
 		normalizeLID(msg)
@@ -146,8 +146,8 @@ func SaveEvent(evtType string, raw interface{}, extra interface{}) error {
 }
 
 func saveError(evtType string, evtError string, raw interface{}) error {
-	if pb.DB() == nil {
-		return fmt.Errorf("database is closed")
+	if shuttingDown.Load() || pb.DB() == nil {
+		return nil
 	}
 	collection, err := pb.FindCollectionByNameOrId("errors")
 	if err != nil {
