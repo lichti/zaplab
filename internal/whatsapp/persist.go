@@ -74,6 +74,9 @@ func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName 
 	wh.SendToEventWebhooks(evtType, raw, nil)
 
 	if err := pb.Save(record); err != nil {
+		if shuttingDown.Load() {
+			return nil
+		}
 		return fmt.Errorf("failed to save record: %w", err)
 	}
 	ssePublish(evtType, raw)
@@ -120,6 +123,9 @@ func saveEvent(evtType string, raw interface{}, extra interface{}) error {
 	wh.SendToEventWebhooks(evtType, raw, nil)
 
 	if err := pb.Save(record); err != nil {
+		if shuttingDown.Load() {
+			return nil
+		}
 		return fmt.Errorf("failed to save record: %w", err)
 	}
 	ssePublish(evtType, raw)
@@ -164,6 +170,9 @@ func saveError(evtType string, evtError string, raw interface{}) error {
 	}
 
 	if err := pb.Save(record); err != nil {
+		if shuttingDown.Load() {
+			return nil
+		}
 		return fmt.Errorf("failed to save record: %w", err)
 	}
 	return nil
