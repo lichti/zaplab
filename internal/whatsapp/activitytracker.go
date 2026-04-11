@@ -140,6 +140,28 @@ func StopAllTrackers() {
 	}
 }
 
+// StartTrackersBulk starts trackers for a list of JIDs, skipping already-tracked ones.
+// Returns counts of started, skipped, and failed trackers.
+func StartTrackersBulk(jids []types.JID, probeMethod string) (started, skipped, failed int) {
+	for _, jid := range jids {
+		_, err := StartTracker(jid, probeMethod)
+		switch {
+		case err == nil:
+			started++
+		case isAlreadyTracking(err):
+			skipped++
+		default:
+			logger.Warnf("ActivityTracker: bulk start failed jid=%s err=%v", jid, err)
+			failed++
+		}
+	}
+	return
+}
+
+func isAlreadyTracking(err error) bool {
+	return err != nil && len(err.Error()) > 16 && err.Error()[:16] == "already tracking"
+}
+
 // GetTrackerStatus returns a snapshot of all active trackers.
 func GetTrackerStatus() []map[string]any {
 	atMu.RLock()

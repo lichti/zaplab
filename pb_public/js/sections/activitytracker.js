@@ -10,7 +10,7 @@ function activityTrackerSection() {
       jid:         '',
       probeMethod: 'delete',
     },
-    atTab:        'trackers',   // 'trackers' | 'history'
+    atTab:        'trackers',   // 'trackers' | 'contacts' | 'history'
     atHist: {
       jid:    '',
       days:   1,
@@ -18,6 +18,15 @@ function activityTrackerSection() {
       total:  0,
       loading: false,
       error:  '',
+    },
+    atContacts: {
+      rows:      [],
+      filtered:  [],
+      search:    '',
+      selected:  new Set(),
+      loading:   false,
+      error:     '',
+      probeMethod: 'delete',
     },
     atPollTimer: null,
 
@@ -37,7 +46,13 @@ function activityTrackerSection() {
     atStartPoll() {
       this.atStopPoll();
       this.atPollTimer = setInterval(() => {
-        if (this.activeSection === 'activity-tracker') this.atLoadStatus();
+        if (this.activeSection === 'activity-tracker') {
+          this.atLoadStatus();
+          // Keep contacts tracking badges fresh
+          if (this.atTab === 'contacts' && this.atContacts.rows.length > 0) {
+            this.atSyncContactsTracking();
+          }
+        }
       }, 5000);
     },
     atStopPoll() {
@@ -112,6 +127,136 @@ function activityTrackerSection() {
       } finally {
         this.at.loading = false;
       }
+    },
+
+    // ── Contacts tab ──
+    async atLoadContacts() {
+      this.atContacts.loading = true;
+      this.atContacts.error   = '';
+      try {
+        const res  = await fetch('/zaplab/api/activity-tracker/contacts', { headers: apiHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        this.atContacts.rows     = data.contacts || [];
+        this.atContacts.selected = new Set();
+        this.atFilterContacts();
+      } catch (err) {
+        this.atContacts.error = err.message;
+      } finally {
+        this.atContacts.loading = false;
+      }
+    },
+
+    atFilterContacts() {
+      const q = this.atContacts.search.toLowerCase();
+      this.atContacts.filtered = q
+        ? this.atContacts.rows.filter(c =>
+            (c.name  || '').toLowerCase().includes(q) ||
+            (c.phone || '').includes(q) ||
+            (c.jid   || '').includes(q))
+        : [...this.atContacts.rows];
+    },
+
+    atToggleContact(jid) {
+      if (this.atContacts.selected.has(jid)) {
+        this.atContacts.selected.delete(jid);
+      } else {
+        this.atContacts.selected.add(jid);
+      }
+      // Alpine reactivity: replace the Set so x-bind re-evaluates
+      this.atContacts.selected = new Set(this.atContacts.selected);
+    },
+
+    atSelectAll() {
+      this.atContacts.selected = new Set(this.atContacts.filtered.map(c => c.jid));
+    },
+
+    atSelectNone() {
+      this.atContacts.selected = new Set();
+    },
+
+    atSelectUntracked() {
+      this.atContacts.selected = new Set(
+        this.atContacts.filtered.filter(c => !c.tracking).map(c => c.jid)
+      );
+    },
+
+    async atTrackSelected() {
+      const jids = [...this.atContacts.selected];
+      if (!jids.length) return;
+      this.at.loading = true;
+      this.at.toast   = null;
+      try {
+        const res  = await fetch('/zaplab/api/activity-tracker/start-bulk', {
+          method:  'POST',
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ jids, probe_method: this.atContacts.probeMethod }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        this.at.toast = { ok: true, message: `Started: ${data.started}  Skipped: ${data.skipped}  Failed: ${data.failed}` };
+        this.atContacts.selected = new Set();
+        await this.atLoadStatus();
+        this.atSyncContactsTracking();
+      } catch (err) {
+        this.at.toast = { ok: false, message: err.message };
+      } finally {
+        this.at.loading = false;
+      }
+    },
+
+    async atTrackAll() {
+      const jids = this.atContacts.rows.map(c => c.jid);
+      if (!jids.length) return;
+      this.at.loading = true;
+      this.at.toast   = null;
+      try {
+        const res  = await fetch('/zaplab/api/activity-tracker/start-bulk', {
+          method:  'POST',
+          headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ jids, probe_method: this.atContacts.probeMethod }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        this.at.toast = { ok: true, message: `Track All — Started: ${data.started}  Skipped: ${data.skipped}  Failed: ${data.failed}` };
+        await this.atLoadStatus();
+        this.atSyncContactsTracking();
+      } catch (err) {
+        this.at.toast = { ok: false, message: err.message };
+      } finally {
+        this.at.loading = false;
+      }
+    },
+
+    async atStopAllTrackers() {
+      this.at.loading = true;
+      this.at.toast   = null;
+      try {
+        const res  = await fetch('/zaplab/api/activity-tracker/stop-all', {
+          method: 'POST', headers: apiHeaders(),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        this.at.toast = { ok: true, message: 'All trackers stopped' };
+        await this.atLoadStatus();
+        this.atSyncContactsTracking();
+      } catch (err) {
+        this.at.toast = { ok: false, message: err.message };
+      } finally {
+        this.at.loading = false;
+      }
+    },
+
+    // Sync tracking state on the contacts list without a full reload.
+    atSyncContactsTracking() {
+      const trackedMap = {};
+      for (const t of this.at.trackers) trackedMap[t.jid] = t.state;
+      this.atContacts.rows = this.atContacts.rows.map(c => ({
+        ...c,
+        tracking: c.jid in trackedMap,
+        state:    trackedMap[c.jid] || '',
+      }));
+      this.atFilterContacts();
     },
 
     async atStop(jid) {

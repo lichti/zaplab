@@ -3,11 +3,13 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/lichti/zaplab/internal/whatsapp"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	watypes "go.mau.fi/whatsmeow/types"
 )
 
 // postActivityTrackerEnable turns the feature flag on.
@@ -91,6 +93,94 @@ func getActivityTrackerStatus(e *core.RequestEvent) error {
 	})
 }
 
+// getActivityTrackerContacts returns the list of known individual contacts enriched
+// with their current tracking state. Groups (g.us) are excluded.
+func getActivityTrackerContacts(e *core.RequestEvent) error {
+	contacts, err := whatsapp.GetAllContacts()
+	if err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
+	// Build a set of currently tracked JIDs → state for O(1) lookup.
+	trackerStatus := whatsapp.GetTrackerStatus()
+	trackedMap := make(map[string]string, len(trackerStatus))
+	for _, t := range trackerStatus {
+		trackedMap[t["jid"].(string)] = t["state"].(string)
+	}
+
+	type contactRow struct {
+		JID      string `json:"jid"`
+		Phone    string `json:"phone"`
+		Name     string `json:"name"`
+		Tracking bool   `json:"tracking"`
+		State    string `json:"state,omitempty"`
+	}
+
+	rows := make([]contactRow, 0, len(contacts))
+	for _, c := range contacts {
+		if strings.HasSuffix(c.JID, "@g.us") || strings.HasSuffix(c.JID, "@broadcast") {
+			continue
+		}
+		name := c.FullName
+		if name == "" {
+			name = c.PushName
+		}
+		if name == "" {
+			name = c.BusinessName
+		}
+		state, tracking := trackedMap[c.JID]
+		rows = append(rows, contactRow{
+			JID:      c.JID,
+			Phone:    c.Phone,
+			Name:     name,
+			Tracking: tracking,
+			State:    state,
+		})
+	}
+
+	return e.JSON(http.StatusOK, map[string]any{"contacts": rows, "total": len(rows)})
+}
+
+// postActivityTrackerStartBulk starts trackers for a list of JIDs at once.
+// Body: {"jids": ["5511999...", ...], "probe_method": "delete"}
+func postActivityTrackerStartBulk(e *core.RequestEvent) error {
+	if !cfg.IsActivityTrackerEnabled() {
+		return e.JSON(http.StatusForbidden, map[string]any{"error": "activity tracker is disabled"})
+	}
+	var req struct {
+		JIDs        []string `json:"jids"`
+		ProbeMethod string   `json:"probe_method"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if len(req.JIDs) == 0 {
+		return e.JSON(http.StatusBadRequest, map[string]any{"error": "jids is required"})
+	}
+	if req.ProbeMethod == "" {
+		req.ProbeMethod = "delete"
+	}
+	var parsed []watypes.JID
+	for _, raw := range req.JIDs {
+		jid, ok := whatsapp.ParseJID(raw)
+		if ok {
+			parsed = append(parsed, jid)
+		}
+	}
+	started, skipped, failed := whatsapp.StartTrackersBulk(parsed, req.ProbeMethod)
+	return e.JSON(http.StatusOK, map[string]any{
+		"started": started,
+		"skipped": skipped,
+		"failed":  failed,
+	})
+}
+
+// postActivityTrackerStopAll stops all active trackers without disabling the feature flag.
+func postActivityTrackerStopAll(e *core.RequestEvent) error {
+	whatsapp.StopAllTrackers()
+	return e.JSON(http.StatusOK, map[string]any{"stopped": true})
+}
+
 // getActivityTrackerHistory returns persisted probes for a JID.
 // Query params: jid (required), limit (default 200, max 2000), days (default 0 = all)
 func getActivityTrackerHistory(e *core.RequestEvent) error {
@@ -112,14 +202,14 @@ func getActivityTrackerHistory(e *core.RequestEvent) error {
 	}
 
 	type probeRow struct {
-		ID          string  `db:"id"           json:"id"`
-		SessionID   string  `db:"session_id"   json:"session_id"`
-		JID         string  `db:"jid"          json:"jid"`
-		RTTms       float64 `db:"rtt_ms"       json:"rtt_ms"`
-		State       string  `db:"state"        json:"state"`
-		Median      float64 `db:"median_ms"    json:"median_ms"`
-		Threshold   float64 `db:"threshold_ms" json:"threshold_ms"`
-		Created     string  `db:"created"      json:"created"`
+		ID        string  `db:"id"           json:"id"`
+		SessionID string  `db:"session_id"   json:"session_id"`
+		JID       string  `db:"jid"          json:"jid"`
+		RTTms     float64 `db:"rtt_ms"       json:"rtt_ms"`
+		State     string  `db:"state"        json:"state"`
+		Median    float64 `db:"median_ms"    json:"median_ms"`
+		Threshold float64 `db:"threshold_ms" json:"threshold_ms"`
+		Created   string  `db:"created"      json:"created"`
 	}
 
 	q := pb.DB().Select("id", "session_id", "jid", "rtt_ms", "state", "median_ms", "threshold_ms", "created").
