@@ -10,11 +10,12 @@ import (
 
 // Config holds general application settings.
 type Config struct {
-	RecoverEdits   bool   `json:"recover_edits"`
-	RecoverDeletes bool   `json:"recover_deletes"`
-	configFile     string `json:"-"`
-	log            waLog.Logger
-	mu             sync.RWMutex
+	RecoverEdits           bool `json:"recover_edits"`
+	RecoverDeletes         bool `json:"recover_deletes"`
+	ActivityTrackerEnabled bool `json:"activity_tracker_enabled"`
+	configFile             string `json:"-"`
+	log                    waLog.Logger
+	mu                     sync.RWMutex
 }
 
 // Load reads (or creates if absent) the config file at filepath.
@@ -83,4 +84,19 @@ func (c *Config) IsRecoverDeletesEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.RecoverDeletes
+}
+
+// SetActivityTrackerEnabled updates the activity tracker feature flag and persists it.
+func (c *Config) SetActivityTrackerEnabled(enabled bool) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.ActivityTrackerEnabled = enabled
+	return c.save()
+}
+
+// IsActivityTrackerEnabled returns whether the device activity tracker is enabled.
+func (c *Config) IsActivityTrackerEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.ActivityTrackerEnabled
 }

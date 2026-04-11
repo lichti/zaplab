@@ -272,6 +272,10 @@ func handler(rawEvt interface{}) {
 		if evt.Type == types.ReceiptTypeDelivered || evt.Type == types.ReceiptTypeRead {
 			go recordReceiptLatency(evt)
 		}
+		// Notify activity tracker probes waiting on these message IDs
+		for _, msgID := range evt.MessageIDs {
+			NotifyProbeReceipt(msgID)
+		}
 		return
 
 	case *events.Presence:

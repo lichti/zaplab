@@ -210,6 +210,14 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/presence/timeline", getPresenceTimeline).Bind(auth)
 	e.Router.POST("/zaplab/api/presence/subscribe", postSubscribePresence).Bind(auth, audit)
 
+	// Device Activity Tracker
+	e.Router.GET("/zaplab/api/activity-tracker/status", getActivityTrackerStatus).Bind(auth)
+	e.Router.GET("/zaplab/api/activity-tracker/history", getActivityTrackerHistory).Bind(auth)
+	e.Router.POST("/zaplab/api/activity-tracker/enable", postActivityTrackerEnable).Bind(auth, audit)
+	e.Router.POST("/zaplab/api/activity-tracker/disable", postActivityTrackerDisable).Bind(auth, audit)
+	e.Router.POST("/zaplab/api/activity-tracker/start", postActivityTrackerStart).Bind(auth, audit)
+	e.Router.POST("/zaplab/api/activity-tracker/stop", postActivityTrackerStop).Bind(auth, audit)
+
 	// Cron schedules
 	e.Router.GET("/zaplab/api/scripts/cron", getCronSchedules).Bind(auth)
 
