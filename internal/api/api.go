@@ -206,8 +206,9 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/export/conversation", getExportConversation).Bind(auth)
 	e.Router.GET("/zaplab/api/export/frames/har", getExportFramesHAR).Bind(auth)
 
-	// Presence timeline
+	// Presence
 	e.Router.GET("/zaplab/api/presence/timeline", getPresenceTimeline).Bind(auth)
+	e.Router.POST("/zaplab/api/presence/subscribe", postSubscribePresence).Bind(auth, audit)
 
 	// Cron schedules
 	e.Router.GET("/zaplab/api/scripts/cron", getCronSchedules).Bind(auth)

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/lichti/zaplab/internal/whatsapp"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -86,5 +88,34 @@ func getPresenceTimeline(e *core.RequestEvent) error {
 		"summary": summary,
 		"days":    days,
 		"total":   len(rows),
+	})
+}
+
+// postSubscribePresence subscribes to presence updates for a given JID.
+// Incoming events are handled automatically by the event loop and persisted
+// as "Presence.Online", "Presence.Offline", or "Presence.OfflineLastSeen".
+//
+// Note: WhatsApp only delivers presence for contacts that have you saved.
+// Non-contacts are silently ignored server-side.
+func postSubscribePresence(e *core.RequestEvent) error {
+	var req struct {
+		JID string `json:"jid"`
+	}
+	if err := e.BindBody(&req); err != nil {
+		return apis.NewBadRequestError("Failed to read request data", err)
+	}
+	if req.JID == "" {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "jid is required"})
+	}
+	jid, ok := whatsapp.ParseJID(req.JID)
+	if !ok {
+		return e.JSON(http.StatusBadRequest, map[string]any{"message": "jid is not a valid JID"})
+	}
+	if err := whatsapp.SubscribePresence(jid); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": "Failed to subscribe to presence", "error": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{
+		"message": "Subscribed to presence updates",
+		"jid":     jid.String(),
 	})
 }
