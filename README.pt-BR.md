@@ -497,7 +497,7 @@ Retorna o estado atual da conexão WhatsApp e o JID do telefone pareado. Não re
 | `connected` | Pareado e online |
 | `disconnected` | Conexão perdida, reconexão em andamento |
 | `timeout` | QR code expirou, novo código a caminho |
-| `loggedout` | Sessão encerrada, reinicie para parear novo dispositivo |
+| `loggedout` | Sessão encerrada — use o botão Re-pair na UI ou chame `POST /wa/repaire` |
 
 ### `GET /wa/qrcode`
 
@@ -515,6 +515,14 @@ Encerra a sessão e limpa o dispositivo WhatsApp. É necessário reiniciar o ser
 
 ```json
 { "message": "logged out" }
+```
+
+### `POST /wa/repaire`
+
+Reinicializa o cliente WhatsApp e abre uma nova sessão de QR code sem reiniciar o servidor. Use após um evento `loggedout` para parear o dispositivo novamente. O QR code aparece na seção Pairing da UI em alguns segundos.
+
+```json
+{ "message": "reinitializing — scan the QR code" }
 ```
 
 ### `GET /wa/account`
@@ -981,6 +989,22 @@ Gera um QR Code PNG (base64) para qualquer texto.
 
 ---
 
+### `POST /presence/subscribe`
+
+Assina atualizações de presença (Online / Offline / Visto por último) para um JID. Os eventos são entregues de forma assíncrona e persistidos como `Presence.Online`, `Presence.Offline` ou `Presence.OfflineLastSeen` na coleção `events`. Consulte-os via `GET /presence/timeline`.
+
+```json
+// Request
+{ "jid": "5511999999999" }
+
+// Response
+{ "message": "Subscribed to presence updates", "jid": "5511999999999@s.whatsapp.net" }
+```
+
+> **Nota:** O WhatsApp só entrega eventos de presença para contatos que têm você salvo. Não-contatos são silenciosamente ignorados pelo servidor.
+
+---
+
 ### `POST /cmd`
 
 Executa um comando de bot via API (equivale a digitar `/cmd <cmd> <args>` no WhatsApp).
@@ -995,6 +1019,37 @@ Executa um comando de bot via API (equivale a digitar `/cmd <cmd> <args>` no Wha
 // Response 200
 { "message": "<saída do comando>" }
 ```
+
+---
+
+### Endpoints de Analytics & Pesquisa do ZapLab
+
+Estes endpoints alimentam as seções de pesquisa do dashboard. Todos requerem `X-API-Token`.
+
+| Método | Caminho | Descrição |
+|---|---|---|
+| `GET` | `/zaplab/api/wa/prekeys` | Saúde do estoque de pre-keys (total, carregadas, flag de baixo estoque) |
+| `GET` | `/zaplab/api/wa/secrets` | Navegar entradas de `whatsmeow_message_secrets` |
+| `GET` | `/zaplab/api/frames/iq` | Frames de stanza IQ — filtrar por `level` e `iqtype` |
+| `GET` | `/zaplab/api/frames/binary` | Frames binários Noise/Socket — filtrar por `level` e `module` |
+| `GET` | `/zaplab/api/groups/{jid}/history` | Histórico de participação de um grupo específico |
+| `GET` | `/zaplab/api/groups/membership` | Todos os eventos de participação em grupos (paginado) |
+| `GET` | `/zaplab/api/conn/events` | Log de eventos de conexão/desconexão |
+| `GET` | `/zaplab/api/conn/stats` | Estatísticas de uptime (contagens, % por janela) |
+| `GET` | `/zaplab/api/audit` | Log de auditoria de chamadas mutantes da API |
+| `GET` | `/zaplab/api/scripts/export` | Exportar todos os scripts como bundle JSON |
+| `POST` | `/zaplab/api/scripts/import` | Importar/upsert scripts de um bundle JSON |
+| `GET` | `/zaplab/api/presence/timeline` | Log de eventos de presença — filtrar por JID e período |
+| `POST` | `/zaplab/api/presence/subscribe` | Assinar atualizações de presença para um JID |
+| `GET` | `/zaplab/api/activity-tracker/status` | Estado da feature flag + lista de trackers ativos |
+| `GET` | `/zaplab/api/activity-tracker/contacts` | Contatos conhecidos com estado de rastreamento |
+| `GET` | `/zaplab/api/activity-tracker/history` | Histórico de probes RTT para um JID |
+| `POST` | `/zaplab/api/activity-tracker/enable` | Habilitar o Device Activity Tracker |
+| `POST` | `/zaplab/api/activity-tracker/disable` | Desabilitar + parar todos os trackers |
+| `POST` | `/zaplab/api/activity-tracker/start` | Iniciar rastreamento de um JID |
+| `POST` | `/zaplab/api/activity-tracker/stop` | Parar rastreamento de um JID |
+| `POST` | `/zaplab/api/activity-tracker/start-bulk` | Iniciar rastreamento de uma lista de JIDs |
+| `POST` | `/zaplab/api/activity-tracker/stop-all` | Parar todos os trackers ativos |
 
 ---
 
@@ -1237,6 +1292,32 @@ Log imutável das operações mutantes da API, gravado pelo middleware de audito
 | `request_body` | text | Corpo da requisição (até 64 KB) |
 | `created` | datetime | Timestamp (auto) |
 
+### `device_activity_sessions`
+
+Registra cada sessão do Device Activity Tracker por JID.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `jid` | texto | JID do contato rastreado |
+| `probe_method` | texto | `delete` ou `reaction` |
+| `started_at` | texto | Timestamp de início (ISO-8601) |
+| `stopped_at` | texto | Timestamp de parada (vazio enquanto em execução) |
+| `created` | datetime | Timestamp (auto) |
+
+### `device_activity_probes`
+
+Uma linha por probe enviado pelo Activity Tracker.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `session_id` | texto | FK → `device_activity_sessions` |
+| `jid` | texto | JID do contato rastreado |
+| `rtt_ms` | número | RTT em ms; `-1` em caso de timeout |
+| `state` | texto | `Online`, `Standby` ou `Offline` |
+| `median_ms` | número | Mediana global do RTT no momento do probe |
+| `threshold_ms` | número | Limiar de classificação (mediana × 0,90) |
+| `created` | datetime | Timestamp (auto) |
+
 ### Outras collections
 
 Criadas pelas migrations mas não utilizadas ativamente pelo bot:
@@ -1278,7 +1359,7 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | Seção | Descrição |
 |---|---|
 | **Dashboard** | Visão geral da instância: status de conexão, dados da conta, estatísticas totais e últimas 24h (eventos, recebidos, enviados, editados, deletados, erros), lista de eventos recentes e botões de ação rápida; atualiza automaticamente a cada 60 s |
-| **Connection** | Pareamento via QR code, indicador de status em tempo real, logout |
+| **Connection** | Pareamento via QR code, indicador de status em tempo real, logout; botão **Re-pair** para vincular um novo dispositivo após logout sem reiniciar o servidor |
 | **Account** | Visualizar foto de perfil, push name, número, nome comercial, recado e plataforma |
 | **Live Events** | Stream de eventos em tempo real do PocketBase — filtrável por tipo, JSON com syntax highlight, painel redimensionável |
 | **Event Browser** | Pesquise e filtre eventos armazenados por tipo, intervalo de data, ID de mensagem, remetente, destinatário ou texto livre; inspecione o JSON completo; visualize e baixe mídias; replaye a mensagem via Send Raw; **Export CSV** (até 1 000 linhas com o filtro atual) |
@@ -1317,6 +1398,8 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Webhooks** | Configurar webhooks padrão, de erro, por tipo de evento e por padrão de texto; testar entrega; visualização em abas com CRUD completo para todos os tipos de webhook |
 | **Settings** | Configurações gerais da aplicação: alternar Message Recovery para edições e deleções; gerenciar token de API |
 | **Perfil do Usuário** | Atualizar nome de exibição e e-mail do dashboard; disparar troca manual de senha |
+| **Presence Timeline** | Navega e filtra eventos `Presence.Online`, `Presence.Offline`, `Presence.OfflineLastSeen` e `ChatPresence.*` ao longo do tempo; resumo por JID; seletor de período de consulta |
+| **Activity Tracker** | Inferência de estado do dispositivo por RTT (Online / Standby / Offline); toggle de feature flag; três abas — *Active Trackers* (iniciar/parar por JID, badges de estado em tempo real, auto-poll de 5 s), *Contacts* (lista completa de contatos com checkboxes, Track Selected / Track All / Stop All, busca, seleção rápida), *Probe History* (tabela RTT com estado, mediana, limiar por probe) |
 
 ---
 

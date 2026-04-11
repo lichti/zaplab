@@ -499,7 +499,7 @@ Returns the current WhatsApp connection state and the paired phone's JID. No aut
 | `connected` | Paired and online |
 | `disconnected` | Connection lost, reconnect in progress |
 | `timeout` | QR code expired, new code coming |
-| `loggedout` | Session logged out, restart to re-pair |
+| `loggedout` | Session logged out — use the Re-pair button in the UI or call `POST /wa/repaire` |
 
 ### `GET /wa/qrcode`
 
@@ -517,6 +517,14 @@ Logs out and clears the WhatsApp session. The server must be restarted to pair a
 
 ```json
 { "message": "logged out" }
+```
+
+### `POST /wa/repaire`
+
+Re-initializes the WhatsApp client and opens a new QR code session without restarting the server. Use after a `loggedout` event to re-pair the device. The QR code appears in the Pairing section of the UI within a few seconds.
+
+```json
+{ "message": "reinitializing — scan the QR code" }
 ```
 
 ### `GET /wa/account`
@@ -998,6 +1006,22 @@ Generates a QR Code PNG (base64) for any text string.
 
 ---
 
+### `POST /presence/subscribe`
+
+Subscribes to presence updates (Online / Offline / Last Seen) for a given JID. Events are delivered asynchronously and persisted as `Presence.Online`, `Presence.Offline`, or `Presence.OfflineLastSeen` in the `events` collection. Query them via `GET /presence/timeline`.
+
+```json
+// Request
+{ "jid": "5511999999999" }
+
+// Response
+{ "message": "Subscribed to presence updates", "jid": "5511999999999@s.whatsapp.net" }
+```
+
+> **Note:** WhatsApp only delivers presence events for contacts that have you saved. Non-mutual contacts are silently ignored server-side.
+
+---
+
 ### `POST /cmd`
 
 Executes a bot command via API (equivalent to typing `/cmd <cmd> <args>` in WhatsApp).
@@ -1032,6 +1056,17 @@ These endpoints power the research dashboard sections. All require `X-API-Token`
 | `GET` | `/zaplab/api/audit` | Audit log of mutating API calls |
 | `GET` | `/zaplab/api/scripts/export` | Export all scripts as a JSON bundle |
 | `POST` | `/zaplab/api/scripts/import` | Import/upsert scripts from a JSON bundle |
+| `GET` | `/zaplab/api/presence/timeline` | Presence event log — filter by JID and look-back period |
+| `POST` | `/zaplab/api/presence/subscribe` | Subscribe to presence updates for a JID |
+| `GET` | `/zaplab/api/activity-tracker/status` | Feature flag state + active tracker list |
+| `GET` | `/zaplab/api/activity-tracker/contacts` | Known contacts enriched with tracking state |
+| `GET` | `/zaplab/api/activity-tracker/history` | Probe RTT history for a JID |
+| `POST` | `/zaplab/api/activity-tracker/enable` | Enable the Device Activity Tracker feature |
+| `POST` | `/zaplab/api/activity-tracker/disable` | Disable + stop all trackers |
+| `POST` | `/zaplab/api/activity-tracker/start` | Start tracking a JID |
+| `POST` | `/zaplab/api/activity-tracker/stop` | Stop tracking a JID |
+| `POST` | `/zaplab/api/activity-tracker/start-bulk` | Start tracking a list of JIDs |
+| `POST` | `/zaplab/api/activity-tracker/stop-all` | Stop all active trackers |
 
 ---
 
@@ -1280,6 +1315,32 @@ Tamper-evident log of mutating API operations recorded by the audit middleware.
 | `request_body` | text | Request body (up to 64 KB) |
 | `created` | datetime | Timestamp (auto) |
 
+### `device_activity_sessions`
+
+Tracks each Device Activity Tracker session per JID.
+
+| Field | Type | Description |
+|---|---|---|
+| `jid` | text | Tracked contact JID |
+| `probe_method` | text | `delete` or `reaction` |
+| `started_at` | text | ISO-8601 start timestamp |
+| `stopped_at` | text | ISO-8601 stop timestamp (empty while running) |
+| `created` | datetime | Timestamp (auto) |
+
+### `device_activity_probes`
+
+One row per probe sent by the Activity Tracker.
+
+| Field | Type | Description |
+|---|---|---|
+| `session_id` | text | FK → `device_activity_sessions` |
+| `jid` | text | Tracked contact JID |
+| `rtt_ms` | number | Round-trip time in ms; `-1` on timeout |
+| `state` | text | `Online`, `Standby`, or `Offline` |
+| `median_ms` | number | Global RTT median at probe time |
+| `threshold_ms` | number | Classification threshold (median × 0.90) |
+| `created` | datetime | Timestamp (auto) |
+
 ### Other collections
 
 Created by migrations but not actively used by the bot:
@@ -1320,7 +1381,7 @@ A built-in web interface for interacting with all API features without writing a
 | Section | Description |
 |---|---|
 | **Dashboard** | Overview of the running instance: connection status, account info, all-time and last-24h stats (events, received, sent, edited, deleted, errors), recent events list, and quick action buttons; auto-refreshes every 60 s |
-| **Connection** | WhatsApp pairing via QR code, live connection status indicator, logout |
+| **Connection** | WhatsApp pairing via QR code, live connection status indicator, logout; **Re-pair** button to re-link a new device after logout without restarting the server |
 | **Account** | View profile picture, push name, phone number, business name, about and platform |
 | **Live Events** | Real-time event stream from PocketBase — filterable by type, syntax-highlighted JSON, resizable panel |
 | **Event Browser** | Search and filter stored events by type, date range, message ID, sender, recipient, or free text; inspect full JSON; preview and download media; replay message via Send Raw; **Export CSV** (up to 1 000 rows matching the active filter) |
@@ -1359,6 +1420,8 @@ A built-in web interface for interacting with all API features without writing a
 | **Webhooks** | Configure default, error, event-type, and text-pattern webhooks; test webhook delivery; tabbed view with full CRUD for all webhook types |
 | **Settings** | General application configuration: toggle Message Recovery for edits and deletes; manage API token |
 | **User Profile** | Update dashboard display name and email; manually trigger password changes |
+| **Presence Timeline** | Browse and filter `Presence.Online`, `Presence.Offline`, `Presence.OfflineLastSeen`, and `ChatPresence.*` events over time; per-JID summary (online/offline event counts); look-back period selector |
+| **Activity Tracker** | RTT-based device state inference (Online / Standby / Offline); feature flag toggle; three tabs — *Active Trackers* (per-JID start/stop, live state badges, 5 s auto-poll), *Contacts* (full contact list with checkboxes, Track Selected / Track All / Stop All, search, quick-select), *Probe History* (RTT table with state, median, threshold per probe) |
 
 ---
 

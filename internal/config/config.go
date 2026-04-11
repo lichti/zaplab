@@ -10,9 +10,9 @@ import (
 
 // Config holds general application settings.
 type Config struct {
-	RecoverEdits           bool `json:"recover_edits"`
-	RecoverDeletes         bool `json:"recover_deletes"`
-	ActivityTrackerEnabled bool `json:"activity_tracker_enabled"`
+	RecoverEdits           bool   `json:"recover_edits"`
+	RecoverDeletes         bool   `json:"recover_deletes"`
+	ActivityTrackerEnabled bool   `json:"activity_tracker_enabled"`
 	configFile             string `json:"-"`
 	log                    waLog.Logger
 	mu                     sync.RWMutex

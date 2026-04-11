@@ -9,16 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Backlog]
 
-### Planned
-- **Device Activity Tracker** — RTT-based WhatsApp device state inference (Online / Standby / Offline). Ports the algorithm from `gommzystudio/device-activity-tracker` (Node/Baileys) to Go/whatsmeow.
-  - **Mechanism**: send a probe (delete revocation or reaction to a fake message ID) at ~2 s intervals with jitter; measure time until delivery receipt arrives; classify with a 3-sample moving average vs. 90% of the 2000-sample global median RTT.
-  - **whatsmeow mapping**: `events.Receipt{Type: ReceiptTypeDelivered/Inactive}` for RTT; `client.SubscribePresence(jid)` + `events.Presence` for multi-device JID discovery; `client.RevokeMessage()` for delete probe; `client.SendMessage` with `ReactionMessage` for reaction probe.
-  - **Backend**: goroutine per tracked JID; RTT state in memory; writes to two new PocketBase collections — `device_activity_sessions` (jid, started_at, stopped_at, probe_method) and `device_activity_probes` (jid, rtt_ms, state, median_ms, threshold_ms, timestamp).
-  - **API**: `POST /zaplab/api/activity-tracker/start` (jid, probe_method), `POST .../stop`, `GET .../status`, `GET .../{jid}/history`.
-  - **Frontend**: section with tracked JID list, real-time state badge (Online/Standby/Offline) via PocketBase SSE, RTT sparkline chart, probe method selector.
-  - **Risks**: WhatsApp rate-limit/ban risk; `inactive` receipt type needs whatsmeow validation; multi-device JIDs require separate state tracking per linked device; legal/privacy — only use with own accounts or explicit consent.
-  - **Reference**: https://github.com/gommzystudio/device-activity-tracker
-
 ---
 
 ## [Dev]
@@ -43,7 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Frontend**: collapsible "Filters" panel with date pickers, min-msgs input, groups toggle, Reset and Apply buttons.
 - **Network Graph — Export** — three export buttons added to the header: **PNG** (canvas snapshot), **JSON** (nodes + edges + stats), **CSV** (edge list).
 
+- **Device Activity Tracker** — RTT-based device state inference (Online / Standby / Offline) ported from `gommzystudio/device-activity-tracker`. Feature-flagged; disabled by default.
+  - **Mechanism**: sends a delete-revoke or reaction probe to the target JID every ~2 s (with up to 500 ms jitter); measures delivery receipt RTT; classifies state using a 3-sample moving average vs. 90% of the 2000-sample global median RTT. Timeout of 10 s without receipt → Offline.
+  - **Data**: two new PocketBase collections — `device_activity_sessions` (jid, probe_method, started_at, stopped_at) and `device_activity_probes` (session_id, jid, rtt_ms, state, median_ms, threshold_ms).
+  - **API**: `POST /zaplab/api/activity-tracker/enable`, `POST .../disable`, `POST .../start` (jid, probe_method), `POST .../stop`, `GET .../status`, `GET .../history`, `GET .../contacts`, `POST .../start-bulk` (jids[], probe_method), `POST .../stop-all`.
+  - **Frontend**: "Activity Tracker" section with three tabs — *Active Trackers* (start/stop per JID, live Online/Standby/Offline badges, 5 s auto-poll), *Contacts* (full contact list from whatsmeow store with checkboxes, Track Selected / Track All / Stop All / search / quick-select buttons), *Probe History* (RTT table with state, median, threshold per probe). Feature enable/disable toggle at section header. Risk warning always visible.
+  - **Receipt hook**: `events.Receipt` handler now calls `NotifyProbeReceipt()` for each message ID so the tracker goroutine can measure RTT without blocking the event loop.
+  - **Risks**: WhatsApp rate-limit/ban risk; only works with contacts that have you saved; legal/privacy — use only with own accounts or explicit consent.
+- **Presence Subscribe** — `POST /zaplab/api/presence/subscribe` subscribes to presence events (Online / Offline / Last Seen) for a given JID via `client.SubscribePresence()`. Events are persisted automatically by the existing `events.Presence` handler and queryable via `GET /zaplab/api/presence/timeline`. Note: WhatsApp only delivers presence for contacts that have you saved — non-contacts are silently ignored server-side.
+- **Re-pair without server restart** — `POST /zaplab/api/wa/repaire` tears down the current whatsmeow client, reopens the store, opens a fresh QR channel, and reconnects — allowing the user to scan a new QR code directly from the Pairing section after a logout without restarting the server. The frontend Pairing section now shows a **Re-pair** button instead of "Restart the server" when status is `loggedout`.
+
+### Performance
+- **Async event handler** — `handler()` (called synchronously by whatsmeow's node-processing goroutine) now returns immediately for all event types. Connection lifecycle events (`Connected`, `Disconnected`, `LoggedOut`, `StreamReplaced`) update in-memory state synchronously (fast mutex ops) and dispatch I/O to goroutines; all other events (`Message`, `Presence`, `ChatPresence`, `Receipt`, `GroupInfo`, `HistorySync`, etc.) are dispatched via `go handleAsync()`. Eliminates the "Node handling took Xs" WARN for all event types and prevents event backlog under high load.
+
 ### Fixed
+- **LoggedOut event not handled** — `events.LoggedOut` was never dispatched in the event handler, so the connection status remained stuck on `disconnected` and the `loggedout` state was never set. Now properly handled: sets `StatusLoggedOut`, logs the reason, and records a `conn_events` entry.
 - **Trigger script execution logging** — `dispatchTriggers` now logs each trigger fire (trigger_id, script_id, event_type, chat) and persists `last_run_status`, `last_run_output`, `last_run_duration_ms`, `last_run_error` on the script record after every trigger execution. Previously all output and errors were silently discarded.
 - **IIFE requirement for scripts** — top-level `return` is a syntax error in goja; all scripts that need conditional early exit must use the IIFE pattern `(function(){ ... })()`. The `group-ranking.js` example script was updated to follow this pattern.
 - **Activity Heatmap not rendering** — two bugs: (1) Alpine `x-for` cannot have multiple sibling `<template x-if>` children (single root required); fixed with a `display:contents` wrapper div and a separate `stHeatRows()` method; (2) `stCellStyle()` returned `''` for count=0, leaving the CSS `--heat-light`/`--heat-dark` variables undefined and making empty cells transparent (overriding the intended `bg-gray-100`); fixed by always emitting both CSS variables, including for count=0 (`#ebedf0`/`#161b22`).
