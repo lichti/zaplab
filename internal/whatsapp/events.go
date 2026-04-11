@@ -26,43 +26,16 @@ var startupTime = time.Now().Unix()
 // reconnecting is 1 while a reconnectWithBackoff goroutine is active.
 var reconnecting int32
 
+// handler is called by whatsmeow synchronously in its node-processing goroutine.
+// It must return as fast as possible — all I/O is dispatched to a new goroutine.
 func handler(rawEvt interface{}) {
-	evtType := getTypeOf(rawEvt)
-
+	// Connection lifecycle events update in-memory state synchronously (mutex ops
+	// only — no I/O) and kick off goroutines for any blocking follow-up work.
 	switch evt := rawEvt.(type) {
-	case *events.AppStateSyncComplete:
-		if len(client.Store.PushName) > 0 && evt.Name == appstate.WAPatchCriticalBlock {
-			if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
-				if err := saveError(evtType, "Failed to send presence", rawEvt); err != nil {
-					logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
-				}
-			} else {
-				if err := saveEvent(evtType, rawEvt, nil); err != nil {
-					logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
-				}
-			}
-		}
-		return
-
 	case *events.Connected, *events.PushNameSetting:
 		setConnStatus(StatusConnected)
 		setLastQR("")
-		go recordConnEvent("connected", "")
-		if len(client.Store.PushName) == 0 {
-			if err := saveEvent(evtType, rawEvt, nil); err != nil {
-				logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
-			}
-			return
-		}
-		if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
-			if err := saveError(evtType, "Failed to send presence", rawEvt); err != nil {
-				logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
-			}
-		} else {
-			if err := saveEvent(evtType, rawEvt, nil); err != nil {
-				logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
-			}
-		}
+		go handleConnected(rawEvt)
 		return
 
 	case *events.Disconnected:
@@ -79,11 +52,58 @@ func handler(rawEvt interface{}) {
 		return
 
 	case *events.StreamReplaced:
-		if err := saveError(evtType, "Stream replaced", rawEvt); err != nil {
-			logger.Errorf("Error persisting StreamReplaced error: %v", err)
-		}
 		logger.Warnf("Stream replaced by another client, reconnecting with backoff...")
+		go func() {
+			if err := saveError(getTypeOf(rawEvt), "Stream replaced", rawEvt); err != nil {
+				logger.Errorf("Error persisting StreamReplaced error: %v", err)
+			}
+		}()
 		go reconnectWithBackoff("stream replaced")
+		return
+	}
+
+	// All other events are dispatched to a goroutine so whatsmeow is not blocked.
+	go handleAsync(rawEvt)
+}
+
+// handleConnected performs the post-connection I/O (SendPresence + persist) in a goroutine.
+func handleConnected(rawEvt interface{}) {
+	evtType := getTypeOf(rawEvt)
+	go recordConnEvent("connected", "")
+	if len(client.Store.PushName) == 0 {
+		if err := saveEvent(evtType, rawEvt, nil); err != nil {
+			logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
+		}
+		return
+	}
+	if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
+		if err := saveError(evtType, "Failed to send presence", rawEvt); err != nil {
+			logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
+		}
+	} else {
+		if err := saveEvent(evtType, rawEvt, nil); err != nil {
+			logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
+		}
+	}
+}
+
+// handleAsync processes all non-lifecycle events without blocking whatsmeow.
+func handleAsync(rawEvt interface{}) {
+	evtType := getTypeOf(rawEvt)
+
+	switch evt := rawEvt.(type) {
+	case *events.AppStateSyncComplete:
+		if len(client.Store.PushName) > 0 && evt.Name == appstate.WAPatchCriticalBlock {
+			if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
+				if err := saveError(evtType, "Failed to send presence", rawEvt); err != nil {
+					logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
+				}
+			} else {
+				if err := saveEvent(evtType, rawEvt, nil); err != nil {
+					logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
+				}
+			}
+		}
 		return
 
 	case *events.Message:
