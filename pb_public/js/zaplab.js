@@ -55,6 +55,7 @@ function zaplab() {
     auditLogSection(),
     contactOverviewSection(),
     groupOverviewSection(),
+    activityTrackerSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
@@ -156,6 +157,7 @@ function zaplab() {
         this.initAuditLog();
         this.initContactOverview();
         this.initGroupOverview();
+        this.initActivityTracker();
 
         this.eventsHeight = Math.max(120, Math.floor(window.innerHeight * 0.45));
         if (window.innerWidth < 768) this.sidebarExpanded = false;

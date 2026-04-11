@@ -69,6 +69,7 @@
   <script src="js/sections/auditlog.js"></script>
   <script src="js/sections/contactoverview.js"></script>
   <script src="js/sections/groupoverview.js"></script>
+  <script src="js/sections/activitytracker.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -494,6 +495,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Contact Overview</span>
+        </a>
+
+        <!-- Activity Tracker -->
+        <a href="#/activity-tracker" @click.prevent="setSection('activity-tracker')" :title="sidebarExpanded ? '' : 'Activity Tracker'" aria-label="Activity Tracker"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='activity-tracker'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.651a3.75 3.75 0 0 1 0-5.303m5.304-.001a3.75 3.75 0 0 1 0 5.304m-7.425 2.122a6.75 6.75 0 0 1 0-9.546m9.546.001a6.75 6.75 0 0 1 0 9.545M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Activity Tracker</span>
         </a>
 
         <!-- Group Overview -->
@@ -10677,6 +10689,155 @@
           </template>
           <div x-show="!alog.entries && !alog.loading" class="text-center text-xs text-gray-400 py-8">Click Refresh to load entries</div>
           <div x-show="alog.loading" class="text-center text-xs text-gray-400 py-8">Loading…</div>
+        </div>
+      </div>
+
+      <!-- ── Section: Activity Tracker ──────────────────────────────────────── -->
+      <div x-show="activeSection === 'activity-tracker'" class="h-full overflow-y-auto">
+        <div class="max-w-4xl mx-auto w-full p-6 flex flex-col gap-6">
+
+          <!-- Header + feature flag -->
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex flex-col gap-1">
+              <h2 class="text-base font-semibold">Device Activity Tracker</h2>
+              <p class="text-xs text-gray-400 dark:text-[#8b949e]">RTT-based device state inference (Online / Standby / Offline). Only works with contacts that have you saved.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs" :class="at.enabled ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-400 dark:text-[#484f58]'"
+                    x-text="at.enabled ? 'Enabled' : 'Disabled'"></span>
+              <button x-show="!at.enabled" @click="atEnable()" :disabled="at.loading"
+                class="px-3 py-1.5 rounded text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">Enable</button>
+              <button x-show="at.enabled" @click="atDisable()" :disabled="at.loading"
+                class="px-3 py-1.5 rounded text-xs font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">Disable</button>
+            </div>
+          </div>
+
+          <!-- Toast -->
+          <div x-show="at.toast" x-cloak
+            :class="at.toast?.ok ? 'border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                 : 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400'"
+            class="text-xs px-3 py-2 rounded border" x-text="at.toast?.message"></div>
+
+          <!-- Risk notice -->
+          <div class="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded px-3 py-2">
+            ⚠ Sending continuous probes may be detected by WhatsApp and result in a ban. Use only with your own accounts or with explicit consent.
+          </div>
+
+          <!-- Tabs -->
+          <div class="flex border-b border-gray-200 dark:border-[#30363d] gap-1">
+            <button @click="atTab='trackers'"
+              class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+              :class="atTab==='trackers' ? 'border-blue-500 text-blue-600 dark:text-[#58a6ff]' : 'border-transparent text-gray-500 dark:text-[#8b949e] hover:text-gray-700 dark:hover:text-[#c9d1d9]'">
+              Active Trackers
+            </button>
+            <button @click="atTab='history'"
+              class="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+              :class="atTab==='history' ? 'border-blue-500 text-blue-600 dark:text-[#58a6ff]' : 'border-transparent text-gray-500 dark:text-[#8b949e] hover:text-gray-700 dark:hover:text-[#c9d1d9]'">
+              Probe History
+            </button>
+          </div>
+
+          <!-- ── Tab: Active Trackers ── -->
+          <div x-show="atTab === 'trackers'" class="flex flex-col gap-4">
+
+            <!-- Start tracker form -->
+            <div class="flex flex-wrap gap-2 items-end p-3 rounded-lg border bg-gray-50 dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 dark:text-[#8b949e]">JID</label>
+                <input x-model="at.jid" @keydown.enter="atStart()" placeholder="5511999999999"
+                  class="px-2 py-1.5 rounded border text-xs font-mono w-52
+                         bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                         dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                         focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 dark:text-[#8b949e]">Probe method</label>
+                <select x-model="at.probeMethod"
+                  class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                  <option value="delete">delete (revoke)</option>
+                  <option value="reaction">reaction</option>
+                </select>
+              </div>
+              <button @click="atStart()" :disabled="at.loading || !at.enabled || !at.jid.trim()"
+                class="px-4 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                Start Tracking
+              </button>
+            </div>
+
+            <!-- Active trackers list -->
+            <div class="rounded-lg border border-gray-200 dark:border-[#30363d] overflow-hidden">
+              <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider bg-gray-50 dark:bg-[#161b22] text-gray-400 dark:text-[#484f58] border-b border-gray-200 dark:border-[#30363d]"
+                   x-text="at.trackers.length + ' active tracker' + (at.trackers.length !== 1 ? 's' : '')"></div>
+              <div x-show="at.trackers.length === 0" class="px-4 py-8 text-center text-xs text-gray-400 dark:text-[#484f58]">
+                No active trackers. Enable the feature and start tracking a JID above.
+              </div>
+              <template x-for="t in at.trackers" :key="t.jid">
+                <div class="flex items-center gap-3 px-3 py-2.5 border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded" :class="atStateBadge(t.state)" x-text="t.state"></span>
+                  <span class="text-xs font-mono text-gray-700 dark:text-[#c9d1d9] flex-1 truncate" x-text="t.jid"></span>
+                  <span class="text-xs text-gray-400 dark:text-[#484f58]" x-text="t.probe_method"></span>
+                  <button @click="atViewHistory(t.jid)"
+                    class="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-[#79c0ff] transition-colors">History</button>
+                  <button @click="atStop(t.jid)" :disabled="at.loading"
+                    class="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors disabled:opacity-40">Stop</button>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- ── Tab: Probe History ── -->
+          <div x-show="atTab === 'history'" class="flex flex-col gap-4">
+
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-2 items-end p-3 rounded-lg border bg-gray-50 dark:bg-[#161b22] border-gray-200 dark:border-[#30363d]">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 dark:text-[#8b949e]">JID</label>
+                <input x-model="atHist.jid" @keydown.enter="atLoadHistory()" placeholder="5511999999999@s.whatsapp.net"
+                  class="px-2 py-1.5 rounded border text-xs font-mono w-64
+                         bg-white border-gray-200 text-gray-900 placeholder-gray-300
+                         dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9] dark:placeholder-[#484f58]
+                         focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 dark:text-[#8b949e]">Look-back</label>
+                <select x-model.number="atHist.days"
+                  class="px-2 py-1.5 rounded border text-xs bg-white border-gray-200 text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#c9d1d9]">
+                  <option value="1">1 day</option>
+                  <option value="7">7 days</option>
+                  <option value="30">30 days</option>
+                  <option value="0">All time</option>
+                </select>
+              </div>
+              <button @click="atLoadHistory()" :disabled="atHist.loading || !atHist.jid.trim()"
+                class="px-4 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                <span x-show="!atHist.loading">Load</span><span x-show="atHist.loading">Loading…</span>
+              </button>
+            </div>
+
+            <div x-show="atHist.error" class="text-xs text-red-500 px-3 py-2 rounded border border-red-200 dark:border-red-900/20 bg-red-50 dark:bg-red-900/10" x-text="atHist.error"></div>
+
+            <!-- Probes table -->
+            <div class="rounded-lg border border-gray-200 dark:border-[#30363d] overflow-hidden">
+              <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider bg-gray-50 dark:bg-[#161b22] text-gray-400 dark:text-[#484f58] border-b border-gray-200 dark:border-[#30363d]"
+                   x-text="atHist.total + ' probes'"></div>
+              <div x-show="atHist.probes.length === 0 && !atHist.loading" class="px-4 py-8 text-center text-xs text-gray-400 dark:text-[#484f58]">
+                No probes found. Select a JID and click Load.
+              </div>
+              <template x-for="p in atHist.probes" :key="p.id">
+                <div class="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#161b22]">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded w-16 text-center" :class="atStateBadge(p.state)" x-text="p.state"></span>
+                  <span class="text-xs font-mono w-20 text-right" :class="atRttClass(p.rtt_ms)" x-text="atRttLabel(p.rtt_ms)"></span>
+                  <span class="text-xs text-gray-400 dark:text-[#484f58] hidden md:inline">
+                    median <span class="font-mono" x-text="Math.round(p.median_ms) + ' ms'"></span>
+                    · thr <span class="font-mono" x-text="Math.round(p.threshold_ms) + ' ms'"></span>
+                  </span>
+                  <span class="flex-1"></span>
+                  <span class="text-xs text-gray-400 dark:text-[#484f58] whitespace-nowrap" x-text="fmtTime(p.created)"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+
         </div>
       </div>
 
