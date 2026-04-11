@@ -1335,10 +1335,14 @@
                         bg-gray-50 border-gray-200
                         dark:bg-[#21262d] dark:border-[#30363d]">
               <span class="h-3 w-3 rounded-full bg-gray-400 flex-shrink-0"></span>
-              <div>
+              <div class="flex-1">
                 <p class="text-sm font-medium text-gray-700 dark:text-[#c9d1d9]">Logged out</p>
-                <p class="text-xs text-gray-500 dark:text-[#8b949e] mt-0.5">Restart the server to pair a new device</p>
+                <p class="text-xs text-gray-500 dark:text-[#8b949e] mt-0.5">Session was terminated. Click Re-pair to scan a new QR code.</p>
               </div>
+              <button @click="waRepaire()" :disabled="wa.loading"
+                class="px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex-shrink-0">
+                Re-pair
+              </button>
             </div>
           </div>
 

@@ -56,6 +56,23 @@ function pairingSection() {
       } catch { this.wa.qrImage = ''; }
     },
 
+    async waRepaire() {
+      this.wa.toast   = null;
+      this.wa.loading = true;
+      try {
+        const res  = await this.zapFetch('/zaplab/api/wa/repaire', {
+          method:  'POST',
+          headers: { 'X-API-Token': this.apiToken },
+        });
+        const data = await res.json();
+        this.wa.toast = { ok: res.ok, message: data.message || JSON.stringify(data) };
+      } catch (err) {
+        this.wa.toast = { ok: false, message: err.message };
+      } finally {
+        this.wa.loading = false;
+      }
+    },
+
     async waLogout() {
       this.wa.toast   = null;
       this.wa.loading = true;

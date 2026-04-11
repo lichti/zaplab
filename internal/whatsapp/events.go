@@ -72,6 +72,12 @@ func handler(rawEvt interface{}) {
 		go reconnectWithBackoff("disconnect")
 		return
 
+	case *events.LoggedOut:
+		setConnStatus(StatusLoggedOut)
+		logger.Warnf("WhatsApp logged out reason=%v", evt.Reason)
+		go recordConnEvent("disconnected", fmt.Sprintf("logged out: %v", evt.Reason))
+		return
+
 	case *events.StreamReplaced:
 		if err := saveError(evtType, "Stream replaced", rawEvt); err != nil {
 			logger.Errorf("Error persisting StreamReplaced error: %v", err)

@@ -104,6 +104,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/groups/{jid}/invitelink", getGroupInviteLink).Bind(auth)
 	e.Router.POST("/zaplab/api/groups/join", postJoinGroup).Bind(auth)
 	e.Router.POST("/zaplab/api/wa/logout", postWALogout).Bind(auth)
+	e.Router.POST("/zaplab/api/wa/repaire", postWARepaire).Bind(auth)
 	e.Router.POST("/zaplab/api/wa/qrtext", postQRText).Bind(auth)
 	e.Router.POST("/zaplab/api/simulate/route", postSimulateRoute).Bind(auth)
 	e.Router.DELETE("/zaplab/api/simulate/route/{id}", deleteSimulateRoute).Bind(auth)
@@ -363,6 +364,13 @@ func postWALogout(e *core.RequestEvent) error {
 		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
 	}
 	return e.JSON(http.StatusOK, map[string]any{"message": "logged out"})
+}
+
+func postWARepaire(e *core.RequestEvent) error {
+	if err := whatsapp.ReinitializeForPairing(); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return e.JSON(http.StatusOK, map[string]any{"message": "reinitializing — scan the QR code"})
 }
 
 func getHealth(e *core.RequestEvent) error {
