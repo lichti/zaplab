@@ -26,6 +26,19 @@ var startupTime = time.Now().Unix()
 // reconnecting is 1 while a reconnectWithBackoff goroutine is active.
 var reconnecting int32
 
+// eventQueue serializes all async event DB writes through a single worker goroutine,
+// preventing SQLite write contention from unlimited concurrent goroutines.
+var eventQueue = make(chan interface{}, 2000)
+
+// startEventWorker drains eventQueue sequentially. Must be called once during bootstrap.
+func startEventWorker() {
+	go func() {
+		for rawEvt := range eventQueue {
+			handleAsync(rawEvt)
+		}
+	}()
+}
+
 // handler is called by whatsmeow synchronously in its node-processing goroutine.
 // It must return as fast as possible — all I/O is dispatched to a new goroutine.
 func handler(rawEvt interface{}) {
@@ -62,8 +75,21 @@ func handler(rawEvt interface{}) {
 		return
 	}
 
-	// All other events are dispatched to a goroutine so whatsmeow is not blocked.
-	go handleAsync(rawEvt)
+	// Receipt probe signals must fire immediately — before the event is queued —
+	// so the Activity Tracker goroutines get their RTT without queue-induced delay.
+	if evt, ok := rawEvt.(*events.Receipt); ok {
+		for _, msgID := range evt.MessageIDs {
+			NotifyProbeReceipt(msgID)
+		}
+	}
+
+	// All other processing (DB writes) goes through the serialized worker queue
+	// to avoid SQLite write contention from concurrent goroutines.
+	select {
+	case eventQueue <- rawEvt:
+	default:
+		logger.Warnf("Event queue full, dropping event type=%s", getTypeOf(rawEvt))
+	}
 }
 
 // handleConnected performs the post-connection I/O (SendPresence + persist) in a goroutine.
@@ -287,21 +313,17 @@ func handleAsync(rawEvt interface{}) {
 			types.ReceiptTypeSender:    "ReceiptSender",
 			types.ReceiptTypeRetry:     "ReceiptRetry",
 		}
+		// Persist receipt event (already in serial worker — no extra goroutine needed).
 		if name, ok := receiptType[evt.Type]; ok {
-			go func(n string, e interface{}) {
-				if err := saveEvent(n, e, nil); err != nil {
-					logger.Errorf("Error persisting receipt event type=%s error=%v", n, err)
-				}
-			}(name, rawEvt)
+			if err := saveEvent(name, rawEvt, nil); err != nil {
+				logger.Errorf("Error persisting receipt event type=%s error=%v", name, err)
+			}
 		}
-		// Calculate receipt latency for delivered/read receipts
+		// Calculate receipt latency for delivered/read receipts (reads DB, isolate).
 		if evt.Type == types.ReceiptTypeDelivered || evt.Type == types.ReceiptTypeRead {
 			go recordReceiptLatency(evt)
 		}
-		// Notify activity tracker probes waiting on these message IDs
-		for _, msgID := range evt.MessageIDs {
-			NotifyProbeReceipt(msgID)
-		}
+		// NotifyProbeReceipt is called in handler() before enqueueing — no-op here.
 		return
 
 	case *events.Presence:

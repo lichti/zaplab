@@ -198,6 +198,7 @@ func Bootstrap(e *core.BootstrapEvent) error {
 		}()
 	}
 
+	startEventWorker()
 	client.AddEventHandler(handler)
 	setConnStatus(StatusConnecting)
 	if err := client.Connect(); err != nil {
