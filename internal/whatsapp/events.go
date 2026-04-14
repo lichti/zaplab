@@ -30,6 +30,9 @@ var reconnecting int32
 // preventing SQLite write contention from unlimited concurrent goroutines.
 var eventQueue = make(chan interface{}, 2000)
 
+// EventQueueLen returns the current number of events waiting in the worker queue.
+func EventQueueLen() int { return len(eventQueue) }
+
 // startEventWorker drains eventQueue sequentially. Must be called once during bootstrap.
 func startEventWorker() {
 	go func() {
@@ -163,6 +166,11 @@ func handleAsync(rawEvt interface{}) {
 		// Fire text-pattern webhooks for all messages with text content.
 		wh.SendToTextWebhooks(getMsg(evt), evt.Info.IsFromMe, rawEvt, nil)
 
+		// Track @mentions.
+		if !evt.Info.IsFromMe {
+			DetectAndRecordMentions(evt)
+		}
+
 		if strings.HasPrefix(getMsg(evt), getIDSecret) && evt.Info.IsFromMe {
 			jid, _ := ParseJID(client.Store.ID.User)
 			SendConversationMessage(jid, fmt.Sprintf("-> Cmd output: \nChatID %v", evt.Info.Chat), nil)
@@ -236,6 +244,7 @@ func handleAsync(rawEvt interface{}) {
 					logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
 				}
 			} else {
+				RecordReaction(decrypted, evt)
 				if err := saveEvent(evtType+"."+getTypeOf(evt.Message.GetEncReactionMessage()), rawEvt, decrypted); err != nil {
 					logger.Errorf("Error persisting event type=%s error=%v", evtType, err)
 				}

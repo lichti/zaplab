@@ -46,6 +46,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	// during the OnBootstrap hook — it only becomes available after Bootstrap
 	// completes and the OnServe hook fires.
 	InitCronScheduler()
+	InitScheduledMessageWorker()
 
 	auth := requireAuth()
 	audit := auditMiddleware()
@@ -62,6 +63,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/health", getHealth)
 	e.Router.GET("/zaplab/api/wa/status", getWAStatus)
 	e.Router.GET("/zaplab/api/wa/qrcode", getWAQRCode)
+	e.Router.GET("/metrics", getMetrics) // Prometheus-compatible metrics
 
 	// Protected routes
 	e.Router.GET("/zaplab/api/wa/account", getWAAccount).Bind(auth)
@@ -124,6 +126,18 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest).Bind(auth)
 	e.Router.GET("/zaplab/api/webhook/deliveries", getWebhookDeliveries).Bind(auth)
 	e.Router.DELETE("/zaplab/api/webhook/deliveries", deleteWebhookDeliveries).Bind(auth)
+	e.Router.GET("/zaplab/api/reactions", getReactions).Bind(auth)
+	e.Router.GET("/zaplab/api/reactions/stats", getReactionStats).Bind(auth)
+	e.Router.GET("/zaplab/api/mentions", getMentions).Bind(auth)
+	e.Router.GET("/zaplab/api/mentions/stats", getMentionStats).Bind(auth)
+	e.Router.GET("/zaplab/api/scheduled-messages", getScheduledMessages).Bind(auth)
+	e.Router.POST("/zaplab/api/scheduled-messages", postScheduledMessage).Bind(auth)
+	e.Router.PATCH("/zaplab/api/scheduled-messages/{id}", patchScheduledMessage).Bind(auth)
+	e.Router.DELETE("/zaplab/api/scheduled-messages/{id}", deleteScheduledMessage).Bind(auth)
+	e.Router.GET("/zaplab/api/contact-cache", getContactCache).Bind(auth)
+	e.Router.POST("/zaplab/api/contact-cache/refresh", postContactCacheRefresh).Bind(auth)
+	e.Router.POST("/zaplab/api/contact-cache/populate", postContactCachePopulate).Bind(auth)
+	e.Router.DELETE("/zaplab/api/contact-cache/{id}", deleteContactCacheEntry).Bind(auth)
 	e.Router.GET("/zaplab/api/config", getConfig).Bind(auth)
 	e.Router.PUT("/zaplab/api/config", putConfig).Bind(auth)
 	e.Router.GET("/zaplab/api/db/tables", getDBTables).Bind(auth)

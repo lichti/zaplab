@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/pocketbase/dbx"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types"
 )
@@ -133,5 +135,56 @@ func GetContactInfo(jid types.JID) (*ContactInfo, error) {
 		!errors.Is(err, whatsmeow.ErrProfilePictureUnauthorized) {
 		logger.Debugf("GetContactInfo: GetProfilePictureInfo failed: %v", err)
 	}
+	// Persist to contact_cache asynchronously so callers are not blocked.
+	go upsertContactCache(info)
 	return info, nil
+}
+
+// upsertContactCache writes a ContactInfo snapshot to the contact_cache collection.
+// Uses INSERT OR REPLACE on the jid unique index.
+func upsertContactCache(info *ContactInfo) {
+	if pb == nil || pb.DB() == nil || shuttingDown.Load() {
+		return
+	}
+	name := info.FullName
+	if name == "" {
+		name = info.PushName
+	}
+	if name == "" {
+		name = info.BusinessName
+	}
+	now := time.Now().UTC().Format("2006-01-02 15:04:05.000Z")
+	_, err := pb.DB().NewQuery(
+		"INSERT INTO contact_cache (id, jid, name, phone, about, avatar_url, cache_updated_at, created, updated)" +
+			" VALUES ({:id}, {:jid}, {:name}, {:phone}, {:about}, {:avatar}, {:upd}, {:upd}, {:upd})" +
+			" ON CONFLICT(jid) DO UPDATE SET name=excluded.name, phone=excluded.phone," +
+			" about=excluded.about, avatar_url=excluded.avatar_url, cache_updated_at=excluded.cache_updated_at," +
+			" updated=excluded.updated",
+	).Bind(dbx.Params{
+		"id":     fmt.Sprintf("%x", time.Now().UnixNano()),
+		"jid":    info.JID,
+		"name":   name,
+		"phone":  info.Phone,
+		"about":  info.Status,
+		"avatar": info.AvatarURL,
+		"upd":    now,
+	}).Execute()
+	if err != nil && !shuttingDown.Load() {
+		logger.Debugf("upsertContactCache: %v", err)
+	}
+}
+
+// contactCacheLookup returns a cached contact name for a JID, or empty string if not cached.
+func contactCacheLookup(jid string) string {
+	if pb == nil || pb.DB() == nil {
+		return ""
+	}
+	type row struct {
+		Name string `db:"name"`
+	}
+	var r row
+	_ = pb.DB().Select("name").From("contact_cache").
+		Where(dbx.HashExp{"jid": jid}).One(&r)
+	_ = strings.Contains // keep import used
+	return r.Name
 }
