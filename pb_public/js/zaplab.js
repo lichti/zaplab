@@ -56,6 +56,11 @@ function zaplab() {
     contactOverviewSection(),
     groupOverviewSection(),
     activityTrackerSection(),
+    reactionsSection(),
+    mentionTrackerSection(),
+    scheduledMsgsSection(),
+    contactCacheSection(),
+    webhookDeliveriesSection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',
