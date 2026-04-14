@@ -68,9 +68,7 @@ func saveEventFile(evtType string, raw interface{}, extra interface{}, fileName 
 	}
 	record.Set("file", file)
 
-	if err := wh.SendToDefault(evtType, raw, nil); err != nil && wh.HasDefaultWebhook() {
-		logger.Warnf("Failed to send event to default webhook type=%s error=%v", evtType, err)
-	}
+	wh.SendToDefault(evtType, raw, nil)
 	wh.SendToEventWebhooks(evtType, raw, nil)
 
 	if err := pb.Save(record); err != nil {
@@ -117,9 +115,7 @@ func saveEvent(evtType string, raw interface{}, extra interface{}) error {
 	record.Set("extra", extra)
 	record.Set("msgID", msgID)
 
-	if err := wh.SendToDefault(evtType, raw, nil); err != nil && wh.HasDefaultWebhook() {
-		logger.Warnf("Failed to send event to default webhook type=%s error=%v", evtType, err)
-	}
+	wh.SendToDefault(evtType, raw, nil)
 	wh.SendToEventWebhooks(evtType, raw, nil)
 
 	if err := pb.Save(record); err != nil {
@@ -165,9 +161,7 @@ func saveError(evtType string, evtError string, raw interface{}) error {
 	record.Set("raw", raw)
 	record.Set("EvtError", evtError)
 
-	if err := wh.SendToError(evtType, raw, evtError); err != nil && wh.HasErrorWebhook() {
-		logger.Warnf("Failed to send event to error webhook type=%s error=%v", evtType, err)
-	}
+	wh.SendToError(evtType, raw, evtError)
 
 	if err := pb.Save(record); err != nil {
 		if shuttingDown.Load() {

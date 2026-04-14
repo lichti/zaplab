@@ -37,6 +37,7 @@ func Init(pbApp *pocketbase.PocketBase, webhookCfg *webhook.Config, generalCfg *
 		pb.Logger().Warn("DB Explorer init failed", "error", err)
 	}
 	InitTriggerDispatch()
+	whatsapp.InitWebhookDeliveryLogger()
 }
 
 // RegisterRoutes registers all HTTP API routes on the serve event router.
@@ -121,6 +122,8 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.POST("/zaplab/api/webhook/text", postWebhookText).Bind(auth)
 	e.Router.DELETE("/zaplab/api/webhook/text", deleteWebhookText).Bind(auth)
 	e.Router.POST("/zaplab/api/webhook/test", postWebhookTest).Bind(auth)
+	e.Router.GET("/zaplab/api/webhook/deliveries", getWebhookDeliveries).Bind(auth)
+	e.Router.DELETE("/zaplab/api/webhook/deliveries", deleteWebhookDeliveries).Bind(auth)
 	e.Router.GET("/zaplab/api/config", getConfig).Bind(auth)
 	e.Router.PUT("/zaplab/api/config", putConfig).Bind(auth)
 	e.Router.GET("/zaplab/api/db/tables", getDBTables).Bind(auth)

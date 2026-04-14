@@ -2,10 +2,13 @@ package webhook
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -63,6 +66,17 @@ type EventTypeWebhookAPI struct {
 	URL       string `json:"url"`
 }
 
+// DeliveryRecord carries the result of a single delivery attempt for the caller to log.
+type DeliveryRecord struct {
+	WebhookURL string
+	EventType  string
+	Status     string // "delivered" | "failed"
+	Attempt    int
+	HTTPStatus int
+	ErrorMsg   string
+	DeliveredAt string
+}
+
 // Config holds the full webhook configuration.
 type Config struct {
 	CmdWebhooks    []CmdWebhookConfig `json:"webhook_config"`
@@ -71,12 +85,18 @@ type Config struct {
 	DefaultWebhook url.URL            `json:"default_webhook"`
 	ErrorWebhook   url.URL            `json:"error_webhook"`
 	ConfigFile     string             `json:"-"`
-	log            waLog.Logger
+	// Secret is loaded from the WEBHOOK_SECRET env var at Load time.
+	// When non-empty, every outgoing request includes an X-ZapLab-Signature header.
+	Secret string `json:"-"`
+	// OnDelivery is called after each delivery attempt (both success and failure).
+	// Set by the caller to persist delivery records. May be nil.
+	OnDelivery func(DeliveryRecord)
+	log        waLog.Logger
 }
 
 // Load reads (or creates if absent) the config file at filepath.
 func Load(filepath string, logger waLog.Logger) (*Config, error) {
-	cfg := &Config{ConfigFile: filepath, log: logger}
+	cfg := &Config{ConfigFile: filepath, log: logger, Secret: os.Getenv("WEBHOOK_SECRET")}
 	if _, err := os.Stat(cfg.ConfigFile); os.IsNotExist(err) {
 		if err := cfg.writeConfig(); err != nil {
 			logger.Errorf("Error to create webhook config file (%s): %+v", cfg.ConfigFile, err)
@@ -445,20 +465,20 @@ func (c *Config) HasErrorWebhook() bool {
 	return c.ErrorWebhook.String() != ""
 }
 
-// SendToDefault sends an event payload to the default webhook.
-func (c *Config) SendToDefault(evtType string, raw, extra interface{}) error {
+// SendToDefault sends an event payload to the default webhook asynchronously with retry.
+func (c *Config) SendToDefault(evtType string, raw, extra interface{}) {
 	if !c.HasDefaultWebhook() {
-		return fmt.Errorf("default webhook not configured")
+		return
 	}
-	return c.send(c.GetDefaultWebhook(), evtType, raw, extra)
+	c.SendAsync(c.GetDefaultWebhook(), evtType, raw, extra)
 }
 
-// SendToError sends an event payload to the error webhook.
-func (c *Config) SendToError(evtType string, raw, extra interface{}) error {
+// SendToError sends an event payload to the error webhook asynchronously with retry.
+func (c *Config) SendToError(evtType string, raw, extra interface{}) {
 	if !c.HasErrorWebhook() {
-		return fmt.Errorf("error webhook not configured")
+		return
 	}
-	return c.send(c.GetErrorWebhook(), evtType, raw, extra)
+	c.SendAsync(c.GetErrorWebhook(), evtType, raw, extra)
 }
 
 // SendToCmd sends an event payload to the webhook registered for cmd.
@@ -476,30 +496,76 @@ type eventPayload struct {
 	Extra interface{} `json:"extra,omitempty"`
 }
 
-func (c *Config) send(webhookURL *url.URL, evtType string, raw, extra interface{}) error {
+// sendOnce makes a single HTTP POST attempt. Returns (httpStatus, error).
+// When Config.Secret is set, adds an X-ZapLab-Signature: sha256=<hex> header.
+func (c *Config) sendOnce(webhookURL *url.URL, evtType string, raw, extra interface{}) (int, error) {
 	if webhookURL.String() == "" {
-		return fmt.Errorf("webhookURL is empty")
+		return 0, fmt.Errorf("webhookURL is empty")
 	}
 	body, err := json.Marshal([]eventPayload{{Type: evtType, Raw: raw, Extra: extra}})
 	if err != nil {
-		return err
+		return 0, err
 	}
 	req, err := http.NewRequest("POST", webhookURL.String(), bytes.NewBuffer(body))
 	if err != nil {
-		c.log.Debugf("Error creating HTTP request: %+v", err)
-		return err
+		return 0, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.Secret != "" {
+		mac := hmac.New(sha256.New, []byte(c.Secret))
+		mac.Write(body)
+		req.Header.Set("X-ZapLab-Signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
+	}
 	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
 	if err != nil {
-		c.log.Debugf("Error sending HTTP request: %+v", err)
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code from webhook: %d", resp.StatusCode)
+	io.Copy(io.Discard, resp.Body) //nolint:errcheck
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return resp.StatusCode, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
-	return nil
+	return resp.StatusCode, nil
+}
+
+// send is the internal single-attempt sender kept for backward-compat (SendTo, test endpoint).
+func (c *Config) send(webhookURL *url.URL, evtType string, raw, extra interface{}) error {
+	_, err := c.sendOnce(webhookURL, evtType, raw, extra)
+	return err
+}
+
+// SendAsync dispatches the payload in a goroutine with up to 3 attempts (0 s, 5 s, 25 s backoff).
+// After each attempt, OnDelivery is called if set.
+func (c *Config) SendAsync(webhookURL *url.URL, evtType string, raw, extra interface{}) {
+	go func() {
+		delays := []time.Duration{0, 5 * time.Second, 25 * time.Second}
+		for i, delay := range delays {
+			if delay > 0 {
+				time.Sleep(delay)
+			}
+			httpStatus, err := c.sendOnce(webhookURL, evtType, raw, extra)
+			rec := DeliveryRecord{
+				WebhookURL: webhookURL.String(),
+				EventType:  evtType,
+				Attempt:    i + 1,
+				HTTPStatus: httpStatus,
+			}
+			if err != nil {
+				rec.Status = "failed"
+				rec.ErrorMsg = err.Error()
+				c.log.Warnf("Webhook delivery attempt=%d url=%s err=%v", i+1, webhookURL.String(), err)
+			} else {
+				rec.Status = "delivered"
+				rec.DeliveredAt = time.Now().UTC().Format(time.RFC3339)
+			}
+			if c.OnDelivery != nil {
+				c.OnDelivery(rec)
+			}
+			if rec.Status == "delivered" {
+				return
+			}
+		}
+	}()
 }
 
 func validateURL(raw string) (*url.URL, error) {
