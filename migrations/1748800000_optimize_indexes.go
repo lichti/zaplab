@@ -146,7 +146,27 @@ var restoreChanges = map[string]idxChange{
 	},
 }
 
+// rawIndexesFromMigration1748700 are indexes that were created via raw SQL in
+// the previous migration and are NOT yet registered in PocketBase's _collections
+// metadata. They must be dropped before app.Save(col) tries to CREATE them
+// (PocketBase uses CREATE INDEX, not CREATE INDEX IF NOT EXISTS).
+var rawIndexesFromMigration1748700 = []string{
+	"idx_arr_enabled_priority",
+	"idx_scm_status_scheduled",
+	"idx_wbd_status_created",
+	"idx_mre_chat_emoji",
+	"idx_men_bot_jid",
+	"idx_events_msgid_nonempty",
+	"idx_ce_type_created",
+}
+
 func applyIdxChanges(app core.App, changes map[string]idxChange) error {
+	// Drop raw SQL indexes from migration 1748700 so PocketBase can recreate
+	// them as properly managed indexes (registered in _collections metadata).
+	for _, idx := range rawIndexesFromMigration1748700 {
+		_, _ = app.DB().NewQuery("DROP INDEX IF EXISTS " + idx).Execute()
+	}
+
 	for colName, change := range changes {
 		col, err := app.FindCollectionByNameOrId(colName)
 		if err != nil {

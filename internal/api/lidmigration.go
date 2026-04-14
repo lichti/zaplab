@@ -57,7 +57,7 @@ func normalizeLIDJID(jid string, lidMap map[string]string) string {
 // not block the server.  Events whose LID was not yet mapped are left as-is
 // and will be normalized on the next run or when new mappings arrive.
 func runLIDMigration() {
-	if waDB == nil || pb == nil {
+	if waDB == nil || pb == nil || pb.DB() == nil {
 		return
 	}
 
