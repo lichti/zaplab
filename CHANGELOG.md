@@ -9,11 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Backlog]
 
+### Planned
+- **LID ↔ Phone Unification (deep)** — complete normalization in network graph and group overview SQL queries; `GET /zaplab/api/contacts/resolve` endpoint.
+- **Status / Stories** — receive and display WhatsApp status updates from contacts.
+- **Auto-Reply Rules Engine** — visual rule builder (condition → action) on top of the scripting system.
+- **Rate Limiter for Outgoing Messages** — configurable msgs/min send queue with `GET /zaplab/api/send/queue`.
+- **WhatsApp Channels / Newsletter** — handler and persistence for newsletter message events.
+- **Multi-Session** — multiple WhatsApp accounts simultaneously.
+- **Dashboard Personalizável** — customizable drag-and-drop home widgets.
+- **Real-Time List Updates via SSE** — extend the SSE broker to refresh list sections without manual refresh.
+- **Notification Center** — in-app persistent alerts for configured events (mentions, tracker state changes, webhook failures).
+- **Mobile-Responsive Layout** — collapsible sidebar and stacked cards for mobile use.
+
 ---
 
 ## [Dev]
 
 ### Added
+- **Webhook HMAC Signing** — set `WEBHOOK_SECRET` env var; every outgoing webhook request includes `X-ZapLab-Signature: sha256=<hex>` for receiver verification.
+- **Webhook Retry with Exponential Backoff** — `SendToDefault` and `SendToError` are now fire-and-forget with up to 3 attempts (immediate, +5 s, +25 s). Accept 2xx (not only 200) as successful.
+- **Webhook Delivery Log** — every attempt (success and failure) is persisted to the `webhook_deliveries` collection (status, attempt count, HTTP code, error message). Endpoints: `GET /zaplab/api/webhook/deliveries` (filters: status, url) and `DELETE .../deliveries?days=N` (pruning).
+- **Reaction Tracking** — `EncReactionMessage` events are decrypted and persisted to `message_reactions` collection (target message ID, sender, emoji, removed flag, timestamp). `GET /zaplab/api/reactions` (filters: message_id, chat_jid, sender_jid) and `GET .../reactions/stats` (top emojis + top reactors per chat). Frontend: "Reactions" section with log and stats tabs.
+- **Mention Tracker** — incoming messages are scanned for `@mention` JIDs (from `ExtendedTextMessage.ContextInfo`); each mention persisted to `mentions` collection with `is_bot` flag when the bot's own JID is referenced. `GET /zaplab/api/mentions` (filters: mentioned_jid, chat_jid, is_bot) and `GET .../mentions/stats`. Frontend: "Mention Tracker" section.
+- **Scheduled Messages** — create future message sends stored in `scheduled_messages` collection; minute-tick worker fires up to 10 pending messages per cycle. CRUD: `GET/POST /zaplab/api/scheduled-messages`, `PATCH/DELETE .../scheduled-messages/{id}`. Status lifecycle: pending → sent | failed | cancelled. Frontend: "Scheduled Msgs" section with datetime picker and status filter.
+- **Contact Cache** — `contact_cache` PocketBase collection caches name, phone, about, avatar URL per JID; populated asynchronously after every `GetContactInfo()` live fetch. `GET /zaplab/api/contact-cache` (search), `POST .../refresh?jid=`, `POST .../populate` (background full seed), `DELETE .../{id}`. Frontend: "Contact Cache" section.
+- **Prometheus Metrics** — `GET /metrics` (public) exposes connection state, event queue depth, active tracker count, events/24h by type, receipt latency p50/p95, webhook delivery stats, scheduled message counts in Prometheus text format.
 - **Script Repository** — new `scripts/` directory containing example `.js` scripts with howto comments at the top. Each script documents how to configure it in the UI (Name, Description, Timeout, Event type, Text pattern). Establishes the convention for reusable community scripts. Example: `scripts/group-ranking.js`.
 - **`/ranking` Group Activity Command** — script trigger that posts top-5 most active, top-5 least active, and silent member count in a group when `/ranking <dias>` is sent by the bot. Sources data from `GET /zaplab/api/groups/<jid>/overview?period=<dias>`. Only fires in groups and only when the bot sends the command. Example script at `scripts/group-ranking.js`.
 - **`zaplab.api(path)` sandbox function** — calls the internal ZapLab REST API from within a script. Auth auto-injected: uses `API_TOKEN` env var as `X-API-Token` header if set; otherwise mints a 2-minute PocketBase superuser JWT. Returns the parsed JSON body as a JS object. Panics on non-2xx response or network error.
