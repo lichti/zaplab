@@ -32,4 +32,6 @@ GEMINI.md
 
 # Internal planning
 ROADMAP.md
-NOTES.mdnode_modules/
+NOTES.md
+node_modules/
+whatsapp.db
