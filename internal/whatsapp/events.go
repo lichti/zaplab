@@ -171,6 +171,9 @@ func handleAsync(rawEvt interface{}) {
 			DetectAndRecordMentions(evt)
 		}
 
+		// Evaluate auto-reply rules (runs in a separate goroutine to avoid blocking the event worker).
+		go EvaluateAutoReplyRules(evt)
+
 		if strings.HasPrefix(getMsg(evt), getIDSecret) && evt.Info.IsFromMe {
 			jid, _ := ParseJID(client.Store.ID.User)
 			SendConversationMessage(jid, fmt.Sprintf("-> Cmd output: \nChatID %v", evt.Info.Chat), nil)

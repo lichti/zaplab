@@ -61,6 +61,7 @@ function zaplab() {
     scheduledMsgsSection(),
     contactCacheSection(),
     webhookDeliveriesSection(),
+    autoReplySection(),
     {
       // ── shared persistent state ──
       theme:           localStorage.getItem('zaplab-theme')          || 'dark',

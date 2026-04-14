@@ -75,6 +75,7 @@
   <script src="js/sections/scheduledmsgs.js"></script>
   <script src="js/sections/contactcache.js"></script>
   <script src="js/sections/webhookdeliveries.js"></script>
+  <script src="js/sections/autoreply.js"></script>
   <!-- Factory (must come after sections) -->
   <script src="js/zaplab.js"></script>
 </head>
@@ -566,6 +567,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/>
           </svg>
           <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Webhook Deliveries</span>
+        </a>
+
+        <!-- Auto-Reply Rules -->
+        <a href="#/auto-reply" @click.prevent="setSection('auto-reply')" :title="sidebarExpanded ? '' : 'Auto-Reply Rules'" aria-label="Auto-Reply Rules"
+          class="flex items-center gap-3 px-2 py-2 rounded-md w-full text-left transition-colors"
+          :class="activeSection==='auto-reply'?'bg-blue-50 text-blue-600 dark:bg-[#1c3a5e] dark:text-[#58a6ff]'
+            :'text-gray-500 hover:bg-gray-100 dark:text-[#8b949e] dark:hover:bg-[#21262d]'">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/>
+          </svg>
+          <span x-show="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Auto-Reply Rules</span>
         </a>
 
         <!-- Group Overview -->
@@ -11372,6 +11384,190 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           AUTO-REPLY RULES
+      ═══════════════════════════════════════════════════════════════ -->
+      <div x-show="activeSection === 'auto-reply'" class="h-full overflow-y-auto"
+           x-effect="if (activeSection === 'auto-reply' && ar.rules.length === 0 && !ar.loading) arLoad()">
+        <div class="p-4 max-w-4xl mx-auto space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-800 dark:text-[#e6edf3]">Auto-Reply Rules</h2>
+              <p class="text-xs text-gray-500 dark:text-[#8b949e] mt-0.5">
+                Automate responses to incoming messages using conditions and actions.
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <button @click="arLoad()" class="px-3 py-1.5 text-xs border rounded-md dark:border-[#30363d] dark:text-[#8b949e] hover:bg-gray-50 dark:hover:bg-[#21262d]">Refresh</button>
+              <button @click="arOpenCreate()" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700">+ New Rule</button>
+            </div>
+          </div>
+
+          <!-- Toast -->
+          <div x-show="ar.toast" x-transition
+               :class="ar.toast?.type==='success'?'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:text-green-400':'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:text-red-400'"
+               class="border rounded-md px-3 py-2 text-xs flex justify-between items-center">
+            <span x-text="ar.toast?.text"></span>
+            <button @click="ar.toast=null" class="ml-4 opacity-60 hover:opacity-100">&times;</button>
+          </div>
+
+          <!-- Error -->
+          <div x-show="ar.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md px-3 py-2 text-xs text-red-700 dark:text-red-400" x-text="ar.error"></div>
+
+          <!-- Create / Edit form -->
+          <div x-show="arShowForm" x-transition class="border dark:border-[#30363d] rounded-md bg-white dark:bg-[#161b22] p-4 space-y-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-[#e6edf3]" x-text="arEditId ? 'Edit Rule' : 'New Rule'"></h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="col-span-2">
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Name *</label>
+                <input x-model="arForm.name" type="text" placeholder="Rule name" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Priority (lower = first)</label>
+                <input x-model.number="arForm.priority" type="number" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div class="flex items-center gap-4 pt-4">
+                <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-[#8b949e]">
+                  <input type="checkbox" x-model="arForm.enabled"> Enabled
+                </label>
+                <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-[#8b949e]">
+                  <input type="checkbox" x-model="arForm.stop_on_match"> Stop on match
+                </label>
+              </div>
+            </div>
+
+            <p class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] uppercase tracking-wide pt-1">Conditions</p>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">From</label>
+                <select x-model="arForm.cond_from" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+                  <option value="others">Others</option>
+                  <option value="me">Me</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Chat JID (empty = any)</label>
+                <input x-model="arForm.cond_chat_jid" type="text" placeholder="1234567890@s.whatsapp.net" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Sender JID (empty = any)</label>
+                <input x-model="arForm.cond_sender_jid" type="text" placeholder="1234567890@s.whatsapp.net" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Text Pattern (empty = any)</label>
+                <input x-model="arForm.cond_text_pattern" type="text" placeholder="hello" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Match Type</label>
+                <select x-model="arForm.cond_text_match_type" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+                  <option value="contains">Contains</option>
+                  <option value="prefix">Prefix</option>
+                  <option value="exact">Exact</option>
+                  <option value="regex">Regex</option>
+                </select>
+              </div>
+              <div class="flex items-end pb-1.5">
+                <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-[#8b949e]">
+                  <input type="checkbox" x-model="arForm.cond_case_sensitive"> Case sensitive
+                </label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Hour From (0-23, -1=any)</label>
+                <input x-model.number="arForm.cond_hour_from" type="number" min="-1" max="23" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Hour To (0-23, -1=any)</label>
+                <input x-model.number="arForm.cond_hour_to" type="number" min="-1" max="23" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+            </div>
+
+            <p class="text-xs font-semibold text-gray-500 dark:text-[#8b949e] uppercase tracking-wide pt-1">Action</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Action Type</label>
+                <select x-model="arForm.action_type" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+                  <option value="reply">Reply</option>
+                  <option value="webhook">Webhook</option>
+                  <option value="script">Script</option>
+                </select>
+              </div>
+              <div x-show="arForm.action_type==='reply'" class="col-span-2">
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Reply Text — vars: {name} {sender} {chat} {text} {hour}</label>
+                <textarea x-model="arForm.action_reply_text" rows="3" placeholder="Hello {name}! You said: {text}" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3] font-mono"></textarea>
+              </div>
+              <div x-show="arForm.action_type==='webhook'" class="col-span-2">
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Webhook URL</label>
+                <input x-model="arForm.action_webhook_url" type="url" placeholder="https://..." class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+              <div x-show="arForm.action_type==='script'" class="col-span-2">
+                <label class="block text-xs text-gray-500 dark:text-[#8b949e] mb-1">Script ID / Command</label>
+                <input x-model="arForm.action_script_id" type="text" placeholder="my-script" class="w-full px-2 py-1.5 text-xs border dark:border-[#30363d] rounded-md bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <button @click="arSave()" :disabled="!arForm.name || ar.loading" class="px-4 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">Save</button>
+              <button @click="arShowForm=false" class="px-4 py-1.5 text-xs border dark:border-[#30363d] rounded-md dark:text-[#8b949e] hover:bg-gray-50 dark:hover:bg-[#21262d]">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Rules table -->
+          <div class="border dark:border-[#30363d] rounded-md overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 dark:bg-[#161b22]">
+                <tr>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Name</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Priority</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Match</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Action</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Hits</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Enabled</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-[#8b949e]">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 dark:divide-[#21262d]">
+                <template x-for="rule in ar.rules" :key="rule.id">
+                  <tr class="hover:bg-gray-50 dark:hover:bg-[#161b22]">
+                    <td class="px-3 py-2 font-medium text-gray-800 dark:text-[#e6edf3]" x-text="rule.name"></td>
+                    <td class="px-3 py-2 text-gray-500 dark:text-[#8b949e]" x-text="rule.priority"></td>
+                    <td class="px-3 py-2">
+                      <template x-if="rule.cond_text_pattern">
+                        <span :class="`inline-block px-1.5 py-0.5 rounded text-xs bg-${arMatchTypeBadge(rule.cond_text_match_type)}-100 text-${arMatchTypeBadge(rule.cond_text_match_type)}-700`"
+                              x-text="rule.cond_text_match_type + ': ' + rule.cond_text_pattern.slice(0,20)"></span>
+                      </template>
+                      <template x-if="!rule.cond_text_pattern">
+                        <span class="text-gray-400">any</span>
+                      </template>
+                    </td>
+                    <td class="px-3 py-2">
+                      <span :class="`inline-block px-1.5 py-0.5 rounded text-xs bg-${arActionBadge(rule.action_type)}-100 text-${arActionBadge(rule.action_type)}-700`"
+                            x-text="rule.action_type"></span>
+                    </td>
+                    <td class="px-3 py-2 text-gray-500 dark:text-[#8b949e]" x-text="rule.match_count || 0"></td>
+                    <td class="px-3 py-2">
+                      <button @click="arToggle(rule)" :class="rule.enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-[#30363d]'"
+                              class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none">
+                        <span :class="rule.enabled ? 'translate-x-4' : 'translate-x-1'"
+                              class="inline-block h-3 w-3 rounded-full bg-white transition-transform"></span>
+                      </button>
+                    </td>
+                    <td class="px-3 py-2 flex gap-2">
+                      <button @click="arOpenEdit(rule)" class="text-blue-500 hover:text-blue-700 text-xs">Edit</button>
+                      <button @click="arDelete(rule)" class="text-red-500 hover:text-red-700 text-xs">Delete</button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="ar.rules.length===0 && !ar.loading">
+                  <td colspan="7" class="px-3 py-6 text-center text-gray-400 dark:text-[#8b949e]">No rules — click "+ New Rule" to create one.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p x-show="ar.loading" class="text-center text-xs text-gray-400 dark:text-[#8b949e] py-4">Loading...</p>
         </div>
       </div>
 
