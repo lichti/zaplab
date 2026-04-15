@@ -50,7 +50,9 @@ func buildContextInfo(r *ReplyInfo) *waE2E.ContextInfo {
 }
 
 func sendMessage(to types.JID, msg *waE2E.Message) (*waE2E.Message, *whatsmeow.SendResponse, error) {
-	resp, err := client.SendMessage(context.Background(), to, msg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	resp, err := client.SendMessage(ctx, to, msg)
 	if err != nil {
 		logger.Errorf("Error sending message: %v", err)
 		saveSentError("Error sending message", msg, &resp, err)

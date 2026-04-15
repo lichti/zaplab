@@ -272,49 +272,48 @@ function sendSection() {
     },
 
     async submitSend() {
-      this.send.toast   = null;
-      this.send.loading = true;
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'X-API-Token':  this.apiToken,
-      };
-
-      const reply    = this.sendReplyPayload();
-      const mentions = this._sendMentions();
-      const withExtra = obj => {
-        if (reply)    obj.reply_to = reply;
-        if (mentions) obj.mentions = mentions;
-        return obj;
-      };
-      const withMedia = obj => {
-        if (reply)               obj.reply_to  = reply;
-        if (mentions)            obj.mentions  = mentions;
-        if (this.send.viewOnce && ['image','video'].includes(this.send.type)) obj.view_once = true;
-        return obj;
-      };
-      const endpointMap = {
-        text:          ['/zaplab/api/sendmessage',      withExtra({ to: this.send.to, message: this.send.message })],
-        image:         ['/zaplab/api/sendimage',         withMedia({ to: this.send.to, message: this.send.message, image:    this.send.fileData })],
-        video:         ['/zaplab/api/sendvideo',         withMedia({ to: this.send.to, message: this.send.message, video:    this.send.fileData })],
-        audio:         ['/zaplab/api/sendaudio',         withExtra({ to: this.send.to, ptt: this.send.ptt,         audio:    this.send.fileData })],
-        document:      ['/zaplab/api/senddocument',      withExtra({ to: this.send.to, message: this.send.message, document: this.send.fileData })],
-        location:      ['/zaplab/api/sendlocation',      withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, name: this.send.locName || '', address: this.send.locAddress || '' })],
-        live_location: ['/zaplab/api/sendelivelocation', withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, accuracy_in_meters: this.send.locAccuracy || 0, speed_in_mps: this.send.locSpeed || 0, degrees_clockwise_from_magnetic_north: this.send.locBearing || 0, caption: this.send.message || '' })],
-      };
-
-      const [endpoint, body] = endpointMap[this.send.type];
-
+      this.send.toast = null;
       try {
+        this.send.loading = true;
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-API-Token':  this.apiToken,
+        };
+
+        const reply    = this.sendReplyPayload();
+        const mentions = this._sendMentions();
+        const withExtra = obj => {
+          if (reply)    obj.reply_to = reply;
+          if (mentions) obj.mentions = mentions;
+          return obj;
+        };
+        const withMedia = obj => {
+          if (reply)               obj.reply_to  = reply;
+          if (mentions)            obj.mentions  = mentions;
+          if (this.send.viewOnce && ['image','video'].includes(this.send.type)) obj.view_once = true;
+          return obj;
+        };
+        const endpointMap = {
+          text:          ['/zaplab/api/sendmessage',      withExtra({ to: this.send.to, message: this.send.message })],
+          image:         ['/zaplab/api/sendimage',         withMedia({ to: this.send.to, message: this.send.message, image:    this.send.fileData })],
+          video:         ['/zaplab/api/sendvideo',         withMedia({ to: this.send.to, message: this.send.message, video:    this.send.fileData })],
+          audio:         ['/zaplab/api/sendaudio',         withExtra({ to: this.send.to, ptt: this.send.ptt,         audio:    this.send.fileData })],
+          document:      ['/zaplab/api/senddocument',      withExtra({ to: this.send.to, message: this.send.message, document: this.send.fileData })],
+          location:      ['/zaplab/api/sendlocation',      withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, name: this.send.locName || '', address: this.send.locAddress || '' })],
+          live_location: ['/zaplab/api/sendelivelocation', withExtra({ to: this.send.to, latitude: parseFloat(this.send.latitude) || 0, longitude: parseFloat(this.send.longitude) || 0, accuracy_in_meters: this.send.locAccuracy || 0, speed_in_mps: this.send.locSpeed || 0, degrees_clockwise_from_magnetic_north: this.send.locBearing || 0, caption: this.send.message || '' })],
+        };
+
+        const [endpoint, body] = endpointMap[this.send.type];
         const res  = await this.zapFetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
         const data = await res.json();
         this.send.toast = { ok: res.ok, message: data.message || JSON.stringify(data) };
         if (res.ok) {
-          this.send.result   = data;
+          this.send.result    = data;
           this.sendPreviewTab = 'response';
-          this.send.message  = '';
-          this.send.fileData = '';
-          this.send.fileName = '';
+          this.send.message   = '';
+          this.send.fileData  = '';
+          this.send.fileName  = '';
         }
       } catch (err) {
         this.send.toast = { ok: false, message: err.message };
