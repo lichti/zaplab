@@ -9,7 +9,7 @@ COPY go.mod go.sum Makefile ./
 RUN make deps-download
 
 COPY . .
-RUN make build && make link
+RUN make build-docker && make link
 
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim

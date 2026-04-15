@@ -23,7 +23,7 @@ DATA_DIR ?= $(or $(ZAPLAB_DATA_DIR),$(HOME)/.zaplab)
 
 # ──────────────────────────────────────────────────────────────────────────────
 .DEFAULT_GOAL := build
-.PHONY: fmt vet deps-download build link build-run run tag tag-push git-init \
+.PHONY: fmt vet deps-download build build-docker link build-run run tag tag-push git-init \
         build-img run-docker down clean clean-docker ps logs \
         shell help css update-whatsmeow
 
@@ -66,6 +66,11 @@ css:
 
 ## build: css + fmt + vet + compile → bin/zaplab_<OS>_<ARCH>
 build: css vet deps-download
+	mkdir -p $(BIN_DIR)
+	$(GO) build -ldflags "-X main.Version=$(FULL_VERSION)" -o $(BINARY) .
+
+## build-docker: vet + compile without css (CSS is pre-built in the repo; no Node needed)
+build-docker: vet deps-download
 	mkdir -p $(BIN_DIR)
 	$(GO) build -ldflags "-X main.Version=$(FULL_VERSION)" -o $(BINARY) .
 
