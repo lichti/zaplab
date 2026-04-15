@@ -1625,8 +1625,9 @@ func getConfig(e *core.RequestEvent) error {
 
 func putConfig(e *core.RequestEvent) error {
 	var req struct {
-		RecoverEdits   *bool `json:"recover_edits"`
-		RecoverDeletes *bool `json:"recover_deletes"`
+		RecoverEdits             *bool `json:"recover_edits"`
+		RecoverDeletes           *bool `json:"recover_deletes"`
+		SuppressDeliveryReceipts *bool `json:"suppress_delivery_receipts"`
 	}
 	if err := e.BindBody(&req); err != nil {
 		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
@@ -1638,6 +1639,11 @@ func putConfig(e *core.RequestEvent) error {
 	}
 	if req.RecoverDeletes != nil {
 		if err := cfg.SetRecoverDeletes(*req.RecoverDeletes); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		}
+	}
+	if req.SuppressDeliveryReceipts != nil {
+		if err := whatsapp.SetSuppressDeliveryReceipts(*req.SuppressDeliveryReceipts); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		}
 	}

@@ -58,3 +58,8 @@ require (
 	modernc.org/sqlite v1.46.1 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
+
+// zaplab fork: local replace until pushed to GitHub.
+// To update: cd ../whatsmeow-zaplab && git fetch upstream && git rebase upstream/main
+// then run: go get go.mau.fi/whatsmeow@<new-commit> (after pushing to GitHub and removing this replace)
+replace go.mau.fi/whatsmeow => ../whatsmeow-zaplab

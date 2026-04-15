@@ -85,6 +85,18 @@ type DeviceKeyInfo struct {
 	PushName       string `json:"push_name"`
 }
 
+// SetSuppressDeliveryReceipts toggles delivery receipt suppression on the live client
+// and persists the preference to the config file.
+func SetSuppressDeliveryReceipts(suppress bool) error {
+	if client != nil {
+		client.SetSuppressDeliveryReceipts(suppress)
+	}
+	if cfg != nil {
+		return cfg.SetSuppressDeliveryReceipts(suppress)
+	}
+	return nil
+}
+
 // GetDeviceKeys returns the public key info for the current device.
 // Returns nil if the client is not yet bootstrapped.
 func GetDeviceKeys() *DeviceKeyInfo {

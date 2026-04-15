@@ -10,12 +10,13 @@ import (
 
 // Config holds general application settings.
 type Config struct {
-	RecoverEdits           bool   `json:"recover_edits"`
-	RecoverDeletes         bool   `json:"recover_deletes"`
-	ActivityTrackerEnabled bool   `json:"activity_tracker_enabled"`
-	configFile             string `json:"-"`
-	log                    waLog.Logger
-	mu                     sync.RWMutex
+	RecoverEdits               bool   `json:"recover_edits"`
+	RecoverDeletes             bool   `json:"recover_deletes"`
+	ActivityTrackerEnabled     bool   `json:"activity_tracker_enabled"`
+	SuppressDeliveryReceipts   bool   `json:"suppress_delivery_receipts"`
+	configFile                 string `json:"-"`
+	log                        waLog.Logger
+	mu                         sync.RWMutex
 }
 
 // Load reads (or creates if absent) the config file at filepath.
@@ -99,4 +100,19 @@ func (c *Config) IsActivityTrackerEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.ActivityTrackerEnabled
+}
+
+// SetSuppressDeliveryReceipts controls whether delivery (grey-tick) receipts are sent.
+func (c *Config) SetSuppressDeliveryReceipts(enabled bool) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.SuppressDeliveryReceipts = enabled
+	return c.save()
+}
+
+// IsSuppressDeliveryReceipts returns whether delivery receipt suppression is enabled.
+func (c *Config) IsSuppressDeliveryReceipts() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.SuppressDeliveryReceipts
 }

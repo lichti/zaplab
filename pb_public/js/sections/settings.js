@@ -2,10 +2,11 @@
 function settingsSection() {
   return {
     config: {
-      recover_edits:   false,
-      recover_deletes: false,
-      apiToken:        localStorage.getItem('zaplab-api-token') || '',
-      loading:         false,
+      recover_edits:               false,
+      recover_deletes:             false,
+      suppress_delivery_receipts:  false,
+      apiToken:                    localStorage.getItem('zaplab-api-token') || '',
+      loading:                     false,
     },
 
     saveApiToken() {
@@ -25,8 +26,9 @@ function settingsSection() {
         });
         const data = await res.json();
         if (res.ok) {
-          this.config.recover_edits   = data.recover_edits;
-          this.config.recover_deletes = data.recover_deletes;
+          this.config.recover_edits              = data.recover_edits;
+          this.config.recover_deletes            = data.recover_deletes;
+          this.config.suppress_delivery_receipts = data.suppress_delivery_receipts;
         }
       } catch (err) {
         console.error('Failed to fetch config:', err);
@@ -48,8 +50,9 @@ function settingsSection() {
         });
         const data = await res.json();
         if (res.ok) {
-          this.config.recover_edits   = data.recover_edits;
-          this.config.recover_deletes = data.recover_deletes;
+          this.config.recover_edits              = data.recover_edits;
+          this.config.recover_deletes            = data.recover_deletes;
+          this.config.suppress_delivery_receipts = data.suppress_delivery_receipts;
         }
       } catch (err) {
         console.error('Failed to save config:', err);
@@ -66,6 +69,11 @@ function settingsSection() {
     toggleRecoverDeletes() {
       this.config.recover_deletes = !this.config.recover_deletes;
       this.saveConfig({ recover_deletes: this.config.recover_deletes });
-    }
+    },
+
+    toggleSuppressDeliveryReceipts() {
+      this.config.suppress_delivery_receipts = !this.config.suppress_delivery_receipts;
+      this.saveConfig({ suppress_delivery_receipts: this.config.suppress_delivery_receipts });
+    },
   };
 }

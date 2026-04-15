@@ -135,6 +135,12 @@ func Bootstrap(e *core.BootstrapEvent) error {
 	clientLog := NewCapturingLogger(waLog.Stdout("Client", logLevel, true), "Client")
 	client = whatsmeow.NewClient(device, clientLog)
 
+	// Apply persisted delivery receipt suppression setting.
+	if cfg != nil && cfg.IsSuppressDeliveryReceipts() {
+		client.SetSuppressDeliveryReceipts(true)
+		logger.Infof("Bootstrap: delivery receipt suppression enabled (from config)")
+	}
+
 	// Start log consumer after pb is available (set via Init before Bootstrap).
 	StartLogConsumer()
 
