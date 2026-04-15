@@ -7,7 +7,7 @@ require (
 	github.com/mdp/qrterminal/v3 v3.2.0
 	github.com/pocketbase/pocketbase v0.36.6
 	go.mau.fi/util v0.9.6
-	go.mau.fi/whatsmeow v0.0.0-20260227112304-c9652e4448a2
+	go.mau.fi/whatsmeow v0.0.0-20260415104127-295b5154684f
 	google.golang.org/protobuf v1.36.11
 )
 
