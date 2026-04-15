@@ -19,13 +19,13 @@ func upAutoReplyRules(app core.App) error {
 	col.Fields.Add(
 		textField("arr01name", "name", true, false),
 		&core.BoolField{Id: "arr02enabled", Name: "enabled"},
-		&core.NumberField{Id: "arr03prio", Name: "priority"},       // lower = evaluated first
-		&core.BoolField{Id: "arr04stop", Name: "stop_on_match"},    // stop chain after match
+		&core.NumberField{Id: "arr03prio", Name: "priority"},    // lower = evaluated first
+		&core.BoolField{Id: "arr04stop", Name: "stop_on_match"}, // stop chain after match
 
 		// ── Conditions ──
-		textField("arr05from", "cond_from", false, false),          // all | others | me
-		textField("arr06chat", "cond_chat_jid", false, false),      // empty = any chat
-		textField("arr07sender", "cond_sender_jid", false, false),  // empty = any sender
+		textField("arr05from", "cond_from", false, false),         // all | others | me
+		textField("arr06chat", "cond_chat_jid", false, false),     // empty = any chat
+		textField("arr07sender", "cond_sender_jid", false, false), // empty = any sender
 		textField("arr08pattern", "cond_text_pattern", false, false),
 		textField("arr09match", "cond_text_match_type", false, false), // prefix|contains|exact|regex
 		&core.BoolField{Id: "arr10cs", Name: "cond_case_sensitive"},

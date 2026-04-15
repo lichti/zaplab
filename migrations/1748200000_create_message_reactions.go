@@ -17,7 +17,7 @@ func upMessageReactions(app core.App) error {
 	}
 	col := core.NewBaseCollection("message_reactions", idMessageReactions)
 	col.Fields.Add(
-		textField("mre1msgid", "message_id", true, false),  // target message that was reacted to
+		textField("mre1msgid", "message_id", true, false), // target message that was reacted to
 		textField("mre2chat", "chat_jid", true, false),
 		textField("mre3sender", "sender_jid", true, false),
 		textField("mre4emoji", "emoji", false, false),

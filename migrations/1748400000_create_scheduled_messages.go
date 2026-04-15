@@ -21,7 +21,7 @@ func upScheduledMessages(app core.App) error {
 		textField("scm2text", "message_text", false, false),
 		// msg_type: text | image | video | audio | document
 		textField("scm3type", "msg_type", false, false),
-		textField("scm4at", "scheduled_at", true, false),   // ISO-8601 UTC
+		textField("scm4at", "scheduled_at", true, false), // ISO-8601 UTC
 		textField("scm5sent", "sent_at", false, false),
 		// status: pending | sent | failed | cancelled
 		textField("scm6status", "status", false, false),

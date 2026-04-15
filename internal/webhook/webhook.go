@@ -68,12 +68,12 @@ type EventTypeWebhookAPI struct {
 
 // DeliveryRecord carries the result of a single delivery attempt for the caller to log.
 type DeliveryRecord struct {
-	WebhookURL string
-	EventType  string
-	Status     string // "delivered" | "failed"
-	Attempt    int
-	HTTPStatus int
-	ErrorMsg   string
+	WebhookURL  string
+	EventType   string
+	Status      string // "delivered" | "failed"
+	Attempt     int
+	HTTPStatus  int
+	ErrorMsg    string
 	DeliveredAt string
 }
 

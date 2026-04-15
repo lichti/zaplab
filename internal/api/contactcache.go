@@ -11,14 +11,14 @@ import (
 // getContactCache returns cached contacts, optionally filtered by search query.
 func getContactCache(e *core.RequestEvent) error {
 	type row struct {
-		ID          string `db:"id"               json:"id"`
-		JID         string `db:"jid"              json:"jid"`
-		Name        string `db:"name"             json:"name"`
-		Phone       string `db:"phone"            json:"phone"`
-		About       string `db:"about"            json:"about"`
-		AvatarURL   string `db:"avatar_url"       json:"avatar_url"`
-		LastSeen    string `db:"last_seen"        json:"last_seen"`
-		CacheUpdAt  string `db:"cache_updated_at" json:"cache_updated_at"`
+		ID         string `db:"id"               json:"id"`
+		JID        string `db:"jid"              json:"jid"`
+		Name       string `db:"name"             json:"name"`
+		Phone      string `db:"phone"            json:"phone"`
+		About      string `db:"about"            json:"about"`
+		AvatarURL  string `db:"avatar_url"       json:"avatar_url"`
+		LastSeen   string `db:"last_seen"        json:"last_seen"`
+		CacheUpdAt string `db:"cache_updated_at" json:"cache_updated_at"`
 	}
 
 	q := pb.DB().

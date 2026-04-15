@@ -22,6 +22,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.0.0-beta.10] — 2026-04-15
+
+### Added
+- **Appear Offline toggle** — topbar button and Settings toggle that sends `PresenceUnavailable` to WhatsApp, making the account invisible to contacts. The preference is persisted in `config.json` and applied automatically on every reconnect. API: `PUT /zaplab/api/config` accepts `appear_offline: bool`. Backend: `SetGlobalPresence(offline bool)` in `internal/whatsapp/presence.go`; `SetAppearOffline` in `deps.go` applies to live client and saves; both `handleConnected` and `handleAsync/AppStateSyncComplete` respect the setting.
+- **Suppress Delivery Receipts toggle** moved to topbar — in addition to the Settings section, a quick-access icon button now sits in the topbar (check-circle icon, yellow when suppressed). Calls the same `toggleSuppressDeliveryReceipts()` method.
+- `GET /zaplab/api/events/recent` — new endpoint returning the N most recent events from the `events` table (default 100, max 500). Accepts `limit` and `type` query params. Returns `raw` as parsed JSON (not escaped string). Authenticated via PocketBase session or `X-API-Token`.
+
+### Fixed
+- **Send Message stuck in "Sending…"** — two root causes fixed:
+  1. `sendMessage()` used `context.Background()` with no deadline; if WhatsApp didn't ACK a message (e.g., malformed reply `ContextInfo` in a group), the HTTP handler hung indefinitely. Fixed by adding a 30-second `context.WithTimeout`.
+  2. `submitSend()` in the frontend set `send.loading = true` before the outer `try {}` block; any thrown error during payload setup left the button stuck. Fixed by collapsing the nested try/catch into a single `try/catch/finally` so `loading` is always reset.
+- **Live Events not appearing in real time** — multiple fixes:
+  - `loadInitialEvents()` depended on PocketBase SDK auth (`pb.collection('events').getList()`), which could fail silently if the session expired. Replaced with `fetch('/zaplab/api/events/recent', apiHeaders())` — works with API token or PocketBase session.
+  - SSE events used `this.events.unshift(record)` which could miss Alpine.js reactivity in some scenarios. Changed to `this.events = [record, ...this.events]` (explicit assignment).
+  - `_isNew` flag reset also changed to explicit array assignment for consistent reactivity.
+- **Reply-to with empty sender JID** — `parseReplyTo()` discarded the entire reply when `sender_jid` was empty (silent 400 in ParseJID). Fixed: zero JID is now accepted; `buildContextInfo` only sets `Participant` when `!r.Sender.IsEmpty()`.
+- **Send Message JSON preview** — the JSON preview tab now correctly includes `reply_to` and `mentions` fields when those options are enabled.
+
+### Changed
+- **Live Events section UI** — connection status dot + "live" label added directly to the events pane header (was only in topbar); "reconnect" button appears when stream is disconnected; reload button (↺) manually re-fetches recent events from DB.
+
+---
+
 ## [v1.0.0-beta.9] — 2026-04-14
 
 ### Added

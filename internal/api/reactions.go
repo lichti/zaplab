@@ -35,14 +35,14 @@ func getReactions(e *core.RequestEvent) error {
 	}
 
 	type row struct {
-		ID        string  `db:"id"         json:"id"`
-		MessageID string  `db:"message_id"  json:"message_id"`
-		ChatJID   string  `db:"chat_jid"    json:"chat_jid"`
-		SenderJID string  `db:"sender_jid"  json:"sender_jid"`
-		Emoji     string  `db:"emoji"       json:"emoji"`
-		Removed   bool    `db:"removed"     json:"removed"`
-		ReactAt   string  `db:"react_at"    json:"react_at"`
-		Created   string  `db:"created"     json:"created"`
+		ID        string `db:"id"         json:"id"`
+		MessageID string `db:"message_id"  json:"message_id"`
+		ChatJID   string `db:"chat_jid"    json:"chat_jid"`
+		SenderJID string `db:"sender_jid"  json:"sender_jid"`
+		Emoji     string `db:"emoji"       json:"emoji"`
+		Removed   bool   `db:"removed"     json:"removed"`
+		ReactAt   string `db:"react_at"    json:"react_at"`
+		Created   string `db:"created"     json:"created"`
 	}
 	var rows []row
 	if err := q.All(&rows); err != nil {
@@ -87,8 +87,8 @@ func getReactionStats(e *core.RequestEvent) error {
 		senders = []senderRow{}
 	}
 	return e.JSON(http.StatusOK, map[string]any{
-		"chat_jid":   chatJID,
-		"top_emojis": emojis,
+		"chat_jid":    chatJID,
+		"top_emojis":  emojis,
 		"top_senders": senders,
 	})
 }

@@ -80,4 +80,3 @@ func downDBPerformance(app core.App) error {
 	}
 	return nil
 }
-

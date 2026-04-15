@@ -1067,6 +1067,10 @@ These endpoints power the research dashboard sections. All require `X-API-Token`
 | `POST` | `/zaplab/api/activity-tracker/stop` | Stop tracking a JID |
 | `POST` | `/zaplab/api/activity-tracker/start-bulk` | Start tracking a list of JIDs |
 | `POST` | `/zaplab/api/activity-tracker/stop-all` | Stop all active trackers |
+| `GET` | `/zaplab/api/config` | Read current application configuration (`recover_edits`, `recover_deletes`, `suppress_delivery_receipts`, `appear_offline`, …) |
+| `PUT` | `/zaplab/api/config` | Update configuration fields — partial update, only supplied fields are changed |
+| `GET` | `/zaplab/api/events/recent` | Last N events from DB (query params: `limit` 1–500, `type` filter) |
+| `GET` | `/zaplab/api/events/stream` | SSE stream of live WhatsApp events (query params: `token`, `type` filter) |
 
 ---
 
@@ -1359,6 +1363,7 @@ A built-in web interface for interacting with all API features without writing a
 - **URI-based Navigation** — Deep linking support (`/#/section`) and browser Back/Forward compatibility.
 - **Multi-tab Support** — Sidebar links support "Open in new tab" (Ctrl/Cmd+Click).
 - **Session Persistence** — Authentication persists across refreshes and tabs.
+- **Topbar Quick Toggles** — One-click toggles directly in the topbar: **Appear Offline** (wifi icon, green=online / red=offline) and **Suppress Delivery Receipts** (check-circle icon, shows strikethrough when suppressed).
 
 **Stack:** Alpine.js 3 · Tailwind CSS · dark/light mode · no build step required
 
@@ -1383,7 +1388,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Dashboard** | Overview of the running instance: connection status, account info, all-time and last-24h stats (events, received, sent, edited, deleted, errors), recent events list, and quick action buttons; auto-refreshes every 60 s |
 | **Connection** | WhatsApp pairing via QR code, live connection status indicator, logout; **Re-pair** button to re-link a new device after logout without restarting the server |
 | **Account** | View profile picture, push name, phone number, business name, about and platform |
-| **Live Events** | Real-time event stream from PocketBase — filterable by type, syntax-highlighted JSON, resizable panel |
+| **Live Events** | Real-time event stream via SSE — filterable by type, syntax-highlighted JSON, resizable panel; connection status indicator (connecting/connected/disconnected dot); **Reconnect** button when disconnected; **Reload** button to re-fetch the last 100 events from history |
 | **Event Browser** | Search and filter stored events by type, date range, message ID, sender, recipient, or free text; inspect full JSON; preview and download media; replay message via Send Raw; **Export CSV** (up to 1 000 rows matching the active filter) |
 | **Error Browser** | Browse the `errors` PocketBase collection; filter by type, date range, and free text; inspect full raw JSON; **Export CSV** |
 | **Message History** | List all edited and deleted messages; filter by kind (All / Edited / Deleted), sender, chat and date range; shows the action event payload and the original message content; **Enhanced Edit Diff** — word-level or char-level tokenisation, inline or side-by-side view, diff stats bar (added/removed/similarity), **edit chain timeline** showing the full edit history of a message; **Export CSV** |
@@ -1425,7 +1430,7 @@ A built-in web interface for interacting with all API features without writing a
 | **Webhook Delivery Log** | Every outgoing webhook attempt (success and failure) is persisted to `webhook_deliveries` with status, attempt count, HTTP code, and error message; HMAC-SHA256 signing via `WEBHOOK_SECRET`; exponential retry (immediate + 5 s + 25 s); API: list with status/URL filters, purge by age |
 | **Prometheus Metrics** | `GET /metrics` (public) exposes connection state, event queue depth, active tracker count, events/24h by type, receipt latency p50/p95, webhook delivery stats, and scheduled message counts in Prometheus text format |
 | **Webhooks** | Configure default, error, event-type, and text-pattern webhooks; test webhook delivery; tabbed view with full CRUD for all webhook types |
-| **Settings** | General application configuration: toggle Message Recovery for edits and deletes; manage API token |
+| **Settings** | General application configuration: toggle Message Recovery for edits and deletes; manage API token; **Suppress Delivery Receipts** toggle (also in topbar); **Appear Offline** toggle (also in topbar — persists across reconnects) |
 | **User Profile** | Update dashboard display name and email; manually trigger password changes |
 | **Presence Timeline** | Browse and filter `Presence.Online`, `Presence.Offline`, `Presence.OfflineLastSeen`, and `ChatPresence.*` events over time; per-JID summary (online/offline event counts); look-back period selector |
 | **Activity Tracker** | RTT-based device state inference (Online / Standby / Offline); feature flag toggle; three tabs — *Active Trackers* (per-JID start/stop, live state badges, 5 s auto-poll), *Contacts* (full contact list with checkboxes, Track Selected / Track All / Stop All, search, quick-select), *Probe History* (RTT table with state, median, threshold per probe) |

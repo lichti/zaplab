@@ -2144,6 +2144,123 @@ Returns `{ "deleted": true }`.
 
 ---
 
+## Configuration
+
+### `GET /zaplab/api/config` 🔒
+
+Returns current application configuration.
+
+```
+GET /zaplab/api/config
+```
+
+**Response 200:**
+```json
+{
+  "recover_edits": false,
+  "recover_deletes": false,
+  "activity_tracker_enabled": false,
+  "suppress_delivery_receipts": false,
+  "appear_offline": false
+}
+```
+
+### `PUT /zaplab/api/config` 🔒
+
+Updates one or more configuration fields. All fields are optional — only provided fields are updated.
+
+```
+PUT /zaplab/api/config
+Content-Type: application/json
+
+{
+  "recover_edits": true,
+  "recover_deletes": false,
+  "suppress_delivery_receipts": true,
+  "appear_offline": false
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `recover_edits` | bool | Persist original text of edited messages |
+| `recover_deletes` | bool | Persist content of deleted messages |
+| `suppress_delivery_receipts` | bool | Stop sending delivery (grey-tick) receipts |
+| `appear_offline` | bool | Send `PresenceUnavailable` to hide online status from contacts |
+
+`appear_offline` takes effect immediately on the live client and is re-applied on every reconnect.
+
+**Response 200:** updated config object (same shape as GET).
+
+---
+
+## Live Events (SSE)
+
+### `GET /zaplab/api/events/stream`
+
+Server-Sent Events stream of all WhatsApp events in real time. Auth is checked inline (supports both `X-API-Token` header and `?token=` query param, required for browser `EventSource` which cannot set custom headers).
+
+```
+GET /zaplab/api/events/stream?token=<api-token>&type=Message
+```
+
+| Query param | Description |
+|---|---|
+| `token` | API token (alternative to `X-API-Token` header) |
+| `type` | Optional filter — only emit events of this type (e.g. `Message`, `Receipt`) |
+
+**Event types emitted over SSE:**
+
+| SSE event name | Payload |
+|---|---|
+| `connected` | `{"ts": <unix>}` — sent once on connect |
+| `message` | `{"type": "<WA event type>", "data": {…}}` — every WhatsApp event |
+| `: heartbeat` | Comment (ignored by client) — sent every 30 s to keep connection alive |
+
+**Example stream:**
+```
+event: connected
+data: {"ts":1776278578}
+
+event: message
+data: {"type":"Message","data":{"Info":{...},"Message":{...}}}
+
+: heartbeat
+```
+
+### `GET /zaplab/api/events/recent` 🔒
+
+Returns the N most recent events from the database. Useful for initial page load without a PocketBase SDK session.
+
+```
+GET /zaplab/api/events/recent?limit=100&type=Message
+```
+
+| Query param | Default | Description |
+|---|---|---|
+| `limit` | 100 | Max events to return (1–500) |
+| `type` | — | Optional filter by event type |
+
+**Response 200:**
+```json
+{
+  "events": [
+    {
+      "id": "pb_record_id",
+      "type": "Message",
+      "raw": { "Info": {…}, "Message": {…} },
+      "msgID": "3EB0…",
+      "created": "2026-04-15T18:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+`raw` is returned as parsed JSON (not an escaped string).
+
+---
+
 ## Prometheus Metrics
 
 ```
