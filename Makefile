@@ -30,17 +30,20 @@ DATA_DIR ?= $(or $(ZAPLAB_DATA_DIR),$(HOME)/.zaplab)
 # ─── whatsmeow fork ───────────────────────────────────────────────────────────
 WHATSMEOW_FORK ?= ../whatsmeow-zaplab
 
-## update-whatsmeow: rebase zaplab patch onto latest upstream whatsmeow, then rebuild
+## update-whatsmeow: rebase zaplab patch onto latest upstream whatsmeow, push, then rebuild
 update-whatsmeow:
 	@echo "→ fetching upstream whatsmeow..."
 	cd $(WHATSMEOW_FORK) && git fetch upstream
 	@echo "→ rebasing zaplab patch..."
 	cd $(WHATSMEOW_FORK) && git rebase upstream/main
-	@echo "→ updating pseudo-version in go.mod..."
+	@echo "→ pushing fork to GitHub..."
+	cd $(WHATSMEOW_FORK) && git push origin main
+	@echo "→ updating go.mod and go.sum..."
 	$(eval FORK_HASH := $(shell cd $(WHATSMEOW_FORK) && git rev-parse --short=12 HEAD))
-	$(eval FORK_DATE := $(shell cd $(WHATSMEOW_FORK) && git log -1 --format=%cd --date=format:'%Y%m%d%H%M%S'))
+	$(eval FORK_DATE := $(shell cd $(WHATSMEOW_FORK) && git log -1 --format=%cd --date=format:'%Y%m%d%H%M%S' --date=utc))
 	$(eval FORK_VER  := v0.0.0-$(FORK_DATE)-$(FORK_HASH))
-	sed -i '' "s|go.mau.fi/whatsmeow v0\.0\.0-[0-9]*-[0-9a-f]*|go.mau.fi/whatsmeow $(FORK_VER)|" go.mod
+	GONOSUMCHECK=* GOFLAGS=-mod=mod $(GO) get go.mau.fi/whatsmeow@$(FORK_VER)
+	$(GO) mod tidy
 	@echo "→ building..."
 	$(GO) build ./...
 	@echo "✓ whatsmeow updated to $(FORK_VER)"
