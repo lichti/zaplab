@@ -15,33 +15,42 @@ import (
 
 // autoReplyRule mirrors the auto_reply_rules collection row.
 type autoReplyRule struct {
-	ID              string  `db:"id"`
-	Name            string  `db:"name"`
-	Enabled         bool    `db:"enabled"`
-	Priority        float64 `db:"priority"`
-	StopOnMatch     bool    `db:"stop_on_match"`
-	CondFrom        string  `db:"cond_from"`         // all | others | me
-	CondChatJID     string  `db:"cond_chat_jid"`     // empty = any
-	CondSenderJID   string  `db:"cond_sender_jid"`   // empty = any
-	CondTextPattern string  `db:"cond_text_pattern"` // empty = any
-	CondMatchType   string  `db:"cond_text_match_type"` // prefix|contains|exact|regex
-	CondCaseSens    bool    `db:"cond_case_sensitive"`
-	CondHourFrom    float64 `db:"cond_hour_from"` // -1 = any
-	CondHourTo      float64 `db:"cond_hour_to"`
-	ActionType      string  `db:"action_type"` // reply | webhook | script
-	ActionReplyText string  `db:"action_reply_text"`
-	ActionWebhookURL string `db:"action_webhook_url"`
-	ActionScriptID  string  `db:"action_script_id"`
+	ID               string  `db:"id"`
+	Name             string  `db:"name"`
+	Enabled          bool    `db:"enabled"`
+	Priority         float64 `db:"priority"`
+	StopOnMatch      bool    `db:"stop_on_match"`
+	CondFrom         string  `db:"cond_from"`            // all | others | me
+	CondChatJID      string  `db:"cond_chat_jid"`        // empty = any
+	CondSenderJID    string  `db:"cond_sender_jid"`      // empty = any
+	CondTextPattern  string  `db:"cond_text_pattern"`    // empty = any
+	CondMatchType    string  `db:"cond_text_match_type"` // prefix|contains|exact|regex
+	CondCaseSens     bool    `db:"cond_case_sensitive"`
+	CondHourFrom     float64 `db:"cond_hour_from"` // -1 = any
+	CondHourTo       float64 `db:"cond_hour_to"`
+	ActionType       string  `db:"action_type"` // reply | webhook | script
+	ActionReplyText  string  `db:"action_reply_text"`
+	ActionWebhookURL string  `db:"action_webhook_url"`
+	ActionScriptID   string  `db:"action_script_id"`
 }
 
 // EvaluateAutoReplyRules loads enabled rules ordered by priority and runs them
 // against the incoming message. Must be called from a goroutine (not the event worker).
 func EvaluateAutoReplyRules(evt *events.Message) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("AutoReply: panic recovered: %v", r)
+		}
+	}()
+
 	if shuttingDown.Load() || pb == nil || pb.DB() == nil || client == nil {
 		return
 	}
-	// Skip outgoing messages — only reply to others (unless cond_from = "me").
-	// The per-rule cond_from check handles the fine-grained filtering.
+
+	msgText := getMsg(evt)
+	if msgText == "" {
+		return // skip non-text messages
+	}
 
 	var rules []autoReplyRule
 	if err := pb.DB().
@@ -53,20 +62,27 @@ func EvaluateAutoReplyRules(evt *events.Message) {
 		From("auto_reply_rules").
 		Where(dbx.HashExp{"enabled": true}).
 		OrderBy("priority ASC").
-		All(&rules); err != nil || len(rules) == 0 {
+		All(&rules); err != nil {
+		logger.Warnf("AutoReply: failed to load rules: %v", err)
 		return
 	}
 
-	msgText := getMsg(evt)
+	if len(rules) == 0 {
+		return
+	}
+
 	chatJID := evt.Info.Chat.String()
 	senderJID := evt.Info.Sender.String()
 	isFromMe := evt.Info.IsFromMe
 	hour := time.Now().Hour()
 
+	logger.Debugf("AutoReply: evaluating %d rule(s) for msg=%q chat=%s fromMe=%v", len(rules), msgText, chatJID, isFromMe)
+
 	for _, rule := range rules {
 		if !matchesRule(rule, msgText, chatJID, senderJID, isFromMe, hour) {
 			continue
 		}
+		logger.Infof("AutoReply: rule=%q matched msg=%q action=%s", rule.Name, msgText, rule.ActionType)
 		executeRule(rule, evt, msgText, chatJID, senderJID)
 		incrementMatchCount(rule.ID)
 		if rule.StopOnMatch {
@@ -87,7 +103,7 @@ func matchesRule(rule autoReplyRule, text, chatJID, senderJID string, isFromMe b
 		if isFromMe {
 			return false
 		}
-	// "all" → accept both
+		// "all" → accept both
 	}
 
 	// chat JID filter
@@ -234,4 +250,3 @@ func incrementMatchCount(ruleID string) {
 		logger.Warnf("AutoReply: failed to update match_count rule=%s: %v", ruleID, err)
 	}
 }
-
