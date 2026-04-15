@@ -23,6 +23,16 @@ func SetTyping(chat types.JID, state, media string) error {
 	return client.SendChatPresence(context.Background(), chat, presenceState, presenceMedia)
 }
 
+// SetGlobalPresence sends PresenceUnavailable (offline=true) or PresenceAvailable (offline=false).
+// This controls whether the account appears online to contacts.
+func SetGlobalPresence(offline bool) error {
+	p := types.PresenceAvailable
+	if offline {
+		p = types.PresenceUnavailable
+	}
+	return client.SendPresence(context.Background(), p)
+}
+
 // SubscribePresence subscribes to presence updates (online/offline/last seen) for a JID.
 // Events arrive via events.Presence and are persisted automatically by the event handler.
 // Note: WhatsApp only delivers presence events for contacts that have you saved — non-contacts

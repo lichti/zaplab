@@ -5,6 +5,7 @@ function settingsSection() {
       recover_edits:               false,
       recover_deletes:             false,
       suppress_delivery_receipts:  false,
+      appear_offline:              false,
       apiToken:                    localStorage.getItem('zaplab-api-token') || '',
       loading:                     false,
     },
@@ -29,6 +30,7 @@ function settingsSection() {
           this.config.recover_edits              = data.recover_edits;
           this.config.recover_deletes            = data.recover_deletes;
           this.config.suppress_delivery_receipts = data.suppress_delivery_receipts;
+          this.config.appear_offline             = data.appear_offline;
         }
       } catch (err) {
         console.error('Failed to fetch config:', err);
@@ -53,6 +55,7 @@ function settingsSection() {
           this.config.recover_edits              = data.recover_edits;
           this.config.recover_deletes            = data.recover_deletes;
           this.config.suppress_delivery_receipts = data.suppress_delivery_receipts;
+          this.config.appear_offline             = data.appear_offline;
         }
       } catch (err) {
         console.error('Failed to save config:', err);
@@ -74,6 +77,11 @@ function settingsSection() {
     toggleSuppressDeliveryReceipts() {
       this.config.suppress_delivery_receipts = !this.config.suppress_delivery_receipts;
       this.saveConfig({ suppress_delivery_receipts: this.config.suppress_delivery_receipts });
+    },
+
+    toggleAppearOffline() {
+      this.config.appear_offline = !this.config.appear_offline;
+      this.saveConfig({ appear_offline: this.config.appear_offline });
     },
   };
 }

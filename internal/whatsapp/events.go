@@ -121,7 +121,11 @@ func handleConnected(rawEvt interface{}) {
 		}
 		return
 	}
-	if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
+	presence := types.PresenceAvailable
+	if cfg != nil && cfg.IsAppearOffline() {
+		presence = types.PresenceUnavailable
+	}
+	if err := client.SendPresence(context.Background(), presence); err != nil {
 		if err := saveError(evtType, "Failed to send presence", rawEvt); err != nil {
 			logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
 		}
@@ -139,7 +143,11 @@ func handleAsync(rawEvt interface{}) {
 	switch evt := rawEvt.(type) {
 	case *events.AppStateSyncComplete:
 		if len(client.Store.PushName) > 0 && evt.Name == appstate.WAPatchCriticalBlock {
-			if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
+			syncPresence := types.PresenceAvailable
+			if cfg != nil && cfg.IsAppearOffline() {
+				syncPresence = types.PresenceUnavailable
+			}
+			if err := client.SendPresence(context.Background(), syncPresence); err != nil {
 				if err := saveError(evtType, "Failed to send presence", rawEvt); err != nil {
 					logger.Errorf("Error persisting error type=%s error=%v", evtType, err)
 				}

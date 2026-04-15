@@ -10,13 +10,14 @@ import (
 
 // Config holds general application settings.
 type Config struct {
-	RecoverEdits               bool   `json:"recover_edits"`
-	RecoverDeletes             bool   `json:"recover_deletes"`
-	ActivityTrackerEnabled     bool   `json:"activity_tracker_enabled"`
-	SuppressDeliveryReceipts   bool   `json:"suppress_delivery_receipts"`
-	configFile                 string `json:"-"`
-	log                        waLog.Logger
-	mu                         sync.RWMutex
+	RecoverEdits             bool   `json:"recover_edits"`
+	RecoverDeletes           bool   `json:"recover_deletes"`
+	ActivityTrackerEnabled   bool   `json:"activity_tracker_enabled"`
+	SuppressDeliveryReceipts bool   `json:"suppress_delivery_receipts"`
+	AppearOffline            bool   `json:"appear_offline"`
+	configFile               string `json:"-"`
+	log                      waLog.Logger
+	mu                       sync.RWMutex
 }
 
 // Load reads (or creates if absent) the config file at filepath.
@@ -115,4 +116,19 @@ func (c *Config) IsSuppressDeliveryReceipts() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.SuppressDeliveryReceipts
+}
+
+// SetAppearOffline controls whether the client advertises itself as offline to contacts.
+func (c *Config) SetAppearOffline(offline bool) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.AppearOffline = offline
+	return c.save()
+}
+
+// IsAppearOffline returns whether the client is configured to appear offline.
+func (c *Config) IsAppearOffline() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.AppearOffline
 }

@@ -1625,6 +1625,7 @@ func putConfig(e *core.RequestEvent) error {
 		RecoverEdits             *bool `json:"recover_edits"`
 		RecoverDeletes           *bool `json:"recover_deletes"`
 		SuppressDeliveryReceipts *bool `json:"suppress_delivery_receipts"`
+		AppearOffline            *bool `json:"appear_offline"`
 	}
 	if err := e.BindBody(&req); err != nil {
 		return e.JSON(http.StatusBadRequest, map[string]any{"error": "invalid body"})
@@ -1641,6 +1642,11 @@ func putConfig(e *core.RequestEvent) error {
 	}
 	if req.SuppressDeliveryReceipts != nil {
 		if err := whatsapp.SetSuppressDeliveryReceipts(*req.SuppressDeliveryReceipts); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		}
+	}
+	if req.AppearOffline != nil {
+		if err := whatsapp.SetAppearOffline(*req.AppearOffline); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		}
 	}

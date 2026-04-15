@@ -97,6 +97,19 @@ func SetSuppressDeliveryReceipts(suppress bool) error {
 	return nil
 }
 
+// SetAppearOffline toggles offline presence on the live client and persists the preference.
+func SetAppearOffline(offline bool) error {
+	if client != nil && client.IsConnected() {
+		if err := SetGlobalPresence(offline); err != nil {
+			return err
+		}
+	}
+	if cfg != nil {
+		return cfg.SetAppearOffline(offline)
+	}
+	return nil
+}
+
 // GetDeviceKeys returns the public key info for the current device.
 // Returns nil if the client is not yet bootstrapped.
 func GetDeviceKeys() *DeviceKeyInfo {
