@@ -30,6 +30,12 @@ var reconnecting int32
 // preventing SQLite write contention from unlimited concurrent goroutines.
 var eventQueue = make(chan interface{}, 2000)
 
+// receiptLatencyQueue serializes receipt-latency inserts to prevent goroutine explosion
+// during receipt bursts (e.g. 200+ participants in a group all delivering at once).
+// Without this, each receipt spawns a goroutine that calls pb.Save(), exhausting the
+// DB connection pool and causing context deadline exceeded on the event worker's own queries.
+var receiptLatencyQueue = make(chan *events.Receipt, 500)
+
 // EventQueueLen returns the current number of events waiting in the worker queue.
 func EventQueueLen() int { return len(eventQueue) }
 
@@ -38,6 +44,16 @@ func startEventWorker() {
 	go func() {
 		for rawEvt := range eventQueue {
 			handleAsync(rawEvt)
+		}
+	}()
+}
+
+// startReceiptLatencyWorker drains receiptLatencyQueue sequentially.
+// Must be called once during bootstrap alongside startEventWorker.
+func startReceiptLatencyWorker() {
+	go func() {
+		for evt := range receiptLatencyQueue {
+			recordReceiptLatency(evt)
 		}
 	}()
 }
@@ -331,9 +347,14 @@ func handleAsync(rawEvt interface{}) {
 				logger.Errorf("Error persisting receipt event type=%s error=%v", name, err)
 			}
 		}
-		// Calculate receipt latency for delivered/read receipts (reads DB, isolate).
+		// Enqueue receipt latency recording — serialized to avoid goroutine explosion
+		// and DB connection pool exhaustion during large-group receipt bursts.
 		if evt.Type == types.ReceiptTypeDelivered || evt.Type == types.ReceiptTypeRead {
-			go recordReceiptLatency(evt)
+			select {
+			case receiptLatencyQueue <- evt:
+			default:
+				logger.Warnf("Receipt latency queue full, dropping latency record for %d msg(s)", len(evt.MessageIDs))
+			}
 		}
 		// NotifyProbeReceipt is called in handler() before enqueueing — no-op here.
 		return

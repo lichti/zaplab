@@ -199,6 +199,7 @@ func Bootstrap(e *core.BootstrapEvent) error {
 	}
 
 	startEventWorker()
+	startReceiptLatencyWorker()
 	client.AddEventHandler(handler)
 	setConnStatus(StatusConnecting)
 	if err := client.Connect(); err != nil {

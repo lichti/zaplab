@@ -22,6 +22,9 @@ func InitScheduledMessageWorker() {
 }
 
 func fireScheduledMessages() {
+	if pb == nil || pb.DB() == nil {
+		return
+	}
 	type smRow struct {
 		ID          string `db:"id"`
 		ChatJID     string `db:"chat_jid"`
