@@ -205,7 +205,13 @@ function sendSection() {
     },
 
     sendJsonPreview() {
-      return this.highlight(this.sendPayload());
+      const payload  = this.sendPayload();
+      const reply    = this.sendReplyPayload();
+      const mentions = this._sendMentions();
+      const full = { to: this.send.to || '<jid>', ...payload };
+      if (reply)    full.reply_to = reply;
+      if (mentions) full.mentions = mentions;
+      return this.highlight(full);
     },
 
     sendCurlPreview() {
