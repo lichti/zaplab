@@ -1878,3 +1878,289 @@ DELETE /zaplab/api/annotations/{id}
 ```
 
 Response: `{ "message": "annotation deleted" }`
+
+---
+
+## Reaction Tracking
+
+### List reactions 🔒
+
+```
+GET /zaplab/api/reactions
+```
+
+Query params: `message_id`, `chat_jid`, `sender_jid` (all optional, exact match). Returns up to 200 records ordered by `created DESC`.
+
+```json
+{ "reactions": [ { "id":"...", "message_id":"...", "chat_jid":"...", "sender_jid":"...", "emoji":"👍", "removed":false, "react_at":"...", "created":"..." } ], "total": 1 }
+```
+
+### Reaction stats 🔒
+
+```
+GET /zaplab/api/reactions/stats
+```
+
+Returns top emojis by count and top reactors by chat.
+
+---
+
+## Mention Tracker
+
+### List mentions 🔒
+
+```
+GET /zaplab/api/mentions
+```
+
+Query params: `mentioned_jid`, `chat_jid`, `is_bot` (`true`/`false`). Returns up to 500 records.
+
+```json
+{ "mentions": [ { "id":"...", "message_id":"...", "chat_jid":"...", "sender_jid":"...", "mentioned_jid":"...", "is_bot":false, "context_text":"hey ...", "created":"..." } ], "total": 1 }
+```
+
+### Mention stats 🔒
+
+```
+GET /zaplab/api/mentions/stats
+```
+
+Returns mention counts grouped by `mentioned_jid` and bot-mention count.
+
+---
+
+## Scheduled Messages
+
+### List scheduled messages 🔒
+
+```
+GET /zaplab/api/scheduled-messages?status=pending
+```
+
+Query param: `status` (pending / sent / failed / cancelled; omit for all). Ordered by `scheduled_at ASC`.
+
+```json
+{ "scheduled_messages": [ { "id":"...", "chat_jid":"...", "message_text":"Hello!", "msg_type":"text", "scheduled_at":"2026-05-01T10:00:00Z", "sent_at":"", "status":"pending", "error":"", "created":"..." } ], "total": 1 }
+```
+
+### Create scheduled message 🔒
+
+```
+POST /zaplab/api/scheduled-messages
+Content-Type: application/json
+
+{ "chat_jid": "5511...@s.whatsapp.net", "message_text": "Hello!", "scheduled_at": "2026-05-01T10:00:00Z", "msg_type": "text", "reply_to_msg_id": "" }
+```
+
+`chat_jid`, `message_text`, and `scheduled_at` (ISO-8601 UTC) are required. Returns `{ "id": "...", "status": "pending" }`.
+
+### Update / cancel scheduled message 🔒
+
+```
+PATCH /zaplab/api/scheduled-messages/{id}
+Content-Type: application/json
+
+{ "message_text": "Updated!", "scheduled_at": "2026-05-02T10:00:00Z", "status": "cancelled" }
+```
+
+All fields optional. Only `pending` messages can be modified. Set `"status": "cancelled"` to cancel.
+
+### Delete scheduled message 🔒
+
+```
+DELETE /zaplab/api/scheduled-messages/{id}
+```
+
+Only `pending` or `cancelled` messages can be deleted.
+
+---
+
+## Contact Cache
+
+### List contact cache 🔒
+
+```
+GET /zaplab/api/contact-cache?search=alice
+```
+
+Query param: `search` (partial match on name / jid). Returns cached contact entries ordered by `cache_updated_at DESC`.
+
+### Refresh single contact 🔒
+
+```
+POST /zaplab/api/contact-cache/refresh?jid=5511...@s.whatsapp.net
+```
+
+Fetches live contact info from WhatsApp and upserts into cache.
+
+### Populate cache (full seed) 🔒
+
+```
+POST /zaplab/api/contact-cache/populate
+```
+
+Starts a background goroutine that iterates all contacts in the whatsmeow store and fetches + caches each one. Returns immediately.
+
+### Delete cache entry 🔒
+
+```
+DELETE /zaplab/api/contact-cache/{id}
+```
+
+---
+
+## Webhook Deliveries
+
+### List webhook deliveries 🔒
+
+```
+GET /zaplab/api/webhook/deliveries?status=failed&url=https://...
+```
+
+Query params: `status` (delivered / failed), `url` (partial match). Returns up to 500 records ordered by `created DESC`.
+
+```json
+{ "deliveries": [ { "id":"...", "webhook_url":"https://...", "event_type":"Message", "status":"delivered", "attempt":1, "http_status":200, "error_msg":"", "delivered_at":"...", "created":"..." } ], "total": 1 }
+```
+
+### Purge webhook deliveries 🔒
+
+```
+DELETE /zaplab/api/webhook/deliveries?days=7
+```
+
+Deletes all delivery records older than `days` (default 30). Returns `{ "deleted": N }`.
+
+---
+
+## Auto-Reply Rules
+
+### List rules 🔒
+
+```
+GET /zaplab/api/auto-reply-rules?enabled=true
+```
+
+Returns all rules ordered by `priority ASC`. Optional filter: `enabled` (`true`/`false`).
+
+```json
+{
+  "rules": [
+    {
+      "id": "...",
+      "name": "Greet new contacts",
+      "enabled": true,
+      "priority": 10,
+      "stop_on_match": false,
+      "cond_from": "others",
+      "cond_chat_jid": "",
+      "cond_sender_jid": "",
+      "cond_text_pattern": "hello",
+      "cond_text_match_type": "prefix",
+      "cond_case_sensitive": false,
+      "cond_hour_from": -1,
+      "cond_hour_to": -1,
+      "action_type": "reply",
+      "action_reply_text": "Hi {name}! How can I help?",
+      "action_webhook_url": "",
+      "action_script_id": "",
+      "match_count": 42,
+      "last_match_at": "2026-04-14T20:00:00Z",
+      "created": "..."
+    }
+  ],
+  "total": 1
+}
+```
+
+**Condition fields:**
+
+| Field | Values | Description |
+|---|---|---|
+| `cond_from` | `others` / `me` / `all` | Which sender direction triggers the rule |
+| `cond_chat_jid` | JID string or `""` | Restrict to a specific chat (empty = any) |
+| `cond_sender_jid` | JID string or `""` | Restrict to a specific sender (empty = any) |
+| `cond_text_pattern` | string or `""` | Text to match (empty = any message) |
+| `cond_text_match_type` | `prefix` / `contains` / `exact` / `regex` | Match algorithm |
+| `cond_case_sensitive` | bool | Whether pattern matching is case-sensitive |
+| `cond_hour_from` | 0–23 or `-1` | Start of allowed hour window (-1 = any) |
+| `cond_hour_to` | 0–23 or `-1` | End of allowed hour window (supports midnight-wrap) |
+
+**Action fields:**
+
+| Field | Values | Description |
+|---|---|---|
+| `action_type` | `reply` / `webhook` / `script` | What to do when rule matches |
+| `action_reply_text` | string | Message to send; supports `{name}` `{sender}` `{chat}` `{text}` `{hour}` |
+| `action_webhook_url` | URL | POST target for `webhook` action |
+| `action_script_id` | string | Script name / ID for `script` action |
+
+### Create rule 🔒
+
+```
+POST /zaplab/api/auto-reply-rules
+Content-Type: application/json
+
+{
+  "name": "Greet",
+  "enabled": true,
+  "priority": 10,
+  "cond_from": "others",
+  "cond_text_pattern": "hello",
+  "cond_text_match_type": "prefix",
+  "action_type": "reply",
+  "action_reply_text": "Hi {name}!"
+}
+```
+
+`name` is required. Returns `{ "id": "...", "name": "Greet" }`.
+
+### Update rule 🔒
+
+```
+PATCH /zaplab/api/auto-reply-rules/{id}
+Content-Type: application/json
+
+{ "enabled": false, "priority": 5, "action_reply_text": "Updated reply" }
+```
+
+All fields optional. Returns `{ "id": "...", "updated": true }`.
+
+### Toggle rule enabled/disabled 🔒
+
+```
+POST /zaplab/api/auto-reply-rules/{id}/toggle
+```
+
+Flips the `enabled` boolean. Returns `{ "id": "...", "enabled": true }`.
+
+### Delete rule 🔒
+
+```
+DELETE /zaplab/api/auto-reply-rules/{id}
+```
+
+Returns `{ "deleted": true }`.
+
+---
+
+## Prometheus Metrics
+
+```
+GET /metrics
+```
+
+Public endpoint (no auth required). Returns metrics in Prometheus text exposition format (`text/plain; version=0.0.4`).
+
+**Exposed metrics:**
+
+| Metric | Type | Description |
+|---|---|---|
+| `zaplab_connected` | gauge | 1 = connected, 0 = not |
+| `zaplab_event_queue_len` | gauge | Pending events in the serial worker queue |
+| `zaplab_active_trackers` | gauge | Running Activity Tracker sessions |
+| `zaplab_events_24h{type}` | gauge | Event count per type in last 24 h |
+| `zaplab_receipt_latency_p50_ms` | gauge | Delivery receipt p50 latency (ms) |
+| `zaplab_receipt_latency_p95_ms` | gauge | Delivery receipt p95 latency (ms) |
+| `zaplab_webhook_deliveries_total{status}` | gauge | Webhook delivery counts by status |
+| `zaplab_scheduled_messages_total{status}` | gauge | Scheduled message counts by status |

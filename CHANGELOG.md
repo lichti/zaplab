@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - **LID ↔ Phone Unification (deep)** — complete normalization in network graph and group overview SQL queries; `GET /zaplab/api/contacts/resolve` endpoint.
 - **Status / Stories** — receive and display WhatsApp status updates from contacts.
-- **Auto-Reply Rules Engine** — visual rule builder (condition → action) on top of the scripting system.
 - **Rate Limiter for Outgoing Messages** — configurable msgs/min send queue with `GET /zaplab/api/send/queue`.
 - **WhatsApp Channels / Newsletter** — handler and persistence for newsletter message events.
 - **Multi-Session** — multiple WhatsApp accounts simultaneously.
@@ -26,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Dev]
 
 ### Added
+- **Auto-Reply Rules Engine** — automated response system for incoming messages. Rules are evaluated in priority order (lowest number first); each rule has independent conditions and a configurable action.
+  - **Conditions**: `cond_from` (others / me / all), `cond_chat_jid` (specific chat or any), `cond_sender_jid` (specific sender or any), `cond_text_pattern` + `cond_text_match_type` (prefix / contains / exact / regex), `cond_case_sensitive`, `cond_hour_from` / `cond_hour_to` (0-23 hour window with midnight-wrap support, -1 = any).
+  - **Actions**: `reply` (send a reply quoting the original message, with template vars `{name}` `{sender}` `{chat}` `{text}` `{hour}`), `webhook` (async POST JSON payload to `action_webhook_url`), `script` (run a named script via `action_script_id`).
+  - **Chain control**: `stop_on_match` flag stops rule evaluation after first match; default continues to lower-priority rules.
+  - **Stats**: `match_count` and `last_match_at` updated on every successful match.
+  - **API**: `GET /zaplab/api/auto-reply-rules` (filter: `enabled`), `POST`, `PATCH /{id}`, `DELETE /{id}`, `POST /{id}/toggle`.
+  - **Frontend**: "Auto-Reply Rules" section with visual rule builder (conditions panel + action panel), toggle switch, hit counter, edit/delete per rule.
+  - **Migration**: `1748600000_create_auto_reply_rules.go` — `auto_reply_rules` collection with full schema.
+
 - **Webhook HMAC Signing** — set `WEBHOOK_SECRET` env var; every outgoing webhook request includes `X-ZapLab-Signature: sha256=<hex>` for receiver verification.
 - **Webhook Retry with Exponential Backoff** — `SendToDefault` and `SendToError` are now fire-and-forget with up to 3 attempts (immediate, +5 s, +25 s). Accept 2xx (not only 200) as successful.
 - **Webhook Delivery Log** — every attempt (success and failure) is persisted to the `webhook_deliveries` collection (status, attempt count, HTTP code, error message). Endpoints: `GET /zaplab/api/webhook/deliveries` (filters: status, url) and `DELETE .../deliveries?days=N` (pruning).
@@ -64,9 +72,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Re-pair without server restart** — `POST /zaplab/api/wa/repaire` tears down the current whatsmeow client, reopens the store, opens a fresh QR channel, and reconnects — allowing the user to scan a new QR code directly from the Pairing section after a logout without restarting the server. The frontend Pairing section now shows a **Re-pair** button instead of "Restart the server" when status is `loggedout`.
 
 ### Performance
+- **SQLite index overhaul (migrations 1748700 + 1748800)** — analysis of the live DB (106K events, 58K receipt_latency, 5K frames) revealed several critical gaps and redundancies:
+  - **frames `module` query** — `idx_frames_module` was completely ignored by the query planner; every module-filtered query did a full scan on `idx_frames_created`. New composite `(module, created)` index fixes this.
+  - **Composite indexes** — new composites added for `auto_reply_rules (enabled, priority)`, `scheduled_messages (status, scheduled_at)`, `webhook_deliveries (status, created DESC)`, `message_reactions (chat_jid, emoji)`, `mentions (is_bot, mentioned_jid)`, `conn_events (event_type, created DESC)`, `receipt_latency (receipt_type, created)` and `(chat_jid, receipt_type)`, `group_membership (group_jid, created)` and `(member_jid, created)`.
+  - **Redundant single-column indexes removed** — `idx_arr_enabled`, `idx_arr_priority`, `idx_ce_type`, `idx_mre_chat`, `idx_men_isbot`, `idx_men_mentioned`, `idx_wbd_status`, `idx_scm_status`, `idx_scm_scheduled`, `idx_frames_module`, `idx_frames_level`, `idx_rl_type` — all superseded by composites above. Reduces write amplification per INSERT.
+  - **Partial msgID index** — `idx_events_msgID` (full, 106K entries) replaced by partial `idx_events_msgid_nonempty` (`WHERE msgID != ''`, ~34K entries). ~3× smaller, same lookup performance for receipt latency queries.
+  - **SQLite pragmas** — `cache_size = 64 MB`, `temp_store = MEMORY`, `mmap_size = 256 MB`.
+  - **`PRAGMA optimize`** — runs after each migration to refresh query planner statistics.
+  - All indexes now properly registered in PocketBase `_collections` metadata (migration 1748800 drops raw SQL indexes from 1748700 before re-registering via `col.AddIndex` / `app.Save`).
 - **Async event handler** — `handler()` (called synchronously by whatsmeow's node-processing goroutine) now returns immediately for all event types. Connection lifecycle events (`Connected`, `Disconnected`, `LoggedOut`, `StreamReplaced`) update in-memory state synchronously (fast mutex ops) and dispatch I/O to goroutines; all other events (`Message`, `Presence`, `ChatPresence`, `Receipt`, `GroupInfo`, `HistorySync`, etc.) are dispatched via `go handleAsync()`. Eliminates the "Node handling took Xs" WARN for all event types and prevents event backlog under high load.
 
 ### Fixed
+- **Migration index conflict on restart** — migration `1748800` failed with "index already exists" because migration `1748700` had created indexes via raw SQL (outside PocketBase's `_collections` metadata). On the next run, `app.Save(col)` generated plain `CREATE INDEX` (not `IF NOT EXISTS`), causing a conflict. Fixed by dropping the raw SQL indexes first (`DROP INDEX IF EXISTS`) before PocketBase recreates them as managed indexes.
+- **`runLIDMigration` nil pointer panic** — `pb.DB()` can return `nil` when PocketBase hasn't fully initialized (e.g. when a previous migration fails at boot). The goroutine spawned by `initDBExplorer` would then panic at the first DB query. Fixed by adding `|| pb.DB() == nil` guard to the early-return check.
 - **LoggedOut event not handled** — `events.LoggedOut` was never dispatched in the event handler, so the connection status remained stuck on `disconnected` and the `loggedout` state was never set. Now properly handled: sets `StatusLoggedOut`, logs the reason, and records a `conn_events` entry.
 - **Trigger script execution logging** — `dispatchTriggers` now logs each trigger fire (trigger_id, script_id, event_type, chat) and persists `last_run_status`, `last_run_output`, `last_run_duration_ms`, `last_run_error` on the script record after every trigger execution. Previously all output and errors were silently discarded.
 - **IIFE requirement for scripts** — top-level `return` is a syntax error in goja; all scripts that need conditional early exit must use the IIFE pattern `(function(){ ... })()`. The `group-ranking.js` example script was updated to follow this pattern.
