@@ -25,7 +25,25 @@ DATA_DIR ?= $(or $(ZAPLAB_DATA_DIR),$(HOME)/.zaplab)
 .DEFAULT_GOAL := build
 .PHONY: fmt vet deps-download build link build-run run tag tag-push git-init \
         build-img run-docker down clean clean-docker ps logs \
-        shell help css
+        shell help css update-whatsmeow
+
+# ─── whatsmeow fork ───────────────────────────────────────────────────────────
+WHATSMEOW_FORK ?= ../whatsmeow-zaplab
+
+## update-whatsmeow: rebase zaplab patch onto latest upstream whatsmeow, then rebuild
+update-whatsmeow:
+	@echo "→ fetching upstream whatsmeow..."
+	cd $(WHATSMEOW_FORK) && git fetch upstream
+	@echo "→ rebasing zaplab patch..."
+	cd $(WHATSMEOW_FORK) && git rebase upstream/main
+	@echo "→ updating pseudo-version in go.mod..."
+	$(eval FORK_HASH := $(shell cd $(WHATSMEOW_FORK) && git rev-parse --short=12 HEAD))
+	$(eval FORK_DATE := $(shell cd $(WHATSMEOW_FORK) && git log -1 --format=%cd --date=format:'%Y%m%d%H%M%S'))
+	$(eval FORK_VER  := v0.0.0-$(FORK_DATE)-$(FORK_HASH))
+	sed -i '' "s|go.mau.fi/whatsmeow v0\.0\.0-[0-9]*-[0-9a-f]*|go.mau.fi/whatsmeow $(FORK_VER)|" go.mod
+	@echo "→ building..."
+	$(GO) build ./...
+	@echo "✓ whatsmeow updated to $(FORK_VER)"
 
 # ─── Go ───────────────────────────────────────────────────────────────────────
 
