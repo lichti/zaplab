@@ -29,9 +29,12 @@ func getGroupOverview(e *core.RequestEvent) error {
 		period = 30
 	}
 
+	// Use direct string comparison instead of datetime(created) >= datetime(...)
+	// so SQLite can use the idx_events_chat_created expression index for range scans.
+	// ISO-8601 timestamps sort correctly as plain strings.
 	periodClause := ""
 	if period > 0 {
-		periodClause = fmt.Sprintf("AND datetime(created) >= datetime('now', '-%d days')", period)
+		periodClause = fmt.Sprintf("AND created >= datetime('now', '-%d days')", period)
 	}
 
 	// ── Group name ────────────────────────────────────────────────────────────
@@ -309,29 +312,25 @@ func getGroupOverview(e *core.RequestEvent) error {
 		currentMembers = []memberRow{}
 	}
 
-	// ── Ranking top 25 ────────────────────────────────────────────────────────
+	// ── Ranking top 25 ─────────────────────────────────────────────────────────
+	// Derived from senderStats (already sorted desc) — no extra DB query needed.
 	type rankRow struct {
-		SenderJID  string `db:"sender_jid"  json:"jid"`
-		MsgCount   int    `db:"msg_count"   json:"msg_count"`
-		MediaCount int    `db:"media_count" json:"media_count"`
+		SenderJID  string `json:"jid"`
+		MsgCount   int    `json:"msg_count"`
+		MediaCount int    `json:"media_count"`
 		Name       string `json:"name"`
 	}
-	var ranking []rankRow
-	_ = pb.DB().NewQuery(fmt.Sprintf(`
-		SELECT json_extract(raw,'$.Info.Sender') AS sender_jid,
-		       COUNT(*) AS msg_count,
-		       SUM(CASE WHEN file != '' THEN 1 ELSE 0 END) AS media_count
-		FROM events
-		WHERE type LIKE '%%Message%%'
-		  AND json_extract(raw,'$.Info.Chat') = '%s'
-		  AND json_extract(raw,'$.Info.IsFromMe') = 0
-		  %s
-		GROUP BY sender_jid ORDER BY msg_count DESC LIMIT 25`, jid, periodClause)).All(&ranking)
-	for i := range ranking {
-		ranking[i].Name = enrichName(ranking[i].SenderJID)
-	}
-	if ranking == nil {
-		ranking = []rankRow{}
+	ranking := make([]rankRow, 0, min(25, len(sortedSenders)))
+	for _, s := range sortedSenders {
+		if len(ranking) >= 25 {
+			break
+		}
+		ranking = append(ranking, rankRow{
+			SenderJID:  s.SenderJID,
+			MsgCount:   s.MsgCount,
+			MediaCount: s.MediaCount,
+			Name:       enrichName(s.SenderJID),
+		})
 	}
 
 	// ── Heatmap ───────────────────────────────────────────────────────────────
@@ -342,8 +341,8 @@ func getGroupOverview(e *core.RequestEvent) error {
 	}
 	var heatmap []heatCell
 	_ = pb.DB().NewQuery(fmt.Sprintf(`
-		SELECT strftime('%%w', datetime(created)) AS dow,
-		       strftime('%%H', datetime(created)) AS hour,
+		SELECT strftime('%%w', created) AS dow,
+		       strftime('%%H', created) AS hour,
 		       COUNT(*) AS cnt
 		FROM events
 		WHERE type LIKE '%%Message%%'
@@ -355,21 +354,18 @@ func getGroupOverview(e *core.RequestEvent) error {
 	}
 
 	// ── Peak activity ─────────────────────────────────────────────────────────
+	// Derived from heatmap (already computed) — no extra DB query needed.
 	type peakRow struct {
-		DOW   string `db:"dow"`
-		Hour  string `db:"hour"`
-		Count int    `db:"cnt"`
+		DOW   string
+		Hour  string
+		Count int
 	}
 	var peak peakRow
-	_ = pb.DB().NewQuery(fmt.Sprintf(`
-		SELECT strftime('%%w', datetime(created)) AS dow,
-		       strftime('%%H', datetime(created)) AS hour,
-		       COUNT(*) AS cnt
-		FROM events
-		WHERE type LIKE '%%Message%%'
-		  AND json_extract(raw,'$.Info.Chat') = '%s'
-		  %s
-		GROUP BY dow, hour ORDER BY cnt DESC LIMIT 1`, jid, periodClause)).One(&peak)
+	for _, cell := range heatmap {
+		if cell.Count > peak.Count {
+			peak = peakRow{DOW: cell.DOW, Hour: cell.Hour, Count: cell.Count}
+		}
+	}
 
 	// ── Daily sparkline ───────────────────────────────────────────────────────
 	type dayRow struct {
@@ -382,11 +378,11 @@ func getGroupOverview(e *core.RequestEvent) error {
 	}
 	var daily []dayRow
 	_ = pb.DB().NewQuery(fmt.Sprintf(`
-		SELECT strftime('%%Y-%%m-%%d', datetime(created)) AS day, COUNT(*) AS cnt
+		SELECT strftime('%%Y-%%m-%%d', created) AS day, COUNT(*) AS cnt
 		FROM events
 		WHERE type LIKE '%%Message%%'
 		  AND json_extract(raw,'$.Info.Chat') = '%s'
-		  AND datetime(created) >= datetime('now', '-%d days')
+		  AND created >= datetime('now', '-%d days')
 		GROUP BY day ORDER BY day ASC`, jid, dailyDays)).All(&daily)
 	if daily == nil {
 		daily = []dayRow{}
