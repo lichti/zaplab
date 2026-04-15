@@ -25,6 +25,21 @@ func InitWebhookDeliveryLogger() {
 		r.Set("http_status", rec.HTTPStatus)
 		r.Set("error_msg", rec.ErrorMsg)
 		r.Set("delivered_at", rec.DeliveredAt)
-		_ = pb.Save(r)
+		if err := pb.Save(r); err == nil && rec.Status == "failed" {
+			go CreateNotification(
+				"webhook_failure",
+				"Webhook failed: "+rec.EventType,
+				rec.ErrorMsg+" ("+rec.WebhookURL+")",
+				r.Id,
+				"",
+				map[string]any{
+					"webhook_url": rec.WebhookURL,
+					"event_type":  rec.EventType,
+					"attempt":     rec.Attempt,
+					"http_status": rec.HTTPStatus,
+					"error_msg":   rec.ErrorMsg,
+				},
+			)
+		}
 	}
 }

@@ -231,12 +231,30 @@ func (t *atTracker) probe(ctx context.Context) {
 	}
 
 	t.mu.Lock()
+	prev := t.CurrentState
 	t.CurrentState = state
 	median := atMedian(t.globalRTTs)
 	threshold := median * atThresholdRatio
 	t.mu.Unlock()
 
 	go persistProbe(t.SessionID, t.JID.String(), rttMs, string(state), median, threshold)
+
+	if prev != state {
+		jidStr := t.JID.String()
+		go CreateNotification(
+			"tracker_state",
+			"Tracker: "+jidStr,
+			string(prev)+" → "+string(state),
+			t.SessionID,
+			jidStr,
+			map[string]any{
+				"jid":      jidStr,
+				"previous": string(prev),
+				"current":  string(state),
+				"rtt_ms":   rttMs,
+			},
+		)
+	}
 }
 
 func (t *atTracker) classify(rttMs float64) ATState {

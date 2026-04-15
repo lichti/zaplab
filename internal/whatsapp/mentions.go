@@ -59,6 +59,22 @@ func DetectAndRecordMentions(evt *events.Message) {
 		r.Set("context_text", text)
 		if err := pb.Save(r); err != nil && !shuttingDown.Load() {
 			logger.Warnf("DetectAndRecordMentions: save failed: %v", err)
+			continue
+		}
+		if isBot {
+			go CreateNotification(
+				"mention",
+				"You were mentioned",
+				senderJID+" in "+chatJID+": "+text,
+				r.Id,
+				senderJID,
+				map[string]any{
+					"message_id": msgID,
+					"chat_jid":   chatJID,
+					"sender_jid": senderJID,
+					"context":    text,
+				},
+			)
 		}
 	}
 }

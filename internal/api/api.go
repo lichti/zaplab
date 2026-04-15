@@ -219,6 +219,13 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/events/stream", getSSEStream) // auth checked inside (supports token query param for EventSource)
 	e.Router.GET("/zaplab/api/events/recent", getRecentEvents).Bind(auth)
 
+	// Notification Center
+	e.Router.GET("/zaplab/api/notifications", getNotifications).Bind(auth)
+	e.Router.PUT("/zaplab/api/notifications/{id}/read", putNotificationRead).Bind(auth)
+	e.Router.POST("/zaplab/api/notifications/read-all", postNotificationsReadAll).Bind(auth)
+	e.Router.DELETE("/zaplab/api/notifications/{id}", deleteNotification).Bind(auth)
+	e.Router.POST("/zaplab/api/notifications/purge", postNotificationsPurge).Bind(auth)
+
 	// Receipt latency
 	e.Router.GET("/zaplab/api/stats/receipt-latency", getReceiptLatency).Bind(auth)
 
