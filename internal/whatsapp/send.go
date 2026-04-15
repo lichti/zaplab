@@ -39,7 +39,9 @@ func buildContextInfo(r *ReplyInfo) *waE2E.ContextInfo {
 	}
 	if hasReply {
 		ctx.StanzaID = proto.String(r.MessageID)
-		ctx.Participant = proto.String(r.Sender.String())
+		if !r.Sender.IsEmpty() {
+			ctx.Participant = proto.String(r.Sender.String())
+		}
 		ctx.QuotedMessage = &waE2E.Message{
 			Conversation: proto.String(r.Text),
 		}

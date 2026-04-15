@@ -316,10 +316,7 @@ func parseReplyTo(r *replyToRequest) *whatsapp.ReplyInfo {
 	if r == nil || r.MessageID == "" {
 		return nil
 	}
-	senderJID, ok := whatsapp.ParseJID(r.SenderJID)
-	if !ok {
-		return nil
-	}
+	senderJID, _ := whatsapp.ParseJID(r.SenderJID) // zero JID is fine when sender is unknown
 	return &whatsapp.ReplyInfo{
 		MessageID: r.MessageID,
 		Sender:    senderJID,
