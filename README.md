@@ -1434,6 +1434,7 @@ A built-in web interface for interacting with all API features without writing a
 | **User Profile** | Update dashboard display name and email; manually trigger password changes |
 | **Presence Timeline** | Browse and filter `Presence.Online`, `Presence.Offline`, `Presence.OfflineLastSeen`, and `ChatPresence.*` events over time; per-JID summary (online/offline event counts); look-back period selector |
 | **Activity Tracker** | RTT-based device state inference (Online / Standby / Offline); feature flag toggle; three tabs — *Active Trackers* (per-JID start/stop, live state badges, 5 s auto-poll), *Contacts* (full contact list with checkboxes, Track Selected / Track All / Stop All, search, quick-select), *Probe History* (RTT table with state, median, threshold per probe) |
+| **Notification Center** | Persistent in-app alert feed for bot @mentions, Activity Tracker state changes, and webhook delivery failures; Unread / All tabs; type filter; per-notification mark-read and delete; bulk "Mark all read" and "Purge read" actions; topbar bell icon with live unread count badge; real-time delivery via the shared SSE stream |
 
 ---
 

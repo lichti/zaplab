@@ -2261,6 +2261,91 @@ GET /zaplab/api/events/recent?limit=100&type=Message
 
 ---
 
+## Notification Center
+
+### `GET /zaplab/api/notifications` 🔒
+
+Returns a paginated, filterable list of notifications.
+
+| Query param | Default | Description |
+|---|---|---|
+| `status` | `all` | `unread` \| `read` \| `all` |
+| `type` | — | Filter by type: `mention`, `tracker_state`, `webhook_failure` |
+| `limit` | 100 | Max records (1–500) |
+| `offset` | 0 | Pagination offset |
+
+**Response 200:**
+```json
+{
+  "notifications": [
+    {
+      "id": "ntf_abc123",
+      "type": "mention",
+      "title": "You were mentioned",
+      "body": "5511999990000@s.whatsapp.net in 5511900000000-group@g.us: hey @bot",
+      "entity_id": "men_record_id",
+      "entity_jid": "5511999990000@s.whatsapp.net",
+      "read_at": "",
+      "created": "2026-04-15T18:00:00Z"
+    }
+  ],
+  "total": 1,
+  "unread_count": 1
+}
+```
+
+`read_at` is empty when the notification is unread. `unread_count` is always the total unread count regardless of the `status` filter.
+
+---
+
+### `PUT /zaplab/api/notifications/:id/read` 🔒
+
+Marks a single notification as read (sets `read_at` to current UTC time).
+
+**Response 200:** `{"ok": true}`
+**Response 404:** notification not found.
+
+---
+
+### `POST /zaplab/api/notifications/read-all` 🔒
+
+Marks all unread notifications as read in a single SQL UPDATE.
+
+**Response 200:** `{"ok": true}`
+
+---
+
+### `DELETE /zaplab/api/notifications/:id` 🔒
+
+Permanently deletes a single notification record.
+
+**Response 200:** `{"ok": true}`
+**Response 404:** notification not found.
+
+---
+
+### `POST /zaplab/api/notifications/purge` 🔒
+
+Deletes all notifications where `read_at` is not empty (i.e., all read notifications).
+
+**Response 200:** `{"ok": true}`
+
+---
+
+### Notification types
+
+| `type` | Trigger | `entity_id` | `entity_jid` |
+|---|---|---|---|
+| `mention` | Bot's own JID appears in `mentions.mentioned_jid` | `mentions` record ID | sender JID |
+| `tracker_state` | Activity Tracker state changes (prev ≠ current) | session ID | tracked JID |
+| `webhook_failure` | Webhook delivery reaches `status="failed"` | `webhook_deliveries` record ID | — |
+
+### SSE real-time delivery
+
+Every `CreateNotification()` call publishes a `Notification` SSE event to all connected clients via the shared event broker. The payload matches the notification fields without `read_at` (newly created → always unread). Frontend clients receive it on the existing `/zaplab/api/events/stream` connection and update the unread badge and notification list without a separate websocket.
+
+---
+
 ## Prometheus Metrics
 
 ```

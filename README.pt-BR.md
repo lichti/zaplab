@@ -1412,6 +1412,7 @@ Interface web integrada para interagir com todos os recursos da API sem escrever
 | **Perfil do Usuário** | Atualizar nome de exibição e e-mail do dashboard; disparar troca manual de senha |
 | **Presence Timeline** | Navega e filtra eventos `Presence.Online`, `Presence.Offline`, `Presence.OfflineLastSeen` e `ChatPresence.*` ao longo do tempo; resumo por JID; seletor de período de consulta |
 | **Activity Tracker** | Inferência de estado do dispositivo por RTT (Online / Standby / Offline); toggle de feature flag; três abas — *Active Trackers* (iniciar/parar por JID, badges de estado em tempo real, auto-poll de 5 s), *Contacts* (lista completa de contatos com checkboxes, Track Selected / Track All / Stop All, busca, seleção rápida), *Probe History* (tabela RTT com estado, mediana, limiar por probe) |
+| **Notification Center** | Feed persistente de alertas in-app para @menções ao bot, mudanças de estado do Activity Tracker e falhas de entrega de webhook; abas Unread / All; filtro por tipo; marcar como lido e excluir por notificação; ações em massa "Mark all read" e "Purge read"; ícone de sino na topbar com badge de contagem de não lidas em tempo real; entrega em tempo real via stream SSE compartilhado |
 
 ---
 

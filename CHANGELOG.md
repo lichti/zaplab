@@ -17,8 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Session** — multiple WhatsApp accounts simultaneously.
 - **Dashboard Personalizável** — customizable drag-and-drop home widgets.
 - **Real-Time List Updates via SSE** — extend the SSE broker to refresh list sections without manual refresh.
-- **Notification Center** — in-app persistent alerts for configured events (mentions, tracker state changes, webhook failures).
 - **Mobile-Responsive Layout** — collapsible sidebar and stacked cards for mobile use.
+
+---
+
+## [v1.0.0-beta.11] — 2026-04-15
+
+### Added
+- **Notification Center** — in-app persistent alert system for configured event types.
+  - **Triggers (automatic):**
+    - `mention` — fires when the bot's own JID is @mentioned in any message (`is_bot=true` in `mentions` table).
+    - `tracker_state` — fires when an Activity Tracker session changes state (`Online → Standby`, `Standby → Offline`, etc.).
+    - `webhook_failure` — fires when a webhook delivery is marked `"failed"` after all retry attempts.
+  - **Persistence:** new `notifications` PocketBase collection (migration `1749000000`) with fields: `type`, `title`, `body`, `entity_id`, `entity_jid`, `read_at` (empty = unread), `data` (JSON payload).
+  - **Real-time:** `CreateNotification()` broadcasts a `Notification` SSE event to all connected clients immediately on insert; frontend receives it through the shared events watcher without a dedicated SSE connection.
+  - **API:** `GET /zaplab/api/notifications` (filter by `status=unread|read|all`, `type`, `limit`, `offset`); `PUT /zaplab/api/notifications/:id/read`; `POST /zaplab/api/notifications/read-all`; `DELETE /zaplab/api/notifications/:id`; `POST /zaplab/api/notifications/purge` (deletes all read).
+  - **Topbar bell icon** — highlighted yellow with a red unread count badge (`9+` cap) that links directly to the Notification Center section.
+  - **Sidebar link** — "Notifications" entry with inline unread counter pill.
+  - **Section UI** — tabs (Unread / All), type dropdown filter, per-notification type icon (@ mention, ⚡ tracker, ⚠ webhook), `NEW` badge for unread items, individual mark-read / delete actions, bulk "Mark all read" and "Purge read" buttons, empty state illustration.
 
 ---
 
