@@ -215,8 +215,9 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	// Media gallery
 	e.Router.GET("/zaplab/api/media/gallery", getMediaGallery).Bind(auth)
 
-	// SSE stream
+	// SSE stream + recent events list
 	e.Router.GET("/zaplab/api/events/stream", getSSEStream) // auth checked inside (supports token query param for EventSource)
+	e.Router.GET("/zaplab/api/events/recent", getRecentEvents).Bind(auth)
 
 	// Receipt latency
 	e.Router.GET("/zaplab/api/stats/receipt-latency", getReceiptLatency).Bind(auth)

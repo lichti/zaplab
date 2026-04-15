@@ -19,8 +19,11 @@ function eventsSection() {
     // ── methods ──
     async loadInitialEvents() {
       try {
-        const res = await pb.collection('events').getList(1, 100, { sort: '-created', requestKey: null });
-        this.events = res.items.map(r => ({ ...r, _isNew: false }));
+        const res  = await fetch('/zaplab/api/events/recent?limit=100', { headers: apiHeaders() });
+        const data = await res.json();
+        if (res.ok) {
+          this.events = (data.events || []).map(r => ({ ...r, _isNew: false }));
+        }
       } catch (err) {
         console.error('Failed to load events:', err);
       }
@@ -53,17 +56,23 @@ function eventsSection() {
         try {
           const evt = JSON.parse(e.data);
           // Normalise: SSEEvent has {type, data}; we need a flat record-like object.
+          const id = evt.data?.Info?.ID || evt.data?.id || crypto.randomUUID();
           const record = {
-            id:      evt.data?.Info?.ID || evt.data?.id || crypto.randomUUID(),
+            id,
             type:    evt.type,
             raw:     evt.data,
             created: new Date().toISOString(),
             _isNew:  true,
           };
-          this.events.unshift(record);
+          // Use assignment (not unshift) for explicit Alpine.js reactivity.
+          this.events = [record, ...this.events];
           setTimeout(() => {
-            const ev = this.events.find(x => x.id === record.id);
-            if (ev) ev._isNew = false;
+            const idx = this.events.findIndex(x => x.id === id);
+            if (idx !== -1) {
+              const updated = [...this.events];
+              updated[idx] = { ...updated[idx], _isNew: false };
+              this.events = updated;
+            }
           }, 3000);
         } catch (err) {
           console.error('SSE parse error:', err);

@@ -5,11 +5,51 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/lichti/zaplab/internal/whatsapp"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
+
+// getRecentEvents returns the N most recent events from the events table.
+// Query params: limit (default 100, max 500), type (optional filter).
+func getRecentEvents(e *core.RequestEvent) error {
+	limitStr := e.Request.URL.Query().Get("limit")
+	limit := 100
+	if n, err := strconv.Atoi(limitStr); err == nil && n > 0 && n <= 500 {
+		limit = n
+	}
+	typeFilter := e.Request.URL.Query().Get("type")
+
+	type row struct {
+		ID      string          `db:"id"      json:"id"`
+		Type    string          `db:"type"    json:"type"`
+		Raw     json.RawMessage `db:"raw"     json:"raw"`
+		MsgID   string          `db:"msgID"   json:"msgID"`
+		Created string          `db:"created" json:"created"`
+	}
+
+	q := pb.DB().
+		Select("id", "type", "raw", "msgID", "created").
+		From("events").
+		OrderBy("created DESC").
+		Limit(int64(limit))
+
+	if typeFilter != "" {
+		q = q.AndWhere(dbx.HashExp{"type": typeFilter})
+	}
+
+	var rows []row
+	if err := q.All(&rows); err != nil {
+		return e.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+	if rows == nil {
+		rows = []row{}
+	}
+	return e.JSON(http.StatusOK, map[string]any{"events": rows, "total": len(rows)})
+}
 
 // getSSEStream streams WhatsApp events over Server-Sent Events.
 // Auth: accepts X-API-Token header OR ?token= query param (required for browser EventSource).
@@ -19,7 +59,7 @@ func getSSEStream(e *core.RequestEvent) error {
 	apiToken := os.Getenv("API_TOKEN")
 	if apiToken != "" {
 		headerToken := e.Request.Header.Get("X-API-Token")
-		queryToken  := e.Request.URL.Query().Get("token")
+		queryToken := e.Request.URL.Query().Get("token")
 		if e.Auth == nil && headerToken != apiToken && queryToken != apiToken {
 			return e.JSON(http.StatusUnauthorized, map[string]any{"error": "unauthorized"})
 		}
