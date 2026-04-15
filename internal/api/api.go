@@ -216,7 +216,7 @@ func RegisterRoutes(e *core.ServeEvent) error {
 	e.Router.GET("/zaplab/api/media/gallery", getMediaGallery).Bind(auth)
 
 	// SSE stream
-	e.Router.GET("/zaplab/api/events/stream", getSSEStream).Bind(auth)
+	e.Router.GET("/zaplab/api/events/stream", getSSEStream) // auth checked inside (supports token query param for EventSource)
 
 	// Receipt latency
 	e.Router.GET("/zaplab/api/stats/receipt-latency", getReceiptLatency).Bind(auth)

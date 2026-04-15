@@ -12,6 +12,10 @@ function eventsSection() {
     _resizeStartY: 0,
     _resizeStartH: 0,
 
+    _sseSource:       null,
+    _sseRetryTimer:   null,
+    _sseRetryDelay:   1000,
+
     // ── methods ──
     async loadInitialEvents() {
       try {
@@ -23,21 +27,71 @@ function eventsSection() {
     },
 
     subscribeEvents() {
+      this._sseConnect();
+    },
+
+    _sseConnect() {
+      if (this._sseSource) {
+        this._sseSource.close();
+        this._sseSource = null;
+      }
+
+      const apiToken = localStorage.getItem('zaplab-api-token') || '';
+      // EventSource doesn't support custom headers — pass token as query param.
+      const url = `/zaplab/api/events/stream?token=${encodeURIComponent(apiToken)}`;
+
       this.connectionStatus = 'connecting';
-      pb.collection('events').subscribe('*', e => {
-        if (e.action === 'create') {
-          this.events.unshift({ ...e.record, _isNew: true });
+      const es = new EventSource(url);
+      this._sseSource = es;
+
+      es.addEventListener('connected', () => {
+        this.connectionStatus = 'connected';
+        this._sseRetryDelay = 1000; // reset backoff on success
+      });
+
+      es.addEventListener('message', e => {
+        try {
+          const evt = JSON.parse(e.data);
+          // Normalise: SSEEvent has {type, data}; we need a flat record-like object.
+          const record = {
+            id:      evt.data?.Info?.ID || evt.data?.id || crypto.randomUUID(),
+            type:    evt.type,
+            raw:     evt.data,
+            created: new Date().toISOString(),
+            _isNew:  true,
+          };
+          this.events.unshift(record);
           setTimeout(() => {
-            const ev = this.events.find(x => x.id === e.record.id);
+            const ev = this.events.find(x => x.id === record.id);
             if (ev) ev._isNew = false;
           }, 3000);
+        } catch (err) {
+          console.error('SSE parse error:', err);
         }
-      }).then(() => {
-        this.connectionStatus = 'connected';
-      }).catch(() => {
-        this.connectionStatus = 'disconnected';
-        setTimeout(() => this.subscribeEvents(), 3000);
       });
+
+      es.onerror = () => {
+        this.connectionStatus = 'disconnected';
+        es.close();
+        this._sseSource = null;
+        // Exponential backoff, cap at 30s
+        this._sseRetryTimer = setTimeout(() => {
+          this._sseRetryDelay = Math.min(this._sseRetryDelay * 2, 30000);
+          this._sseConnect();
+        }, this._sseRetryDelay);
+      };
+    },
+
+    _sseDisconnect() {
+      if (this._sseRetryTimer) {
+        clearTimeout(this._sseRetryTimer);
+        this._sseRetryTimer = null;
+      }
+      if (this._sseSource) {
+        this._sseSource.close();
+        this._sseSource = null;
+      }
+      this.connectionStatus = 'disconnected';
     },
 
     selectEvent(ev) {

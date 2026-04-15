@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/lichti/zaplab/internal/whatsapp"
@@ -11,9 +12,19 @@ import (
 )
 
 // getSSEStream streams WhatsApp events over Server-Sent Events.
-// Auth is required (same as other protected routes).
+// Auth: accepts X-API-Token header OR ?token= query param (required for browser EventSource).
 // Optional query param: type=EventType (filter to one event type).
 func getSSEStream(e *core.RequestEvent) error {
+	// Auth: EventSource cannot set custom headers, so we also accept ?token=
+	apiToken := os.Getenv("API_TOKEN")
+	if apiToken != "" {
+		headerToken := e.Request.Header.Get("X-API-Token")
+		queryToken  := e.Request.URL.Query().Get("token")
+		if e.Auth == nil && headerToken != apiToken && queryToken != apiToken {
+			return e.JSON(http.StatusUnauthorized, map[string]any{"error": "unauthorized"})
+		}
+	}
+
 	flusher, ok := e.Response.(http.Flusher)
 	if !ok {
 		return e.JSON(http.StatusInternalServerError, map[string]any{"error": "streaming not supported"})
