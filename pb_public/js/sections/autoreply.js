@@ -5,6 +5,8 @@ function autoReplySection() {
       rules:   [],
       total:   0,
       loading: false,
+      saving:  false,
+      loaded:  false,
       error:   '',
       toast:   null,
     },
@@ -45,6 +47,7 @@ function autoReplySection() {
         this.ar.error = err.message;
       } finally {
         this.ar.loading = false;
+        this.ar.loaded  = true;
       }
     },
 
@@ -85,8 +88,8 @@ function autoReplySection() {
 
     async arSave() {
       if (!this.arForm.name) return;
-      this.ar.loading = true;
-      this.ar.toast   = null;
+      this.ar.saving = true;
+      this.ar.toast  = null;
       try {
         const url    = this.arEditId
           ? `/zaplab/api/auto-reply-rules/${this.arEditId}`
@@ -98,14 +101,14 @@ function autoReplySection() {
           body:    JSON.stringify(this.arForm),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed');
         this.ar.toast   = { type: 'success', text: this.arEditId ? 'Rule updated.' : 'Rule created.' };
         this.arShowForm = false;
         await this.arLoad();
       } catch (err) {
         this.ar.toast = { type: 'error', text: err.message };
       } finally {
-        this.ar.loading = false;
+        this.ar.saving = false;
       }
     },
 

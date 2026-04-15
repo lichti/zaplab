@@ -11391,7 +11391,7 @@
            AUTO-REPLY RULES
       ═══════════════════════════════════════════════════════════════ -->
       <div x-show="activeSection === 'auto-reply'" class="h-full overflow-y-auto"
-           x-effect="if (activeSection === 'auto-reply' && ar.rules.length === 0 && !ar.loading) arLoad()">
+           x-effect="if (activeSection === 'auto-reply' && !ar.loaded && !ar.loading) arLoad()">
         <div class="p-4 max-w-4xl mx-auto space-y-4">
           <div class="flex items-center justify-between">
             <div>
@@ -11510,7 +11510,7 @@
             </div>
 
             <div class="flex gap-2 pt-2">
-              <button @click="arSave()" :disabled="!arForm.name || ar.loading" class="px-4 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">Save</button>
+              <button @click="arSave()" :disabled="!arForm.name || ar.saving" class="px-4 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">Save</button>
               <button @click="arShowForm=false" class="px-4 py-1.5 text-xs border dark:border-[#30363d] rounded-md dark:text-[#8b949e] hover:bg-gray-50 dark:hover:bg-[#21262d]">Cancel</button>
             </div>
           </div>
@@ -11561,7 +11561,7 @@
                     </td>
                   </tr>
                 </template>
-                <tr x-show="ar.rules.length===0 && !ar.loading">
+                <tr x-show="ar.rules.length===0 && ar.loaded">
                   <td colspan="7" class="px-3 py-6 text-center text-gray-400 dark:text-[#8b949e]">No rules — click "+ New Rule" to create one.</td>
                 </tr>
               </tbody>
