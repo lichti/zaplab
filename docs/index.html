@@ -35,7 +35,7 @@
     <!-- Hero Section -->
     <section class="max-w-7xl mx-auto px-8 pt-20 pb-32 text-center md:text-left grid md:grid-cols-2 gap-16 items-center">
         <div>
-            <span class="inline-block px-4 py-1.5 mb-6 text-xs font-bold uppercase tracking-widest text-sky-400 bg-sky-400/10 rounded-full">v1.0.0-beta.6 Available</span>
+            <span class="inline-block px-4 py-1.5 mb-6 text-xs font-bold uppercase tracking-widest text-sky-400 bg-sky-400/10 rounded-full">v1.0.0-beta.9 Available</span>
             <h1 class="text-5xl md:text-7xl font-extrabold mb-8 leading-[1.1]">
                 The <br>
                 <span class="gradient-text">WhatsApp Toolkit</span> <br>
@@ -58,6 +58,58 @@
         <div class="relative group">
             <div class="absolute -inset-1 bg-gradient-to-r from-sky-500 to-indigo-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
             <img src="images/hero.png" alt="ZapLab Dashboard" class="relative rounded-2xl border border-white/10 shadow-2xl">
+        </div>
+    </section>
+
+    <!-- What's New in beta.9 -->
+    <section class="py-20 bg-slate-950/80 border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-8">
+            <div class="text-center mb-12">
+                <span class="inline-block px-3 py-1 text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 rounded-full mb-4">What's New in beta.9</span>
+                <h2 class="text-3xl md:text-4xl font-bold tracking-tight">11 features. 1 performance overhaul.</h2>
+            </div>
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-sky-500/30 transition-all">
+                    <div class="text-sky-400 mb-3"><i class="fa-solid fa-robot text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Auto-Reply Rules</h4>
+                    <p class="text-slate-500 text-sm">Priority-ordered rules with condition chains (text pattern, sender, chat, hour window) and reply/webhook/script actions.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-emerald-500/30 transition-all">
+                    <div class="text-emerald-400 mb-3"><i class="fa-solid fa-clock text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Scheduled Messages</h4>
+                    <p class="text-slate-500 text-sm">Queue messages for future delivery. Minute-tick worker fires pending sends with full status lifecycle tracking.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-indigo-500/30 transition-all">
+                    <div class="text-indigo-400 mb-3"><i class="fa-solid fa-chart-line text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Prometheus Metrics</h4>
+                    <p class="text-slate-500 text-sm">Public <code>/metrics</code> endpoint: connection state, event queue depth, receipt latency p50/p95, delivery stats.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-amber-500/30 transition-all">
+                    <div class="text-amber-400 mb-3"><i class="fa-solid fa-bolt text-xl"></i></div>
+                    <h4 class="font-bold mb-2">DB Performance</h4>
+                    <p class="text-slate-500 text-sm">7 composite indexes, 12 redundant indexes removed, 64 MB cache, partial msgID index. Frames module queries: 3× faster.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-rose-500/30 transition-all">
+                    <div class="text-rose-400 mb-3"><i class="fa-solid fa-face-smile text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Reaction Tracking</h4>
+                    <p class="text-slate-500 text-sm">Encrypted reactions decrypted and persisted. Stats: top emojis and top reactors per chat.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-sky-500/30 transition-all">
+                    <div class="text-sky-400 mb-3"><i class="fa-solid fa-at text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Mention Tracker</h4>
+                    <p class="text-slate-500 text-sm">Every @mention logged with <code>is_bot</code> flag detection and per-JID stats.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-emerald-500/30 transition-all">
+                    <div class="text-emerald-400 mb-3"><i class="fa-solid fa-shield text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Webhook HMAC + Retry</h4>
+                    <p class="text-slate-500 text-sm">SHA-256 request signing, exponential retry (0 s → 5 s → 25 s), and a full delivery log per attempt.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-white/5 rounded-2xl p-6 hover:border-indigo-500/30 transition-all">
+                    <div class="text-indigo-400 mb-3"><i class="fa-solid fa-address-book text-xl"></i></div>
+                    <h4 class="font-bold mb-2">Contact Cache</h4>
+                    <p class="text-slate-500 text-sm">Live contact info cached asynchronously. Searchable via API with populate, refresh, and delete operations.</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -120,30 +172,37 @@
                 <img src="images/hero.png" alt="Automation UI" class="relative rounded-2xl border border-white/5 shadow-2xl">
             </div>
             <div class="order-1 md:order-2">
-                <h2 class="text-4xl md:text-5xl font-bold mb-8 tracking-tight">Dynamic Webhook Routing</h2>
+                <h2 class="text-4xl md:text-5xl font-bold mb-8 tracking-tight">Automation & Integrations</h2>
                 <p class="text-lg text-slate-400 mb-8 leading-relaxed">
-                    Don't just receive events—route them intelligently. ZapLab features a advanced webhook system that allows you to dispatch data based on event types or text patterns.
+                    From intelligent routing to full bot logic — ZapLab gives you the building blocks to automate any WhatsApp workflow without writing a custom service.
                 </p>
                 <div class="space-y-6">
                     <div class="flex gap-4">
-                        <div class="mt-1 text-sky-400"><i class="fa-solid fa-circle-nodes"></i></div>
+                        <div class="mt-1 text-sky-400"><i class="fa-solid fa-robot"></i></div>
                         <div>
-                            <h4 class="font-bold text-white mb-1">Event-Type Filtering</h4>
-                            <p class="text-slate-500 text-sm">Route specific messages (e.g., ImageMessage) or wildcards (e.g., Message.*) to different endpoints.</p>
+                            <h4 class="font-bold text-white mb-1">Auto-Reply Rules Engine</h4>
+                            <p class="text-slate-500 text-sm">Priority-ordered rules with condition chains (text pattern, sender, hour window) and reply / webhook / script actions. No code required.</p>
                         </div>
                     </div>
                     <div class="flex gap-4">
-                        <div class="mt-1 text-emerald-400"><i class="fa-solid fa-magnifying-glass"></i></div>
+                        <div class="mt-1 text-emerald-400"><i class="fa-solid fa-circle-nodes"></i></div>
                         <div>
-                            <h4 class="font-bold text-white mb-1">Text-Pattern Matching</h4>
-                            <p class="text-slate-500 text-sm">Trigger webhooks based on content match (prefix, contains, exact) with sender filtering.</p>
+                            <h4 class="font-bold text-white mb-1">Webhook Routing + HMAC Signing</h4>
+                            <p class="text-slate-500 text-sm">Route by event type or text pattern. Every outgoing request is HMAC-SHA256 signed and retried with exponential backoff. Full delivery log included.</p>
                         </div>
                     </div>
                     <div class="flex gap-4">
-                        <div class="mt-1 text-indigo-400"><i class="fa-solid fa-robot"></i></div>
+                        <div class="mt-1 text-indigo-400"><i class="fa-solid fa-code"></i></div>
                         <div>
-                            <h4 class="font-bold text-white mb-1">Ready for n8n</h4>
-                            <p class="text-slate-500 text-sm">Perfectly integrated with n8n and other automation tools for complex workflows.</p>
+                            <h4 class="font-bold text-white mb-1">JavaScript Scripting Sandbox</h4>
+                            <p class="text-slate-500 text-sm">Write and run scripts with full WhatsApp API access: send messages, query the DB, call external HTTP endpoints, and trigger on any event.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="mt-1 text-amber-400"><i class="fa-solid fa-clock"></i></div>
+                        <div>
+                            <h4 class="font-bold text-white mb-1">Scheduled Messages</h4>
+                            <p class="text-slate-500 text-sm">Queue messages for any future time. Minute-tick worker dispatches pending sends automatically — integrates with n8n and other tools.</p>
                         </div>
                     </div>
                 </div>

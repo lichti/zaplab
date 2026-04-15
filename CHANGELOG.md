@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Dev]
+## [v1.0.0-beta.9] — 2026-04-14
 
 ### Added
 - **Auto-Reply Rules Engine** — automated response system for incoming messages. Rules are evaluated in priority order (lowest number first); each rule has independent conditions and a configurable action.
